@@ -1,5 +1,7 @@
-Giulius ("julius") is a collection of several projects for loading configuration files, binding them using 
-Guice and writing boilerplate-free JUnit tests of Guice code.
+Giulius ("julius") is a collection of several projects for loading configuration files, binding them using Guice and writing boilerplate-free JUnit tests of Guice code.  Read the 
+<a href="https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/package-summary.html">javadoc here</a>.
+
+Builds and a Maven repository containing this project can be <a href="https://timboudreau.com/builds/">found on timboudreau.com</a>.
 
   * A toolkit for loading Properties files (or URLs) and mapping them with Guice's ``@Named``
      * Inject configuration values using ``@Named("foo")``
