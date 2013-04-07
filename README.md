@@ -53,13 +53,13 @@ these as numbers or strings:
 
 Then ensure defaults are injected.  The easy way is to wrapper the injector in a [Dependencies](https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/Dependencies.html), which offers a few additional useful features (if you don't control injector creation, you can create a Dependencies and call ``createBindings()`` to get a Guice module you can include).
 
-   Dependencies deps = Dependencies.builder().addDefaultSettings().build();
-   MyServer server = deps.getInstance(MyServer.class);
+    Dependencies deps = Dependencies.builder().addDefaultSettings().build();
+    MyServer server = deps.getInstance(MyServer.class);
 
 If you then create a file named ``defaults.properties`` in the process' working directory or
 your home directory, and add
 
-   port=8234
+    port=8234
 
 Then the value from the annotation will be ignored and this one will be used.  There are many options for affecting what and how and from where settings are loaded - ``defaults.properties``
 is just a default value.
