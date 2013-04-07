@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    </head>
+    <body>
+        This package works hand-in-hand with the Guicy configuration-meets-guice
+        framework to make it dead-simple to write tests.
+        <p/>
+        Essentially you write your unit tests just as you did before, but
+        <i>they can have arguments.</i>  Those arguments will be constructed
+        by Guice and passed in, by a custom JUnit test runner.  Everything
+        else about JUnit is exactly the same.
+        <p/>
+        To enable this functionality you need to either:
+        <ul>
+            <li>Subclass <code>GuiceTest</code>, or annotate your test class with
+                <code>&#064;RunWith(GuiceRunner.class)</code></li>
+            <li>Specify some modules, using the <code>&#064;TestWith</code> 
+                annotations.  Guice modules that will be automatically
+                instantiated by the test harness need to follow a 
+                simple rule:
+                <ul>
+                    <li>
+                        The module must either have a default, no argument constructor, or
+                    </li>
+                    <li>The module must have a constructor that takes a single argument of <code>Configuration</code>
+                        (for things that should sanity-check their configuration on startue)
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        For example:
+        <pre>
+@RunWith(GuiceRunner.class)
+@TestWith (MyTest.MyModule.class)
+public class MyTest {
+    
+    static class MyModule extends AbstractModule {
+        public void configure() {
+            bind (StringBuilder.class).toInstance(new StringBuilder("hello"));
+        }
+    }
+
+    @Test
+    public void test(StringBuilder sb) {
+        assertEquals("hello", sb.toString());
+    }
+}
+        </pre>
+        <code>Configuration</code> (for binding strings and integers accessed
+        using Guice's <code>&#064;Named</code>) is automatically loaded from
+        the classpath - auto-loading any resources on the classpath
+        in <code>com/mastfrog/defaults.properties</code>.  In addition,
+        any defaults specified using the annotation <code>&#064;Defaults</code>
+        are loaded.  Finally, if a resource exists on the classpath with the
+        same name and path as the test class (e.g. com/mycom/FooTest.java will
+        automatically locate any com/mycom/FooTest.properties files).
+        <p/>
+        Additional configuration files to load before running a test 
+        may be specified using the 
+        &#064;Configurations annotation.
+        
+        
+        <h2>Advanced Usage</h2>
+        Both the <code>&#064;TestWith</code> and <code>&#064;Configurations</code>
+        annotations can be applied to either the test method or the test class
+        or both.  So:
+        <ul>
+            <li>
+                If a set of Guice modules should be used to configure injection for
+                all of the test methods, annotate the class with, e.g.
+                <code>&#064;TestWith({Module1.class, Module2.class}</code>
+            </li>
+            <li>
+                If the modules needed by various tests in a test class do not
+                overlap, annotate the test methods with &#064;TestWith to specify
+                modules for individual tests
+            </li>
+            <li>
+                If some modules are common and some are per-test, annotate
+                both to provide the right combination
+            </li>
+        </ul>
+        
+        <h3>Running the same test with multiple configurations</h3>
+        The <code>&#064;TestWith</code> annotation supports another parameter,
+        <i>iterate</i>, e.g.
+        <pre>iterate={ImplAModule.class, ImplBModule.class}</pre>
+        <p/>
+        The purpose of it is to be able to write a single test, but then run
+        it against multiple implementations - so, for example, if you deploy
+        against both Derby and H2 databases, you can write one module that
+        binds to each, and then write a single test, e.g.
+        <pre>
+&#064;TestWith (value=MyAppModule.class, iterate={ImplAModule.class, ImplBModule.class})
+public class DatabaseTest {
+    @Test
+    public void testDatabaseSchemaIsSane(Connection databaseConnection) { ... }
+}
+        </pre>
+        As with the single-test case, you can specify a combination of modules
+        for both the class and the test method - which will result in
+        <i>all possible combinations of these modules being run</i>, which can
+        take a while.  So use with care.
+        
+        
+    </body>
+</html>

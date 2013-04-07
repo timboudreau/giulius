@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    </head>
+    <body>
+        <h1>Guicy</h1>
+        This package contains a tiny framework which sits on top of Guice and 
+        allows configuration to be done using properties files.  It uses 
+        Apache Commons Configuration under the hood, so configuration can
+        come from wherever the implementation gets it.
+        
+        <h2>Why not use plain Guice</h2>
+        Actually, if you're using this, you are.  The only difference is 
+        that it standardizes how configuration is loaded.
+        
+        <h2>What it does</h2>
+        Guice has a way of specifying specific instances of things to inject,
+        using the &#064;Named annotation, e.g.
+        <pre>
+            public class MyServer {
+                MyServer (@Named("port") int port, @Named("baseUrl") String url) {
+                    ...
+                }
+            }
+        </pre>
+        Needless to say, when we get to the level of what port to open and
+        what base URL to use, we are at the point of things which should not
+        be hard-coded into Java code.
+        <p/>
+        The good thing about Guice is that wherever it is straightforward to
+        do something with simple Java code, you can.  By being
+        laser-focused on the dependency injection issue, it leaves open the
+        question of configuration - which definitely needs to come from
+        somewhere.  This library is one solution to that problem.
+        <p/>
+        You initialize Guice in the usual way, by passing it a bunch of
+        Guice <code>Module</code>s which bind the interfaces which you code
+        to to implementations of those interfaces.  The main difference is that
+        you will do it by instantiating an instance of <code>Dependencies</code>
+        and letting it take care of actual Guice initialization:
+        <pre>
+Dependencies deps = new Dependencies (new ModuleA(), new ModuleB());
+Server server = deps.getInstance(Server.class);
+server.start();
+        </pre>
+        <p/>
+        Default configuration is done using the ClasspathConfiguration to
+        create an Apache Commons Configuration object.  Values from that are
+        used to populate Java primitives which Guice should inject that use
+        the &#064;Named annotation.
+        
+        <h3>Shutdown Hooks</h3>
+        ShutdownHookRegistry allows you to register runnables to be run on
+        orderly VM shutdown, or whenever <code>Dependencies.shutdown()</code> 
+        is called (for example, when a servlet is unloaded or after a test
+        is complete).  Use this to close connections and files and such.
+        
+        <h3>Scopes</h3>
+        One of the more powerful features of Guice is scopes.  A scope is 
+        really a binding for a bunch of ThreadLocals, which Guice can use to
+        look up and inject objects of particular types.
+        <p/>
+        This library includes base classes for single-entry and reentrant scopes,
+        and for wrapping ExecutorService thread pools such that the context
+        something was submitted in is reconstructed before it is run.  This
+        can serve as the basis for additional frameworks on top of Guice, such
+        as Propeller.
+    </body>
+</html>
