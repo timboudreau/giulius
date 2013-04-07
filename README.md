@@ -11,7 +11,7 @@ Builds and a Maven repository containing this project can be <a href="https://ti
   * A toolkit for loading Properties files (or URLs) and mapping them with Guice's ``@Named``
      * Inject configuration values using ``@Named("foo")``
      * Provide default values using ``@Defaults("foo=bar")`` - processed into files in ``META-INF/settings`` so the system can always function without a configuration file
-     * Override default values in files named ``/etc/defaults.properties``, ``~/defaults.properties``, ``./defaults.properties`` (you can choose the file name)
+     * Override default values in files named ``/etc/defaults.properties``, ``~/defaults.properties``, ``./defaults.properties`` (you can choose the file name or even have multiple files)
      * Specify the name of the properties file to look in using ``@Namespace`` on the file or package
      * Defaults can also be loaded from a remote URL
      * Optionally specify polling interval for reloading configuration from files or URLs
@@ -26,7 +26,7 @@ Builds and a Maven repository containing this project can be <a href="https://ti
          @Test
          public void guiceTest ( InjectedThing thing ) { ... }
 
-The idea is to make it easy to specify machine-specific configuration for an application in vanilla properties files.
+The idea is to make it easy to specify machine-specific configuration for an application in vanilla properties files, and optionally layer up those files to have machine-specific, user-specific and process-specific settings.
 
 ## Usage
 --------
