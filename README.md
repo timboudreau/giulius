@@ -33,6 +33,7 @@ The idea is to make it easy to specify machine-specific configuration for an app
 
 Add the Maven repository <a href="https://timboudreau.com/builds/">here</a> into your build
 file, and add a dependency 
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius</artifactId>
