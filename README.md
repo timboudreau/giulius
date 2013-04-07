@@ -1,7 +1,12 @@
+Giulius
+-------
+
 Giulius ("julius") is a collection of several projects for loading configuration files, binding them using Guice and writing boilerplate-free JUnit tests of Guice code.  Read the 
 <a href="https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/package-summary.html">javadoc here</a>.
 
 Builds and a Maven repository containing this project can be <a href="https://timboudreau.com/builds/">found on timboudreau.com</a>.
+
+### Features
 
   * A toolkit for loading Properties files (or URLs) and mapping them with Guice's ``@Named``
      * Inject configuration values using ``@Named("foo")``
@@ -15,11 +20,20 @@ Builds and a Maven repository containing this project can be <a href="https://ti
   * A Guicified JUnit test runner which allows tests to be written very simply
      * Specify ``@RunWith(GuiceRunner.class)`` on the test class
      * Specify Guice modules using ``@TestWith ( ModuleA.class, ModuleB.class )``
-     * Configuration defaults loaded from ``$PACKAGE/$TEST_NAME.properties`` or can be specified in annotations
+     * Load default ``@Named`` values from ``$PACKAGE/$TEST_NAME.properties`` or can be specified in annotations
      * Write normal JUnit test methods, but with arguments:
 
          @Test
          public void guiceTest ( InjectedThing thing ) { ... }
 
 The idea is to make it easy to specify machine-specific configuration for an application in vanilla properties files.
+
+## Projects
+
+The following projects are here:
+
+  * giulius - The core framework that binds ``@Named`` to the contents of properties files, provides builders for Guice injectors and a few other features
+  * giulius-settings - A mini-framework for loading properties from an ordered set of properties files or URLs with properties-format data at the end of it
+  * giulius-tests - The JUnit runner that eliminates boilerplate in setting up unit tests of injected objects
+  * maven-merge-configuration - Merges all ``.properties`` files in ``META-INF/settings`` on the compile classpath into the current project's classes output directory.  Giulius' annotation processor writes files there, but if you want to build a marged executable JAR file, something needs to merge the defaults from all such files.
 
