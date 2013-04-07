@@ -4,7 +4,7 @@
     <parent>
         <artifactId>giulius-parent</artifactId>
         <groupId>com.mastfrog</groupId>
-        <version>1.3.3</version>
+        <version>1.3.4</version>
     </parent>
     <name>Giulius Tests</name>
     <modelVersion>4.0.0</modelVersion>
