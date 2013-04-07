@@ -17,14 +17,6 @@ Builds and a Maven repository containing this project can be <a href="https://ti
      * Optionally specify polling interval for reloading configuration from files or URLs
   * The `resources` project, which provides a similar model for loading ad-hoc files, for legacy projects that need to inject the contents of files from disk from a variety of folders, without making too many assumptions about layout on disk
   * A Maven plugin for merging properties files generated from ``@Defaults``, for building single-JAR applications
-  * A Guicified JUnit test runner which allows tests to be written very simply
-     * Specify ``@RunWith(GuiceRunner.class)`` on the test class
-     * Specify Guice modules using ``@TestWith ( ModuleA.class, ModuleB.class )``
-     * Load default ``@Named`` values from ``$PACKAGE/$TEST_NAME.properties`` or can be specified in annotations
-     * Write normal JUnit test methods, but with arguments:
-
-         @Test
-         public void guiceTest ( InjectedThing thing ) { ... }
 
 The idea is to make it easy to specify machine-specific configuration for an application in vanilla properties files, and optionally layer up those files to have machine-specific, user-specific and process-specific settings.
 
@@ -79,6 +71,8 @@ The following projects are here:
 ### Credits
 
 Many of the concepts represented here were inspired by (and in some cases, named identically to) mini-frameworks [Eelco Hillenius](https://github.com/chillenious) did when we worked together a few years ago, which were too nice to live without, leading me to build similar things from scratch.
+
+[Greg Bolella](https://www.facebook.com/greg.bollella), of Real-Time Java fame, gets credit for suggesting the name.
 
 ### License
 
