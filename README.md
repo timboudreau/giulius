@@ -72,7 +72,7 @@ The following projects are here:
 
 Many of the concepts represented here were inspired by (and in some cases, named identically to) mini-frameworks [Eelco Hillenius](https://github.com/chillenious) did when we worked together a few years ago, which were too nice to live without, leading me to build similar things from scratch.
 
-[Greg Bolella](https://www.facebook.com/greg.bollella), of Real-Time Java fame, gets credit for suggesting the name.
+[Greg Bollella](https://www.facebook.com/greg.bollella), of Real-Time Java fame, gets credit for suggesting the name.
 
 ### License
 
