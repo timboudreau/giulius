@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>mastfrog-parent</artifactId>
-        <version>1.3.5</version>
+        <version>1.3.6-SNAPSHOT</version>
     </parent>
     <name>Giulius Parent</name>
     <description>Guice + Configuration tools</description>
