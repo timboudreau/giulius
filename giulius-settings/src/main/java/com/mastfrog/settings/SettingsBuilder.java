@@ -24,6 +24,7 @@
 package com.mastfrog.settings;
 
 import com.mastfrog.util.Checks;
+import com.mastfrog.util.ConfigurationError;
 import com.mastfrog.util.Streams;
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,6 +40,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimerTask;
@@ -132,7 +134,7 @@ public final class SettingsBuilder {
     private String getDefaultLocation() {
         return DEFAULT_PATH + namespace + DEFAULT_EXTENSION;
     }
-    
+
     public SettingsBuilder add(SettingsBuilder sb) {
         this.all.addAll(sb.all);
         return this;
@@ -168,9 +170,9 @@ public final class SettingsBuilder {
     }
 
     /**
-     * Look up settings files matching the pattern $NAMESPACE.properties in
-     * the process working directory.
-     * 
+     * Look up settings files matching the pattern $NAMESPACE.properties in the
+     * process working directory.
+     *
      * @return this
      */
     public SettingsBuilder addDefaultsFromProcessWorkingDir() {
@@ -270,7 +272,7 @@ public final class SettingsBuilder {
                 .addDefaultsFromUserHome()
                 .addDefaultsFromProcessWorkingDir();
     }
-    
+
     public SettingsBuilder addLocation(File directory) {
         if (directory.exists() && !directory.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + directory);
@@ -429,6 +431,69 @@ public final class SettingsBuilder {
             b.ref = ref;
         }
         return result;
+    }
+
+    /**
+     * Parse command line arguments ala
+     * <code>--foo</code> translating to a setting of foo=true or
+     * <code>--foo 23</code> translating to a setting of foo=23.
+     *
+     * @param args
+     * @return
+     */
+    public SettingsBuilder parseCommandLineArguments(String... args) {
+        return parseCommandLineArguments(Collections.<Character, String>emptyMap(), args);
+    }
+
+    /**
+     * Parse command line arguments ala
+     * <code>--foo</code> translating to a setting of foo=true or
+     * <code>--foo 23</code> translating to a setting of foo=23.
+     * <p/>
+     * The passed map can map individual characters - i.e. short arguments such
+     * as making -f equivalent to --foo, or -fb equivalent to --foo --bar
+     *
+     * @param args a mapping of short to long args
+     * @return this
+     */
+    public SettingsBuilder parseCommandLineArguments(Map<Character, String> mapping, String... args) {
+        if (args == null || args.length == 0) {
+            return this;
+        }
+        String last = null;
+        Properties p = new Properties();
+        for (String arg : args) {
+            if (arg.startsWith("--") && arg.length() > 2 && arg.charAt(2) != '-') {
+                if (last != null) {
+                    p.setProperty(last, "true");
+                }
+                last = arg.substring(2);
+            } else if (arg.length() >= 2 && arg.charAt(0) == '-' && arg.charAt(1) != '-') {
+                String sub = arg.substring(1);
+                for (char c : sub.toCharArray()) {
+                    String val = mapping.get(c);
+                    if (val != null) {
+                        if (last != null) {
+                            p.setProperty(last, "true");
+                        }
+                        last = val;
+                    } else {
+                        throw new ConfigurationError("Unknown short arg " + c + " - known args are " + mapping.keySet());
+                    }
+                }
+            } else {
+                if (last != null) {
+                    p.setProperty(last, arg);
+                    last = null;
+                } else {
+                    throw new ConfigurationError("Dangling argument " + arg);
+                }
+            }
+        }
+        if (last != null) {
+            p.setProperty(last, "true");
+        }
+        return p.isEmpty() ? this : add(p);
     }
 
     /**
