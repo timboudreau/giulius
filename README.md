@@ -2,7 +2,7 @@ Giulius
 -------
 
 Giulius ("julius") is a collection of several projects for loading configuration files, binding them using Guice and writing boilerplate-free JUnit tests of Guice code.  Read the 
-<a href="https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/package-summary.html">javadoc here</a>.
+<a href="https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/package-summary.html">javadoc here</a>;  or [scroll down for the tutorial](#introduction--tutorial)
 
 Builds and a Maven repository containing this project can be <a href="https://timboudreau.com/builds/"> found on timboudreau.com</a>.
 
@@ -25,15 +25,18 @@ The idea is to make it easy to specify machine-specific configuration for an app
 Add the Maven repository <a href="https://timboudreau.com/builds/">here</a> into your build
 file, and add a dependency 
 
+```xml
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius</artifactId>
             <version>1.3.4</version> <!-- check what the latest version is! -->
         </dependency>
+```
 
 Now, say you have a class which needs a value someone might want to change injected into it - annotate it with ``@Defaults`` and a default value that can be overridden.  You can inject
 these as numbers or strings:
 
+```java
     @Defaults("port=8080")
     public class MyServer {
        private final int port;
@@ -42,11 +45,14 @@ these as numbers or strings:
           this.port = port;
        }
     }
+```
 
 Then ensure defaults are injected.  The easy way is to wrapper the injector in a [Dependencies](https://timboudreau.com/builds/job/giulius/lastSuccessfulBuild/artifact/giulius/target/site/apidocs/com/mastfrog/giulius/Dependencies.html), which offers a few additional useful features (if you don't control injector creation, you can create a Dependencies and call ``createBindings()`` to get a Guice module you can include).
 
+```java
      Dependencies deps = Dependencies.builder().addDefaultSettings().build();
      MyServer server = deps.getInstance(MyServer.class);
+```
 
 If you then create a file named ``defaults.properties`` in the process' working directory or
 your home directory, and add
@@ -75,7 +81,7 @@ Many of the concepts represented here were inspired by (and in some cases, named
 
 ### License
 
-MIT License
+MIT License - do what thou wilt, give credit where it's due
 
 Introduction & Tutorial
 =======================
@@ -115,7 +121,7 @@ count the number of times in developing these libraries that having a huge test
 suite has saved me from committing code I thought should work but which had
 subtle problems.
 
-Code is an investment of time and work.  Tests do is, they make it possible to 
+Code is an investment of time and work.  Tests make it possible to 
 keep that investment.  Code which is covered by tests
 is hard to break with future changes because (with Maven) 
 you know that something is broken as soon as you try to compile.
@@ -153,7 +159,8 @@ libraries is as simple as declaring a dependency on them:
         </dependency>
 
 For the test code in this document, it's probably simplest to depend on all 
-three.
+three.  Check what the latest version is - it was ``1.3.6-SNAPSHOT`` when
+this document was last updated on 7 May 2013.
 
 Using Settings
 ==============
@@ -185,6 +192,13 @@ no-fuss interface to key/value pairs.
     }
 ```
 
+There are plenty of similar settings interfaces (which can in fact be adaptered
+to ``Settings`` very easily);  the key distinction about Settings is that it
+does not have mutator methods.  That doesn't mean the contents of a Settings can't
+change, just that if you want that to happen, the code that does that is probably
+not the code that also consumes the settings - and if it is, that indicates a 
+design problem.
+
 Note that ``Settings`` does not do magic:  If you have a setting stored as "foo"
 and you call `Settings.getInt` on it, you will get a `NumberFormatException`.
 Generally these are fail-fast when used with Guice, meaning that if the settings
@@ -200,8 +214,10 @@ during initialization.
 
 Here's a simple example:
 
+```java
     Settings settings = new SettingsBuilder().addSystemProperties().build();
     String home = settings.getString("user.home");
+```
 
 This isn't that exciting, since we've just traded a call to `System.getProperty("user.home")`
 for a call to `Settings.getString()`.  So what else can you do with Settings?
@@ -214,6 +230,7 @@ allow you to stack up multiple sources of settings.  When you call `Settings.get
 the last one you added is consulted first, followed by the next-to-last, and so forth.
 You can try this out with some `Properties` objects:
 
+```java
     Properties a = new Properties();
     a.setProperty("hello", "Hello world");
     Properties b = new Properties();
@@ -221,6 +238,7 @@ You can try this out with some `Properties` objects:
 
     Settings settings = new SettingsBuilder().add(a).add(b).build();
     System.out.println(settings.getString("hello"));
+```
 
 The result of this code will be the output
 
@@ -269,6 +287,10 @@ Finally, there is simply `SettingsBuilder.createDefault()` which gets you a stan
         if (homeDefaults.exists()) {
             b = b.add(homeDefaults);
         }
+
+So, you take a ``SettingsBuilder`` and build up a Settings object which merges together whatever sources of
+settings you want;  then you pass that into Giulius ``Dependencies`` to get Guice to bind the values in
+the settings.
 
 Using Annotations to Specify Settings
 -------------------------------------
@@ -346,6 +368,7 @@ details of how it is initialized are encapsulated;  usually there is a synchroni
 block so that two callers on different threads do not initialize two instances
 at the same time.
 
+```java
     public class FooService {
         private static FooService INSTANCE;
         public static FooService get() {
@@ -357,17 +380,18 @@ at the same time.
         }
         public void doSomething() { ... }
     }
+```
 
 This works, but it has some problems:
 
- - There is only one way FooService can get initialized, and that has to be the
-same way it is initialized in production. So if FooService needs a message queue and
+ - There is only one way ``FooService`` can get initialized, and that has to be the
+same way it is initialized in production. So if ``FooService`` needs a message queue and
 a database, then any unit test, no matter how trivial, will need those things
-running.  The typical result is that any use of FooService discourages test writing
+running.  The typical result is that any use of ``FooService`` discourages test writing
 for all code that calls it - since it makes the code untestable without heroic efforts.  If
-FooService is the heart of the system, it will discourage having tests throughout the whole thing.
+``FooService`` is the heart of the system, it will discourage having tests throughout the whole thing.
  - Synchronizing on every call is not very nice - it will limit paralellism (you could use `volatile` and [double-checked locking](http://en.wikipedia.org/wiki/Double-checked_locking) to eliminate that
- - It ties every caller directly to the implementation type - the author is forever limited to making FooService be better, and locked out of making a better FooService
+ - It ties every caller directly to the implementation type - the author is forever limited to making FooService be better, and locked out of making a better ``FooService``
  - It gets initialized on a first-come, first-served basis - so it is not at all obvious 
 who initializes it.  And if it is misconfigured, the application may be running for a long
 time before it shows any sign that something is terribly wrong.
@@ -382,14 +406,16 @@ the same VM, and not have them be able to interfere with, or even see each other
 The typical fix for this problem is to [separate interface and implementation)[http://c2.com/cgi/wiki?SeparateInterfacesFromImplementation].
 That looks like this:
 
+```java
     public interface FooService {
         void doSomething();
     }
 
     public class FooServiceImpl implements FooService { ... }
+```
 
-This gets a lot farther - code that cares about FooService doesn't need to know
-what implements FooService - it can simply care that there is one.  This helps
+This gets a lot farther - code that cares about ``FooService`` doesn't need to know
+what implements ``FooService`` - it can simply care that there is one.  This helps
 a lot - it is now possible to write tests against a toy implementation of 
 FooService.  So the codebase is becoming testable.
 
@@ -400,6 +426,7 @@ We haven't solved anything at all!
 At this point somebody aware they have a problem makes their first cut at
 something like dependency injection:
 
+```java
     public abstract class FooService {
         private static FooService INSTANCE;
         public static synchronized FooService getInstance() {
@@ -412,17 +439,18 @@ something like dependency injection:
             return INSTANCE;
         }
     }
+```
 
-Now something or other can set what class to use for FooService, and code
+Now something or other can set what class to use for `FooService`, and code
 that uses it doesn't have to know where it comes from.  Something still has
-to set the system property, but at least we can hide FooServiceImpl from
-being a dependency of everything that uses FooService.
+to set the system property, but at least we can hide `FooServiceImpl` from
+being a dependency of everything that uses `FooService`.
             
-What if we could initialize all the things like FooService on startup, and
+What if we could initialize all the things like `FooService` on startup, and
 code just did not have to worry about where it comes from, if it is initialized,
-or calling some getter that might or might not initialize FooService?
+or calling some getter that might or might not initialize `FooService`?
 
-What if we could find out immediately on startup if FooService could not possibly
+What if we could find out immediately on startup if `FooService` could not possibly
 run, and abort startup in time to tell a person what is happening?
 
 That is the problem (along with the others listed above) which Guice solves.
@@ -443,13 +471,16 @@ of creating whatever objects are needed to construct an instance.
  - `Module` - a Guice module specifies *bindings* - what implementation to use
 for what interface.  This takes a form such as
 
+```java
     bind(FooService.class).to(FooServiceImpl.class);
+```
 
 So there still is something which knows about both - but it is tucked away in
 a Guice module which is seen at startup and never again.  If FooServiceImpl
 takes some objects in its constructor, Guice will create those if it can.  This
 looks like this
 
+```java
     final class FooServiceImpl implements FooService {
         private final int port;
         private final LogService logService;
@@ -460,6 +491,7 @@ looks like this
         }
         ...
     }
+```
 
 Here we are doing a few things:
 
@@ -492,7 +524,9 @@ that is to give names to specific instances of things.
 
 That can be helpful for all sorts of things:
 
+```java
     FooService (@Named("requests") Logger requestLogger, @Named("debug") Logger debugLogger) {...}
+```
 
 but its primary use is for small bits of configuration - the kind of things people
 typically read from properties files - like the "port" number from the earlier 
@@ -500,7 +534,9 @@ example.
 
 Without a library to help, this is fairly cumbersome, though:
 
+```java
     bind(Integer.class).annotatedWith(Names.named("port")).toInstance(8080);
+```
 
 and it means some piece of code hard-codes a value that very likely needs to be
 configured on a per-machine basis.
@@ -513,18 +549,20 @@ automatically binds `@Named` appropriately.  It is a thin layer on top of
 Guice - it just adds one module which does property bindings, and a few other
 useful application lifecycle utilities.
 
-To use it, use the Dependencies class:
+To use it, use the `Dependencies` class:
 
+```java
     Settings settings = SettingsBuilder.createDefault().build();
     Dependencies deps = new Dependencies(s, moduleA, moduleB, moduleC);
     //Typically you ask Guice for a single entry-point class;  this bootstraps the rest of the system
     FooService service = deps.getInstance(FooService.class);
+```
 
 So, the only difference between this and vanilla Guice usage is that we're using
 a Dependencies object instead of talking directly to Guice's injector.  Dependencies
 adds just two things on top of vanilla Guice:
 
- - Binds Settings key/value pairs to `@Named` and `@Value` automatically
+ - Binds ``Settings`` key/value pairs to `@Named` and `@Value` automatically
  - Provides for lifecycle management with `ShutdownHookRegistry` - this can be used
 to de-initialize things that would other be memory leaks when the system is logically
 finished with running, whether or not the VM is actually shutting down (for example,
@@ -537,7 +575,8 @@ Namespaces
 Above we mentioned that `SettingsBuilder` can specify "namespaces" - logically
 independent settings objects which load from different places.
 
-We make this very easy to use with Dependencies, as follows:  Usually a subsystem 
+We make this very easy to use with Dependencies, as follows:  In a large application, 
+often a subsystem 
 deals with specific configuration just for it.  And particularly with legacy code,
 it may already have configuration loading code that expects that configuration to
 be isolated from the rest of the system.  You *could* just take all such configuration,
@@ -556,10 +595,10 @@ Migrating code like this can be accomplished in several phases, and at each
 phase you have code that works:
 
 1. Change the code to take an injected Settings object in its constructor instead of reading
-a file;  use SettingsBuilder.add(File) to create a `Settings` over the same
+a file;  use `SettingsBuilder.add(File)` to create a `Settings` over the same
 file you've always used;  use `Settings.toProperties()` initially to leave the
 legacy code unmodified
-2. Change the code to use a Settings object directly
+2. Change the code to use a `Settings` object directly
 3. Change the code (if practical) to use `@Named` for settings
 4. If there are commonly used values or reasonable defaults, move them into code
 using `@Defaults` and delete them from the configuration file
@@ -567,8 +606,8 @@ using `@Defaults` and delete them from the configuration file
 namespace, ensuring no collisions, and delete the `@Namespaced` annotation 
 
 
-Writing Tests with Guice
-========================
+Writing Tests with Giulius-Tests
+================================
 
 It is fairly simple to write standard unit tests with Guice - just use your
 `setUp()` method to do the incantation described above.  It just gets repetitive
@@ -596,6 +635,7 @@ or a single argument of `Settings`.
 
 So, our tests look pretty similar to ordinary JUnit tests:
 
+```java
     @TestWith(EncryptionModule.class)
     public class EncryptorTest extends GuiceTest {
         @Test
@@ -610,8 +650,44 @@ So, our tests look pretty similar to ordinary JUnit tests:
             assertEquals(toEncrypt, decrypted);
         }
     }
+```
 
 except that all of the objects and configuration needed to generate key pairs
 or read them from settings are neatly hidden behind Guice - and our test code
 gets to focus on what really matters - the thing it is there to test!
+
+``@TestWith`` can be applied to either the _test class_ or or the _test method_
+or both.  And, of course, your test classes can use ``@Inject`` - though in this
+author's opinion, parameter injection is preferable.
+
+If you have a method you want to run immediately after injection, you can annotate
+it with ``@OnInjection``.
+
+#### Advanced Testing Features
+
+Sometimes you have more than one implementation of a subsystem which needs to be
+tested, but you want to run more-or-less the same tests on several implementations.
+Giulius-Tests makes it easy to run the same test multiple times with different
+Guice modules - annotate your test
+
+```java
+        @TestWith(value = {TestHarness.Module.class},
+        iterate = {
+            ResourcesApp.ClasspathResourcesModule.class,
+            ResourcesApp.FileResourcesModule.class,
+            ResourcesApp.MergedResourcesModule.class
+        })
+```
+
+[This test](https://github.com/timboudreau/acteur/blob/master/acteur-resources/src/test/java/com/mastfrog/acteur/resources/StaticResourcesTest.java) is a working example of how to do that.
+
+In fact, if you're slightly insane, you can annotate both the test class and the
+test method with different ``iterate=`` values, and wind up testing all possible
+combinations of the sets of modules specified in both annotations (while probably
+not useful in the real world, there is a test for the test framework that proves that
+it will work correctly if you do it).
+
+
+
+
 
