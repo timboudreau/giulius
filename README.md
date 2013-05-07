@@ -403,8 +403,7 @@ a test started failing after an unrelated change).  It also limits future flexib
 there might be good reason to run instantiate two totally independent instances in
 the same VM, and not have them be able to interfere with, or even see each other.
 
-The typical fix for this problem is to [separate interface and implementation)[http://c2.com/cgi/wiki?SeparateInterfacesFromImplementation].
-That looks like this:
+The typical fix for this problem is to [separate interface and implementation](http://c2.com/cgi/wiki?SeparateInterfacesFromImplementation).  That looks like this:
 
 ```java
     public interface FooService {
@@ -655,6 +654,10 @@ So, our tests look pretty similar to ordinary JUnit tests:
 except that all of the objects and configuration needed to generate key pairs
 or read them from settings are neatly hidden behind Guice - and our test code
 gets to focus on what really matters - the thing it is there to test!
+
+If your test requires some custom ``Settings``, this is simple - put a properties
+file with the same name as the text, next to the test on the classpath and it
+will be loaded before when your tests are run.
 
 ``@TestWith`` can be applied to either the _test class_ or or the _test method_
 or both.  And, of course, your test classes can use ``@Inject`` - though in this
