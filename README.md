@@ -194,7 +194,7 @@ no-fuss interface to key/value pairs.
 
 There are plenty of similar settings interfaces (which can in fact be adaptered
 to ``Settings`` very easily);  the key distinction about Settings is that it
-does not have mutator methods.  That doesn't mean the contents of a Settings can't
+does not have mutator methods.  That doesn't mean the contents of a `Settings` can't
 change, just that if you want that to happen, the code that does that is probably
 not the code that also consumes the settings - and if it is, that indicates a 
 design problem.
@@ -390,7 +390,7 @@ a database, then any unit test, no matter how trivial, will need those things
 running.  The typical result is that any use of ``FooService`` discourages test writing
 for all code that calls it - since it makes the code untestable without heroic efforts.  If
 ``FooService`` is the heart of the system, it will discourage having tests throughout the whole thing.
- - Synchronizing on every call is not very nice - it will limit paralellism (you could use `volatile` and [double-checked locking](http://en.wikipedia.org/wiki/Double-checked_locking) to eliminate that
+ - Synchronizing on every call is not very nice - it will limit paralellism (you could use `volatile` and [double-checked locking](http://en.wikipedia.org/wiki/Double-checked_locking) to eliminate that)
  - It ties every caller directly to the implementation type - the author is forever limited to making FooService be better, and locked out of making a better ``FooService``
  - It gets initialized on a first-come, first-served basis - so it is not at all obvious 
 who initializes it.  And if it is misconfigured, the application may be running for a long
