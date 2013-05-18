@@ -554,7 +554,6 @@ public final class Dependencies {
         @Override
         public Settings get() {
             TypeLiteral<?> t = deps.prevType.get();
-            log("GOT FROM TL " + t);
             String namespace = Namespace.DEFAULT;
             if (t != null) {
                 Class<?> type = t.getRawType();
