@@ -425,8 +425,6 @@ public final class Dependencies {
                 Binder binder = binder();
                 bind(Dependencies.class).toInstance(Dependencies.this);
                 bind(ShutdownHookRegistry.class).toInstance(reg);
-                bind(Stage.class).toInstance(getStage());
-
                 Set<String> knownNamespaces = loadNamespaceListsFromClasspath();
                 log("Loaded namespaces " + knownNamespaces);
                 knownNamespaces.addAll(settings.keySet());
