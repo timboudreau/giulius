@@ -429,6 +429,18 @@ public final class Dependencies {
                 log("Loaded namespaces " + knownNamespaces);
                 knownNamespaces.addAll(settings.keySet());
                 knownNamespaces.add(Namespace.DEFAULT);
+                
+                Stage stage = getStage();
+                DeploymentMode mode;
+                switch (stage) {
+                    case PRODUCTION :
+                        mode = DeploymentMode.PRODUCTION;
+                        break;
+                    default :
+                        mode = DeploymentMode.DEVELOPMENT;
+                }
+                bind(DeploymentMode.class).toInstance(mode);
+
                 Set<String> allKeys = new HashSet<>();
                 for (String namespace : knownNamespaces) {
                     Settings s = settings.get(namespace);
