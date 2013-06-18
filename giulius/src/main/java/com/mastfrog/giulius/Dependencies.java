@@ -25,14 +25,12 @@ package com.mastfrog.giulius;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
-import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
 import com.google.inject.Stage;
 import com.google.inject.TypeLiteral;
 import com.google.inject.matcher.Matchers;
