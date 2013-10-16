@@ -4,8 +4,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.mastfrog</groupId>
-        <artifactId>giulius-parent</artifactId>
-        <version>1.3.6-SNAPSHOT</version>
+        <artifactId>mastfrog-parent</artifactId>
+        <version>1.3.7-SNAPSHOT</version>
         <relativePath/>
     </parent>
     <artifactId>maven-merge-configuration</artifactId>
