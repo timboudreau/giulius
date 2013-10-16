@@ -25,11 +25,11 @@
  */
 package com.mastfrog.giulius;
 
-import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.settings.MutableSettings;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.mastfrog.guicy.annotations.Namespace;
 import java.io.IOException;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -41,20 +41,14 @@ public class DependenciesTest {
 
     @Test
     public void testDefault() throws IOException {
-        Dependencies dependencies = new Dependencies();
+        Dependencies dependencies = Dependencies.builder().add(new SettingsBuilder().add("productionMode", "false").build(), Namespace.DEFAULT).build();
         assertFalse(dependencies.isProductionMode());
     }
 
     @Test
     public void testProductionMode() throws IOException {
-        System.setProperty("productionMode", Boolean.toString(true));
-        try {
-            Dependencies dependencies = new Dependencies();
-            assertTrue(dependencies.isProductionMode());
-            dependencies.shutdown();
-        } finally {
-            System.clearProperty("productionMode");
-        }
+        Dependencies dependencies = Dependencies.builder().add(new SettingsBuilder().add("productionMode", "true").build(), Namespace.DEFAULT).build();
+        assertTrue(dependencies.isProductionMode());
     }
 
     @Test

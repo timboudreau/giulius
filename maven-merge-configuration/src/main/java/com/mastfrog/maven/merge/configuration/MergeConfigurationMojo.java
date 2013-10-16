@@ -54,9 +54,9 @@ import org.apache.maven.project.DefaultDependencyResolutionRequest;
 import org.apache.maven.project.DependencyResolutionException;
 import org.apache.maven.project.DependencyResolutionResult;
 import org.apache.maven.project.MavenProject;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.graph.Dependency;
 import org.apache.maven.project.ProjectDependenciesResolver;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.graph.Dependency;
 
 /**
  * A Maven plugin which, on good days, merges together all properties files on
@@ -98,8 +98,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         List<File> jars = new ArrayList<>();
         try {
+            DefaultDependencyResolutionRequest req = new DefaultDependencyResolutionRequest(project, repoSession);
             DependencyResolutionResult result =
-                    resolver.resolve(new DefaultDependencyResolutionRequest(project, repoSession));
+                    resolver.resolve(req);
             log.info("FOUND " + result.getDependencies().size() + " dependencies");
             for (Dependency d : result.getDependencies()) {
                 File f = d.getArtifact().getFile();
