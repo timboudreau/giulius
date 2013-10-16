@@ -91,6 +91,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        
         Log log = super.getLog();
         log.info("Merging properties files");
         if (repoSession == null) {
@@ -98,9 +99,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         List<File> jars = new ArrayList<>();
         try {
-            DefaultDependencyResolutionRequest req = new DefaultDependencyResolutionRequest(project, repoSession);
             DependencyResolutionResult result =
-                    resolver.resolve(req);
+                    resolver.resolve(new DefaultDependencyResolutionRequest(project, repoSession));
             log.info("FOUND " + result.getDependencies().size() + " dependencies");
             for (Dependency d : result.getDependencies()) {
                 File f = d.getArtifact().getFile();
