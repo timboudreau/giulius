@@ -45,6 +45,7 @@ final class LayeredSettings implements Settings {
 
     private final Iterable<Settings> all;
     private final String ns;
+    private final boolean log = Boolean.getBoolean("settings.log");
 
     LayeredSettings(String ns, Iterable<Settings> all) {
         this.all = all;
@@ -77,6 +78,7 @@ final class LayeredSettings implements Settings {
 
     @Override
     public Integer getInt(String name) {
+        if (log) System.out.println("I: " + name);
         Integer val = null;
         for (Settings s : all) {
             val = s.getInt(name);
@@ -113,6 +115,7 @@ final class LayeredSettings implements Settings {
 
     @Override
     public String getString(String name) {
+        if (log) System.out.println("S: " + name);
         for (Settings s : all) {
             String result = s.getString(name);
             if (result != null) {
@@ -124,6 +127,7 @@ final class LayeredSettings implements Settings {
 
     @Override
     public Boolean getBoolean(String name) {
+        if (log) System.out.println("B: " + name);
         Boolean result = null;
         for (Settings s : all) {
             result = s.getBoolean(name);
@@ -142,6 +146,7 @@ final class LayeredSettings implements Settings {
 
     @Override
     public Double getDouble(String name) {
+        if (log) System.out.println("D: " + name);
         Double result = null;
         for (Settings s : all) {
             result = s.getDouble(name);
