@@ -16,5 +16,6 @@
         <module>giulius</module>
         <module>giulius-settings</module>
         <module>maven-merge-configuration</module>
+        <module>cluster</module>
     </modules>
 </project>
