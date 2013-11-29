@@ -263,12 +263,18 @@ public final class SettingsBuilder {
      * precedence is determined by classpath order</li> <li>Any file named
      * $NAMESPACE.properties in the user home dir</li> <li>Any file named
      * $NAMESPACE.properties in the process's working directory</li> </ol>
+     * @return A settings builder
      */
     public SettingsBuilder addDefaultLocations() {
-        return addEnv()
+        SettingsBuilder result = addEnv()
                 .addSystemProperties()
                 .addGeneratedDefaultsFromClasspath()
-                .addDefaultsFromClasspath()
+                .addDefaultsFromClasspath();
+        File etc = new File ("/etc");
+        if (etc.exists() && etc.isDirectory()) {
+            result = result.add(new File(etc, namespace + DEFAULT_EXTENSION));
+        }
+        return result
                 .addDefaultsFromUserHome()
                 .addDefaultsFromProcessWorkingDir();
     }
