@@ -24,20 +24,27 @@
 package com.mastfrog.maven.merge.configuration;
 
 import com.google.common.base.Objects;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -84,14 +91,27 @@ public class MergeConfigurationMojo extends AbstractMojo {
     @Parameter(defaultValue = "${repositorySystemSession}")
     private RepositorySystemSession repoSession;
     private static final Pattern PAT = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.properties");
+    private static final Pattern SERVICES = Pattern.compile("META-INF\\/services\\/\\S[^\\/]*\\.*");
     @Component
     private ProjectDependenciesResolver resolver;
     @Component
     MavenProject project;
 
+    private List<String> readLines(InputStream in) throws IOException {
+        List<String> result = new LinkedList<>();
+        InputStreamReader isr = new InputStreamReader(in);
+        BufferedReader br = new BufferedReader(isr);
+        String line;
+        while ((line = br.readLine()) != null) {
+            if (!line.trim().isEmpty()) {
+                result.add(line);
+            }
+        }
+        return result;
+    }
+    
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        
         Log log = super.getLog();
         log.info("Merging properties files");
         if (repoSession == null) {
@@ -114,6 +134,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
 
         Map<String, Properties> m = new LinkedHashMap<>();
 
+        Map<String, Set<String>> linesForName = new HashMap<>();
+        Map<String, Integer> fileCountForName = new HashMap<>();
+        
         for (File f : jars) {
             try {
                 JarFile jar = new JarFile(f);
@@ -144,6 +167,27 @@ public class MergeConfigurationMojo extends AbstractMojo {
                             }
                             all.putAll(p);
                         }
+                    } else {
+                        match = SERVICES.matcher(name);
+                        if (match.matches()) {
+                            log.info("Include " + name + " in " + f);
+                            try (InputStream in = jar.getInputStream(entry)) {
+                                List<String> lines = readLines(in);
+                                Set<String> all = linesForName.get(name);
+                                if (all == null) {
+                                    all = new LinkedHashSet<>();
+                                    linesForName.put(name, all);
+                                }
+                                all.addAll(lines);
+                            }
+                            Integer ct = fileCountForName.get(name);
+                            if (ct == null) {
+                                ct = 1;
+                            } else {
+                                ct++;
+                            }
+                            fileCountForName.put(name, ct);
+                        }
                     }
                 }
             } catch (IOException ex) {
@@ -157,6 +201,40 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         String outDir = project.getBuild().getOutputDirectory();
         File dir = new File(outDir);
+        // Don't bother rewriting META-INF/services files of which there is
+        // only one
+        for (Map.Entry<String,Integer> e : fileCountForName.entrySet()) {
+            if (e.getValue() == 1) {
+                linesForName.remove(e.getKey());
+            }
+        }
+        log.info("Rewrite META-INF/services files " + linesForName);
+        for (Map.Entry<String,Set<String>> e : linesForName.entrySet()) {
+            File outFile = new File(dir, e.getKey());
+            log.info("Merge configurating rewriting " + outFile);
+            Set<String> lines = e.getValue();
+            if (!outFile.exists()) {
+                try {
+                    Path path = outFile.toPath();
+                    if (!Files.exists(path.getParent())) {
+                        Files.createDirectories(path.getParent());
+                    }
+                    path = Files.createFile(path);
+                    outFile = path.toFile();
+                } catch (IOException ex) {
+                    throw new MojoFailureException("Could not create " + outFile, ex);
+                }
+            }
+            try (FileOutputStream out = new FileOutputStream(outFile)) {
+                try (PrintStream ps = new PrintStream(out)) {
+                    for (String line : lines) {
+                        ps.println(line);
+                    }
+                }
+            } catch (IOException ex) {
+                throw new MojoFailureException("Exception writing " + outFile, ex);
+            }
+        }
         for (Map.Entry<String, Properties> e : m.entrySet()) {
             File outFile = new File(dir, e.getKey());
             Properties local = new Properties();
