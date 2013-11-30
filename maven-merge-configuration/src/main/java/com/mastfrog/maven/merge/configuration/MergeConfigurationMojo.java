@@ -135,7 +135,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         return bytesCopied;
     }
-    
+
     private String strip(String name) {
         int ix = name.lastIndexOf(".");
         if (ix >= 0 && ix != name.length() - 1) {
@@ -146,6 +146,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        // XXX a LOT of duplicate code here
         Log log = super.getLog();
         log.info("Merging properties files");
         if (repoSession == null) {
@@ -216,18 +217,75 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     case "META-INF/MANIFEST.MF":
                                     case "META-INF/":
                                         break;
-                                    default:
-                                        JarEntry je = new JarEntry(name);
-                                        je.setTime(e.getTime());
-                                        try {
-                                            jarOut.putNextEntry(je);
-                                        } catch (ZipException ex) {
-                                            throw new MojoExecutionException("Exception putting zip entry " + name, ex);
+                                    case "META-INF/LICENSE":
+                                    case "META-INF/LICENSE.txt":
+                                    case "META-INF/settings/namespaces.list":
+                                        Set<String> s = linesForName.get(name);
+                                        if (s == null) {
+                                            s = new HashSet<>();
+                                            linesForName.put(name, s);
                                         }
+                                        Integer ct = fileCountForName.get(name);
+                                        if (ct == null) {
+                                            ct = 1;
+                                        }
+                                        fileCountForName.put(name, ct);
                                         try (InputStream in = jf.getInputStream(e)) {
-                                            copy(in, jarOut);
+                                            s.addAll(readLines(in));
                                         }
-                                        jarOut.closeEntry();
+                                        break;
+                                    default:
+                                        if (name.startsWith("META-INF/services/")) {
+                                            Set<String> s2 = linesForName.get(name);
+                                            if (s2 == null) {
+                                                s2 = new HashSet<>();
+                                                linesForName.put(name, s2);
+                                            }
+                                            Integer ct2 = fileCountForName.get(name);
+                                            if (ct2 == null) {
+                                                ct2 = 1;
+                                            }
+                                            fileCountForName.put(name, ct2);
+                                            try (InputStream in = jf.getInputStream(e)) {
+                                                s2.addAll(readLines(in));
+                                            }
+                                            seen.add(name);
+                                        } else if (PAT.matcher(name).matches()) {
+                                            log.info("Include " + name);
+                                            Properties p = new Properties();
+                                            try (InputStream in = jf.getInputStream(e)) {
+                                                p.load(in);
+                                            }
+                                            Properties all = m.get(name);
+                                            if (all == null) {
+                                                all = p;
+                                                m.put(name, p);
+                                            } else {
+                                                for (String key : p.stringPropertyNames()) {
+                                                    if (all.containsKey(key)) {
+                                                        Object old = all.get(key);
+                                                        Object nue = p.get(key);
+                                                        if (!Objects.equal(old, nue)) {
+                                                            log.warn(key + '=' + nue + " in " + jar + '!' + name + " overrides " + key + '=' + old);
+                                                        }
+                                                    }
+                                                }
+                                                all.putAll(p);
+                                            }
+                                        } else {
+                                            JarEntry je = new JarEntry(name);
+                                            je.setTime(e.getTime());
+                                            try {
+                                                jarOut.putNextEntry(je);
+                                            } catch (ZipException ex) {
+                                                throw new MojoExecutionException("Exception putting zip entry " + name, ex);
+                                            }
+                                            try (InputStream in = jf.getInputStream(e)) {
+                                                copy(in, jarOut);
+                                            }
+                                            jarOut.closeEntry();
+                                            seen.add(name);
+                                        }
                                 }
                             }
                             seen.add(e.getName());
@@ -244,8 +302,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     while (en.hasMoreElements()) {
                         JarEntry entry = en.nextElement();
                         String name = entry.getName();
-                        Matcher match = PAT.matcher(name);
-                        if (match.matches()) {
+                        if (PAT.matcher(name).matches()) {
                             log.info("Include " + name + " in " + f);
                             Properties p = new Properties();
                             try (InputStream in = jar.getInputStream(entry)) {
@@ -267,7 +324,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 }
                                 all.putAll(p);
                             }
-                        } else if (SERVICES.matcher(name).matches()) {
+                        } else if (SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name)) {
                             log.info("Include " + name + " in " + f);
                             try (InputStream in = jar.getInputStream(entry)) {
                                 List<String> lines = readLines(in);
@@ -290,6 +347,18 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 switch (name) {
                                     case "META-INF/MANIFEST.MF":
                                     case "META-INF/":
+                                        break;
+                                    case "META-INF/LICENSE":
+                                    case "META-INF/LICENSE.txt":
+                                    case "META-INF/settings/namespaces.list":
+                                        Set<String> s = linesForName.get(name);
+                                        if (s == null) {
+                                            s = new LinkedHashSet<>();
+                                            linesForName.put(name, s);
+                                        }
+                                        try (InputStream in = jar.getInputStream(entry)) {
+                                            s.addAll(readLines(in));
+                                        }
                                         break;
                                     default:
                                         JarEntry je = new JarEntry(name);
@@ -325,12 +394,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
             File dir = new File(outDir);
             // Don't bother rewriting META-INF/services files of which there is
             // only one
-            for (Map.Entry<String, Integer> e : fileCountForName.entrySet()) {
-                if (e.getValue() == 1) {
-                    linesForName.remove(e.getKey());
-                }
-            }
-            log.info("Rewrite META-INF/services files " + linesForName);
+//            for (Map.Entry<String, Integer> e : fileCountForName.entrySet()) {
+//                if (e.getValue() == 1) {
+//                    linesForName.remove(e.getKey());
+//                }
+//            }
             for (Map.Entry<String, Set<String>> e : linesForName.entrySet()) {
                 File outFile = new File(dir, e.getKey());
                 log.info("Merge configurating rewriting " + outFile);
