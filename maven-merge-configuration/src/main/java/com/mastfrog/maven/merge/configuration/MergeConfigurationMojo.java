@@ -192,7 +192,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     }
                     try (JarFile jf = new JarFile(jar)) {
                         Manifest manifest = new Manifest(jf.getManifest());
-                        manifest.getMainAttributes().putValue("Main-Class", "com.visitrend.query.server.QueryServer");
+                        if (mainClass != null) {
+                            manifest.getMainAttributes().putValue("Main-Class", mainClass);
+                        }
                         String jn = jarName == null || "none".equals(jarName) ? strip(mainClass) : jarName;
                         File outJar = new File(outDir, jn + ".jar");
                         log.info("Will build merged JAR " + outJar);
