@@ -235,7 +235,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                         }
                                         break;
                                     default:
-                                        if (name.startsWith("META-INF/services/")) {
+                                        if (name.startsWith("META-INF/services/") && !name.endsWith("/")) {
                                             Set<String> s2 = linesForName.get(name);
                                             if (s2 == null) {
                                                 s2 = new HashSet<>();
@@ -415,14 +415,16 @@ public class MergeConfigurationMojo extends AbstractMojo {
                         throw new MojoFailureException("Could not create " + outFile, ex);
                     }
                 }
-                try (FileOutputStream out = new FileOutputStream(outFile)) {
-                    try (PrintStream ps = new PrintStream(out)) {
-                        for (String line : lines) {
-                            ps.println(line);
+                if (!outFile.isDirectory()) {
+                    try (FileOutputStream out = new FileOutputStream(outFile)) {
+                        try (PrintStream ps = new PrintStream(out)) {
+                            for (String line : lines) {
+                                ps.println(line);
+                            }
                         }
+                    } catch (IOException ex) {
+                        throw new MojoFailureException("Exception writing " + outFile, ex);
                     }
-                } catch (IOException ex) {
-                    throw new MojoFailureException("Exception writing " + outFile, ex);
                 }
                 if (jarOut != null) {
                     JarEntry je = new JarEntry(e.getKey());
