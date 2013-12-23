@@ -46,6 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Completion;
+import javax.annotation.processing.FilerException;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -126,6 +127,9 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                 }
             } catch (FileNotFoundException ex) {
                 //OK
+            } catch (FilerException ex) {
+                // XXX how to avoid this?
+                ex.printStackTrace();
             }
             propertiesForPath.put(path, props);
         }
@@ -226,12 +230,15 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                 if (!elements.isEmpty()) {
                     for (Map.Entry<String, Properties> e : propertiesForPath.entrySet()) {
                         String path = e.getKey();
-
-                        FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT,
-                                "", path, elements.toArray(new Element[0]));
-                        try (OutputStream out = fo.openOutputStream()) {
-                            e.getValue().store(out, " Generated from annotations on:\n"
-                                    + toString(elementForPath.get(path)));
+                        try {
+                            FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT,
+                                    "", path, elements.toArray(new Element[0]));
+                            try (OutputStream out = fo.openOutputStream()) {
+                                e.getValue().store(out, " Generated from annotations on:\n"
+                                        + toString(elementForPath.get(path)));
+                            }
+                        } catch (FilerException ex) {
+                            ex.printStackTrace();
                         }
                     }
                 }

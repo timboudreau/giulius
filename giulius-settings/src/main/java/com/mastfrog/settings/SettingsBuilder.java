@@ -387,7 +387,7 @@ public final class SettingsBuilder {
      * Add a properties file. The file need not exist, but it helps if it does.
      *
      * @param file
-     * @param timeout A timeout. If the file did not exist at the previous load,
+     * @param reloadInterval A timeout. If the file did not exist at the previous load,
      * it will still be checked for again subsequently
      * @return
      */
@@ -401,9 +401,13 @@ public final class SettingsBuilder {
         return this;
     }
 
+    private boolean isLog() {
+        return Boolean.getBoolean(SettingsBuilder.class.getName() + ".log");
+    }
+    
     @SuppressWarnings("NP_ALWAYS_NULL") //WTF! Findbugs thinks System.out might be null
     private void log(String s) {
-        if (Boolean.getBoolean(SettingsBuilder.class.getName() + ".log")) {
+        if (isLog()) {
             System.out.println(s);
         }
     }
@@ -417,7 +421,9 @@ public final class SettingsBuilder {
         for (Iterator<PropertiesSource> it = all.iterator(); it.hasNext();) {
             PropertiesSource src = it.next();
             it.remove();
-            log("  " + src);
+            if (isLog()) {
+                log("  " + src);
+            }
             if (src instanceof SettingsSource) {
                 settings.add(((SettingsSource) src).settings);
             } else {
@@ -628,11 +634,8 @@ public final class SettingsBuilder {
         public Properties getProperties() throws IOException {
             Properties props = new Properties();
             if (file.exists()) {
-                InputStream in = new FileInputStream(file);
-                try {
+                try (InputStream in = new FileInputStream(file)){
                     props.load(in);
-                } finally {
-                    in.close();
                 }
             }
             return props;

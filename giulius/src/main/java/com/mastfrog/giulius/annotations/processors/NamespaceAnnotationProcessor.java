@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License
  *
  * Copyright 2013 Tim Boudreau.
@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.FilerException;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -120,24 +121,27 @@ public class NamespaceAnnotationProcessor extends AbstractProcessor {
                     List<String> all = new ArrayList<>(knownNamespaces);
                     all.addAll(found);
                     Collections.sort(all); //so if they're accidentally checked in to version control, we minimize diffs
-                    FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", Defaults.DEFAULT_PATH + "namespaces.list", allElements.toArray(new Element[0]));
-                    System.out.println("Write namespace list to " + fo.toUri() + ": " + all);
-                    try (Writer w = fo.openWriter()) {
-                        w.write("# ");
-                        w.write(new Date().toString());
-                        w.write("\n\n");
-                        for (String namespace : all) {
-                            Set<Element> elements = new HashSet<>();
-                            if (elements != null && !elements.isEmpty()) {
-                                w.write("# ");
-                                w.write(setToString(elementsForNamespace.get(namespace)));
+                    try {
+                        FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", Defaults.DEFAULT_PATH + "namespaces.list", allElements.toArray(new Element[0]));
+                        System.out.println("Write namespace list to " + fo.toUri() + ": " + all);
+                        try (Writer w = fo.openWriter()) {
+                            w.write("# ");
+                            w.write(new Date().toString());
+                            w.write("\n\n");
+                            for (String namespace : all) {
+                                Set<Element> elements = new HashSet<>();
+                                if (elements != null && !elements.isEmpty()) {
+                                    w.write("# ");
+                                    w.write(setToString(elementsForNamespace.get(namespace)));
+                                    w.write('\n');
+                                }
+                                w.write(namespace);
                                 w.write('\n');
                             }
-                            w.write(namespace);
-                            w.write('\n');
                         }
+                    } catch (FilerException ex) {
+                        ex.printStackTrace();
                     }
-
                 }
             } catch (IOException ex) {
                 Logger.getLogger(NamespaceAnnotationProcessor.class.getName()).log(Level.SEVERE, null, ex);
@@ -177,16 +181,20 @@ public class NamespaceAnnotationProcessor extends AbstractProcessor {
     }
 
     private Set<String> readNamespaces() throws IOException {
-        FileObject fo = env.getFiler().getResource(
-                StandardLocation.CLASS_OUTPUT,
-                "", Defaults.DEFAULT_PATH + "namespaces.list");
         Set<String> all = new HashSet<>();
-        if (fo != null) {
-            try (Reader rdr = fo.openReader(true)) {
-                readNamepaces(rdr, all);
-            } catch (FileNotFoundException fnfe) {
-                System.err.println(fnfe.getMessage());
+        try {
+            FileObject fo = env.getFiler().getResource(
+                    StandardLocation.CLASS_OUTPUT,
+                    "", Defaults.DEFAULT_PATH + "namespaces.list");
+            if (fo != null) {
+                try (Reader rdr = fo.openReader(true)) {
+                    readNamepaces(rdr, all);
+                } catch (FileNotFoundException fnfe) {
+                    System.err.println(fnfe.getMessage());
+                }
             }
+        } catch (FilerException ex) {
+            ex.printStackTrace();
         }
         return all;
     }
