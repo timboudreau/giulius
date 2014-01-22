@@ -47,12 +47,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -102,6 +100,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private String jarName;
     private static final Pattern PAT = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.properties");
     private static final Pattern SERVICES = Pattern.compile("META-INF\\/services\\/\\S[^\\/]*\\.*");
+    
+    private static final Pattern SIG1 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.SF");
+    private static final Pattern SIG2 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.DSA");
+    private static final Pattern SIG3 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.RSA");
+    
     @Component
     private ProjectDependenciesResolver resolver;
     @Component
@@ -272,7 +275,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                                 }
                                                 all.putAll(p);
                                             }
-                                        } else {
+                                        } else if (!SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
                                             JarEntry je = new JarEntry(name);
                                             je.setTime(e.getTime());
                                             try {
