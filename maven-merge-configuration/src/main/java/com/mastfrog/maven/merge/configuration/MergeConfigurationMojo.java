@@ -100,11 +100,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private String jarName;
     private static final Pattern PAT = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.properties");
     private static final Pattern SERVICES = Pattern.compile("META-INF\\/services\\/\\S[^\\/]*\\.*");
-    
-    private static final Pattern SIG1 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.SF");
-    private static final Pattern SIG2 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.DSA");
-    private static final Pattern SIG3 = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.RSA");
-    
+
+    private static final Pattern SIG1 = Pattern.compile("META-INF\\/[^\\/]*\\.SF");
+    private static final Pattern SIG2 = Pattern.compile("META-INF\\/[^\\/]*\\.DSA");
+    private static final Pattern SIG3 = Pattern.compile("META-INF\\/[^\\/]*\\.RSA");
+
     @Component
     private ProjectDependenciesResolver resolver;
     @Component
@@ -276,6 +276,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                                 all.putAll(p);
                                             }
                                         } else if (!SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
+                                            log.info("Bundle " + name);
                                             JarEntry je = new JarEntry(name);
                                             je.setTime(e.getTime());
                                             try {
@@ -288,6 +289,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                             }
                                             jarOut.closeEntry();
                                             seen.add(name);
+                                        } else {
+                                            System.err.println("Skip " + name);
                                         }
                                 }
                             }
@@ -364,17 +367,19 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                         }
                                         break;
                                     default:
-                                        JarEntry je = new JarEntry(name);
-                                        je.setTime(entry.getTime());
-                                        try {
-                                            jarOut.putNextEntry(je);
-                                        } catch (ZipException ex) {
-                                            throw new MojoExecutionException("Exception putting zip entry " + name, ex);
+                                        if (!SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
+                                            JarEntry je = new JarEntry(name);
+                                            je.setTime(entry.getTime());
+                                            try {
+                                                jarOut.putNextEntry(je);
+                                            } catch (ZipException ex) {
+                                                throw new MojoExecutionException("Exception putting zip entry " + name, ex);
+                                            }
+                                            try (InputStream in = jar.getInputStream(entry)) {
+                                                copy(in, jarOut);
+                                            }
+                                            jarOut.closeEntry();
                                         }
-                                        try (InputStream in = jar.getInputStream(entry)) {
-                                            copy(in, jarOut);
-                                        }
-                                        jarOut.closeEntry();
                                 }
                             } else {
                                 if (!name.endsWith("/") && !name.startsWith("META-INF")) {
