@@ -178,7 +178,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
 
         Map<String, Properties> m = new LinkedHashMap<>();
 
-        Map<String, Set<String>> linesForName = new HashMap<>();
+        Map<String, Set<String>> linesForName = new LinkedHashMap<>();
         Map<String, Integer> fileCountForName = new HashMap<>();
 
         boolean buildMergedJar = mainClass != null && !"none".equals(mainClass);
@@ -222,10 +222,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                         break;
                                     case "META-INF/LICENSE":
                                     case "META-INF/LICENSE.txt":
+                                    case "META-INF/http/pages.list":
                                     case "META-INF/settings/namespaces.list":
                                         Set<String> s = linesForName.get(name);
                                         if (s == null) {
-                                            s = new HashSet<>();
+                                            s = new LinkedHashSet<>();
                                             linesForName.put(name, s);
                                         }
                                         Integer ct = fileCountForName.get(name);
