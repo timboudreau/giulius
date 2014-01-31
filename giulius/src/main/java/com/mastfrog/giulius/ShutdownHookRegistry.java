@@ -27,9 +27,9 @@ import com.google.inject.ImplementedBy;
 import com.google.inject.Singleton;
 import com.mastfrog.giulius.ShutdownHookRegistry.VMShutdownHookRegistry;
 import com.mastfrog.util.Checks;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -43,7 +43,7 @@ import java.util.logging.Logger;
  */
 @ImplementedBy(VMShutdownHookRegistry.class)
 public abstract class ShutdownHookRegistry {
-    private final List<Runnable> hooks = Collections.synchronizedList(new LinkedList<Runnable>());
+    private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<Runnable>(10));
 
     protected ShutdownHookRegistry() {
         //package private
