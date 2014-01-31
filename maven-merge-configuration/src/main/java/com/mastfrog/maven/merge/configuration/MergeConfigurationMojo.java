@@ -223,6 +223,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     case "META-INF/LICENSE":
                                     case "META-INF/LICENSE.txt":
                                     case "META-INF/http/pages.list":
+                                    case "META-INF/http/modules.list":
                                     case "META-INF/settings/namespaces.list":
                                         Set<String> s = linesForName.get(name);
                                         if (s == null) {
