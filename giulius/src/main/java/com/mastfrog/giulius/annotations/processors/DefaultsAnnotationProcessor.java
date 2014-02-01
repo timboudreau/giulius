@@ -179,19 +179,16 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
         }
         return result == null ? new DefaultNamespace() : result;
     }
+    Set<Element> elements = new HashSet<>();
+    Map<String, Properties> propertiesForPath = new HashMap<>();
+    Map<String, List<Element>> elementForPath = new HashMap<>();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        if (roundEnv.processingOver()) {
-            return false;
-        }
         boolean result = true;
         try {
-            Set<Element> elements = new HashSet<>();
-            Map<String, Properties> propertiesForPath = new HashMap<>();
-            Map<String, List<Element>> elementForPath = new HashMap<>();
-
-            for (Element e : roundEnv.getElementsAnnotatedWith(Defaults.class)) {
+            Set<? extends Element> all = roundEnv.getElementsAnnotatedWith(Defaults.class);
+            for (Element e : all) {
                 Defaults anno = e.getAnnotation(Defaults.class);
                 if (anno == null) {
                     continue;
@@ -226,19 +223,21 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                     props.putAll(pp);
                 }
             }
-            if (!propertiesForPath.isEmpty()) {
-                if (!elements.isEmpty()) {
-                    for (Map.Entry<String, Properties> e : propertiesForPath.entrySet()) {
-                        String path = e.getKey();
-                        try {
-                            FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT,
-                                    "", path, elements.toArray(new Element[0]));
-                            try (OutputStream out = fo.openOutputStream()) {
-                                e.getValue().store(out, " Generated from annotations on:\n"
-                                        + toString(elementForPath.get(path)));
+            if (all.isEmpty()) {
+                if (!propertiesForPath.isEmpty()) {
+                    if (!elements.isEmpty()) {
+                        for (Map.Entry<String, Properties> e : propertiesForPath.entrySet()) {
+                            String path = e.getKey();
+                            try {
+                                FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT,
+                                        "", path, elements.toArray(new Element[0]));
+                                try (OutputStream out = fo.openOutputStream()) {
+                                    e.getValue().store(out, " Generated from annotations on:\n"
+                                            + toString(elementForPath.get(path)));
+                                }
+                            } catch (FilerException ex) {
+                                ex.printStackTrace();
                             }
-                        } catch (FilerException ex) {
-                            ex.printStackTrace();
                         }
                     }
                 }
