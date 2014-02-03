@@ -33,7 +33,9 @@ import java.io.InputStream;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -71,8 +73,7 @@ public final class SettingsBuilder {
      */
     public static final String DEFAULT_NAMESPACE = "defaults";
     /**
-     * File extension for settings files
-     * <code>.properties</code>
+     * File extension for settings files <code>.properties</code>
      */
     public static final String DEFAULT_EXTENSION = ".properties";
     /**
@@ -91,8 +92,7 @@ public final class SettingsBuilder {
      * Create a new settings builder which will read files which match the
      * passed namespace name - i.e. if you pass "foo" and then call
      * <code>addDefaultLocations</code>, you get a settings builder which will
-     * look for
-     * <code>META-INF/settings/foo.properties</code> and
+     * look for <code>META-INF/settings/foo.properties</code> and
      * <code>META-INF/settings/generated-foo.properties</code> in all JARs on
      * the classpath.
      *
@@ -109,8 +109,7 @@ public final class SettingsBuilder {
      * Create a new settings builder which will read files which match the
      * passed namespace name - i.e. if you pass "foo" and then call
      * <code>addDefaultLocations</code>, you get a settings builder which will
-     * look for
-     * <code>META-INF/settings/foo.properties</code> and
+     * look for <code>META-INF/settings/foo.properties</code> and
      * <code>META-INF/settings/generated-foo.properties</code> in all JARs on
      * the classpath.
      *
@@ -263,6 +262,7 @@ public final class SettingsBuilder {
      * precedence is determined by classpath order</li> <li>Any file named
      * $NAMESPACE.properties in the user home dir</li> <li>Any file named
      * $NAMESPACE.properties in the process's working directory</li> </ol>
+     *
      * @return A settings builder
      */
     public SettingsBuilder addDefaultLocations() {
@@ -270,7 +270,7 @@ public final class SettingsBuilder {
                 .addSystemProperties()
                 .addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath();
-        File etc = new File ("/etc");
+        File etc = new File("/etc");
         if (etc.exists() && etc.isDirectory()) {
             result = result.add(new File(etc, namespace + DEFAULT_EXTENSION));
         }
@@ -387,8 +387,8 @@ public final class SettingsBuilder {
      * Add a properties file. The file need not exist, but it helps if it does.
      *
      * @param file
-     * @param reloadInterval A timeout. If the file did not exist at the previous load,
-     * it will still be checked for again subsequently
+     * @param reloadInterval A timeout. If the file did not exist at the
+     * previous load, it will still be checked for again subsequently
      * @return
      */
     public SettingsBuilder add(File file, RefreshInterval reloadInterval) {
@@ -404,7 +404,7 @@ public final class SettingsBuilder {
     private boolean isLog() {
         return Boolean.getBoolean(SettingsBuilder.class.getName() + ".log");
     }
-    
+
     @SuppressWarnings("NP_ALWAYS_NULL") //WTF! Findbugs thinks System.out might be null
     private void log(String s) {
         if (isLog()) {
@@ -446,9 +446,9 @@ public final class SettingsBuilder {
     }
 
     /**
-     * Parse command line arguments ala
-     * <code>--foo</code> translating to a setting of foo=true or
-     * <code>--foo 23</code> translating to a setting of foo=23.
+     * Parse command line arguments ala <code>--foo</code> translating to a
+     * setting of foo=true or <code>--foo 23</code> translating to a setting of
+     * foo=23.
      *
      * @param args
      * @return
@@ -458,9 +458,9 @@ public final class SettingsBuilder {
     }
 
     /**
-     * Parse command line arguments ala
-     * <code>--foo</code> translating to a setting of foo=true or
-     * <code>--foo 23</code> translating to a setting of foo=23.
+     * Parse command line arguments ala <code>--foo</code> translating to a
+     * setting of foo=true or <code>--foo 23</code> translating to a setting of
+     * foo=23.
      * <p/>
      * The passed map can map individual characters - i.e. short arguments such
      * as making -f equivalent to --foo, or -fb equivalent to --foo --bar
@@ -517,6 +517,48 @@ public final class SettingsBuilder {
      */
     public MutableSettings buildMutableSettings() throws IOException {
         return new WritableSettings(namespace, build());
+    }
+
+    /**
+     * Assign the passed key to the path to a file or folder relative to the JAR
+     * the passed class lives in, optionally not setting it if another value is
+     * already set for it.
+     * <p/>
+     * This is useful to, for example, automatically locate a folder of html
+     * files relative to the project during development. If it discovers that
+     * the folder is named "target" or "build" it will go up a level.
+     * <p/>
+     * Note: If called from inside an application server, all bets are off as to
+     * where this looks - that varies wildly by vendor.
+     *
+     * @param key The settings key that should map to the file path
+     * @param jarClass A class whose JAR the path is relative to
+     * @param relPath A relative path
+     * @param onlyIfNotPresent If true and if a setting for <code>key</code>
+     * exists, do nothing
+     * @return this
+     * @throws URISyntaxException
+     * @throws IOException
+     */
+    public SettingsBuilder addFolderRelativeToJAR(String key, Class<?> jarClass, String relPath, boolean onlyIfNotPresent) throws URISyntaxException, IOException {
+        // Get the location this JAR is in on disk, to set up paths relative to it
+        ProtectionDomain protectionDomain = jarClass.getProtectionDomain();
+        URL location = protectionDomain.getCodeSource().getLocation();
+
+        if (onlyIfNotPresent) {
+            String explicitDir = build().getString(key);
+            if (explicitDir != null) {
+                return this;
+            }
+        }
+        // See if an explicitly provided assets folder was passed to us;  if
+        // not we will look for an "assets" folder belonging to this application
+        File codebaseDir = new File(location.toURI()).getParentFile();
+        if ("target".equals(codebaseDir.getName()) || "build".equals(codebaseDir.getName())) {
+            codebaseDir = codebaseDir.getParentFile();
+        }
+        File f = new File(codebaseDir, relPath);
+        return add(key, f.getPath());
     }
 
     private static class Bridge extends TimerTask implements Runnable {
@@ -592,6 +634,7 @@ public final class SettingsBuilder {
 
         private final InputStream in;
         private volatile boolean done;
+        private Properties result;
 
         InputStreamSource(InputStream in) {
             this.in = in;
@@ -600,7 +643,7 @@ public final class SettingsBuilder {
         @Override
         public Properties getProperties() throws IOException {
             if (done) {
-                throw new IOException("Stream cannot be reread");
+                return this.result;
             }
             Properties result = new Properties();
             try {
@@ -609,7 +652,7 @@ public final class SettingsBuilder {
                 done = true;
                 in.close();
             }
-            return result;
+            return this.result = result;
         }
 
         public String toString() {
@@ -634,7 +677,7 @@ public final class SettingsBuilder {
         public Properties getProperties() throws IOException {
             Properties props = new Properties();
             if (file.exists()) {
-                try (InputStream in = new FileInputStream(file)){
+                try (InputStream in = new FileInputStream(file)) {
                     props.load(in);
                 }
             }
