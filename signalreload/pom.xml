@@ -2,21 +2,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>giulius-parent</artifactId>
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>mastfrog-parent</artifactId>
         <version>1.4.5</version>
         <relativePath/>
     </parent>
-    <name>Giulius Parent</name>
-    <description>Guice + Configuration tools</description>
-    <packaging>pom</packaging>
-    <modules>
-        <module>giulius</module>
-        <module>giulius-settings</module>
-        <module>maven-merge-configuration</module>
-        <module>cluster</module>
-        <module>signalreload</module>
-    </modules>
+    <artifactId>signalreload</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>com.mastfrog</groupId>
+            <artifactId>giulius</artifactId>
+            <type>jar</type>
+        </dependency>
+    </dependencies>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+    </properties>
 </project>

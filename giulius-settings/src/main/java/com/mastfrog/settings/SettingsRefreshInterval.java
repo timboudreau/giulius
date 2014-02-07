@@ -24,6 +24,11 @@
 package com.mastfrog.settings;
 
 import com.mastfrog.util.Checks;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -52,11 +57,24 @@ public enum SettingsRefreshInterval implements RefreshInterval {
         timer.purge();
         return interval;
     }
+    
+    public static void refreshNow() {
+        for (Iterator<Reference<TimerTask>> it=tasks.iterator(); it.hasNext();) {
+            Reference<TimerTask> r = it.next();
+            TimerTask task = r.get();
+            if (task == null) {
+                it.remove();
+            } else {
+                task.run();
+            }
+        }
+    }
 
     @Override
     public synchronized void add(TimerTask task) {
         long interval = getMilliseconds();
         timer.scheduleAtFixedRate(task, interval, interval);
+        tasks.add(new WeakReference<TimerTask>(task));
         timer.purge();
     }
 
@@ -72,4 +90,5 @@ public enum SettingsRefreshInterval implements RefreshInterval {
     private static volatile int modCount;
 
     static final Timer timer = new Timer("Settings refresh", true);
+    static List<Reference<TimerTask>> tasks = new ArrayList<>();
 }

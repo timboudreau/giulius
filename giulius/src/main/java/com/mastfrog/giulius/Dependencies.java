@@ -317,6 +317,10 @@ public final class Dependencies {
     }
     private final ShutdownHookRegistry reg = ShutdownHookRegistry.get();
 
+    public void autoShutdownRefresh(SettingsBuilder sb) {
+        reg.add(sb.onShutdownRunnable());
+    }
+    
     /**
      * Same as getInjector().injectMembers(arg)
      *

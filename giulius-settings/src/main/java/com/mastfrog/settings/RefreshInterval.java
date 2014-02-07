@@ -45,7 +45,7 @@ public interface RefreshInterval {
 
         @Override
         public void setMilliseconds(int millis) {
-            throw new UnsupportedOperationException();
+            // do nothing
         }
 
         @Override

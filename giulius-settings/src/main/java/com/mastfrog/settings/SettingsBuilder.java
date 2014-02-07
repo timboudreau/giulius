@@ -412,6 +412,29 @@ public final class SettingsBuilder {
         }
     }
 
+    private static class ShutdownRefreshTasks implements Runnable {
+
+        Set<Bridge> bridges = new HashSet<>();
+
+        @Override
+        public void run() {
+            for (Iterator<Bridge> it = bridges.iterator(); it.hasNext();) {
+                Bridge b = it.next();
+                try {
+                    b.cancel();
+                } finally {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    private final ShutdownRefreshTasks shutdownRunnable = new ShutdownRefreshTasks();
+
+    public final Runnable onShutdownRunnable() {
+        return shutdownRunnable;
+    }
+
     public Settings build() throws IOException {
         List<Settings> settings = new LinkedList<>();
         List<PropertiesSource> all = new LinkedList<>(this.all);
@@ -429,6 +452,7 @@ public final class SettingsBuilder {
             } else {
                 PropertiesSettings s = new PropertiesSettings(src + "");
                 Bridge bridge = new Bridge(src, s);
+                shutdownRunnable.bridges.add(bridge);
                 bridge.go();
                 bridges.add(bridge);
                 src.interval.add(bridge);
