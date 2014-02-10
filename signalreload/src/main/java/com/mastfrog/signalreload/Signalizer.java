@@ -127,6 +127,7 @@ public final class Signalizer<T> {
                 deps = depsProvider.get();
                 obj = launcher.launch(deps);
             } catch (Exception ex) {
+                ex.printStackTrace();
                 if (wasNull) {
                     exception = ex;
                 } else {
