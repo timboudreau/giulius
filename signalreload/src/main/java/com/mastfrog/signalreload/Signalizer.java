@@ -156,7 +156,9 @@ public final class Signalizer<T> {
 
         @Override
         public void shutdown() {
-            deps.shutdown();
+            if (deps != null) {
+                deps.shutdown();
+            }
             deps = null;
             exception = null;
             obj = null;

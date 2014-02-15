@@ -215,7 +215,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                         while (en.hasMoreElements()) {
                             JarEntry e = en.nextElement();
                             String name = e.getName();
-                            if (!seen.contains(name)) {
+//                            if (!seen.contains(name)) {
                                 switch (name) {
                                     case "META-INF/MANIFEST.MF":
                                     case "META-INF/":
@@ -277,7 +277,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                                 }
                                                 all.putAll(p);
                                             }
-                                        } else if (!SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
+                                        } else if (!seen.contains(name) && !SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
                                             log.info("Bundle " + name);
                                             JarEntry je = new JarEntry(name);
                                             je.setTime(e.getTime());
@@ -295,7 +295,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                             System.err.println("Skip " + name);
                                         }
                                 }
-                            }
+//                            }
                             seen.add(e.getName());
                         }
                     }
@@ -305,6 +305,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
 
             for (File f : jars) {
+                log.info("Merge JAR " + f);
                 try (JarFile jar = new JarFile(f)) {
                     Enumeration<JarEntry> en = jar.entries();
                     while (en.hasMoreElements()) {
@@ -332,7 +333,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 }
                                 all.putAll(p);
                             }
-                        } else if (SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name)) {
+                        } else if (SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name) || "META-INF/http/pages.list".equals(name) || "META-INF/http/modules.list".equals(name)) {
                             log.info("Include " + name + " in " + f);
                             try (InputStream in = jar.getInputStream(entry)) {
                                 List<String> lines = readLines(in);
@@ -351,24 +352,32 @@ public class MergeConfigurationMojo extends AbstractMojo {
                             }
                             fileCountForName.put(name, ct);
                         } else if (jarOut != null) {
-                            if (!seen.contains(name)) {
-                                switch (name) {
-                                    case "META-INF/MANIFEST.MF":
-                                    case "META-INF/":
-                                        break;
-                                    case "META-INF/LICENSE":
-                                    case "META-INF/LICENSE.txt":
-                                    case "META-INF/settings/namespaces.list":
-                                        Set<String> s = linesForName.get(name);
-                                        if (s == null) {
-                                            s = new LinkedHashSet<>();
-                                            linesForName.put(name, s);
-                                        }
-                                        try (InputStream in = jar.getInputStream(entry)) {
-                                            s.addAll(readLines(in));
-                                        }
-                                        break;
-                                    default:
+//                            if (!seen.contains(name)) {
+                            switch (name) {
+                                case "META-INF/MANIFEST.MF":
+                                case "META-INF/":
+                                    break;
+                                case "META-INF/LICENSE":
+                                case "META-INF/LICENSE.txt":
+                                case "META-INF/settings/namespaces.list":
+                                case "META-INF/http/pages.list":
+                                case "META-INF/http/modules.list":
+                                    Set<String> s = linesForName.get(name);
+                                    if (s == null) {
+                                        s = new LinkedHashSet<>();
+                                        linesForName.put(name, s);
+                                    }
+                                    Integer ct = fileCountForName.get(name);
+                                    if (ct == null) {
+                                        ct = 1;
+                                    }
+                                    fileCountForName.put(name, ct);
+                                    try (InputStream in = jar.getInputStream(entry)) {
+                                        s.addAll(readLines(in));
+                                    }
+                                    break;
+                                default:
+                                    if (!seen.contains(name)) {
                                         if (!SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find()) {
                                             JarEntry je = new JarEntry(name);
                                             je.setTime(entry.getTime());
@@ -382,12 +391,17 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                             }
                                             jarOut.closeEntry();
                                         }
-                                }
-                            } else {
-                                if (!name.endsWith("/") && !name.startsWith("META-INF")) {
-                                    log.warn("Saw more than one " + name + ".  One will clobber the other.");
-                                }
+                                    } else {
+                                        if (!name.endsWith("/") && !name.startsWith("META-INF")) {
+                                            log.warn("Saw more than one " + name + ".  One will clobber the other.");
+                                        }
+                                    }
                             }
+//                            } else {
+//                                if (!name.endsWith("/") && !name.startsWith("META-INF")) {
+//                                    log.warn("Saw more than one " + name + ".  One will clobber the other.");
+//                                }
+//                            }
                             seen.add(name);
                         }
                     }
@@ -437,6 +451,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     }
                 }
                 if (jarOut != null) {
+                    log.warn("Concatenating " + fileCountForName.get(e.getKey()) + " copies of " + e.getKey());
                     JarEntry je = new JarEntry(e.getKey());
                     try {
                         jarOut.putNextEntry(je);
