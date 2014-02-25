@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License
  *
  * Copyright 2013 Tim Boudreau.
@@ -27,10 +27,14 @@ import com.google.inject.ImplementedBy;
 import com.google.inject.Singleton;
 import com.mastfrog.giulius.ShutdownHookRegistry.VMShutdownHookRegistry;
 import com.mastfrog.util.Checks;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,13 +55,18 @@ public abstract class ShutdownHookRegistry {
 
     /**
      * Add a runnable which should run on VM shutdown or logical shutdown
-     * of a subsystem. 
+     * of a subsystem.
      * @see com.mastfrog.guicy.Dependencies.shutdown
      * @param runnable A runnable
      */
     public void add(Runnable runnable) {
         Checks.notNull("runnable", runnable);
         hooks.add(runnable);
+    }
+
+    public ShutdownHookRegistry add(ExecutorService svc) {
+        add(new ShutdownExecutorService(svc));
+        return this;
     }
 
     protected void runShutdownHooks() {
@@ -79,17 +88,52 @@ public abstract class ShutdownHookRegistry {
      * Get a shutdown hook registry instance.  This method is only for use
      * in things like ServletContextListeners where there is no control
      * over lifecycle.  The returned instance is not a singleton.
-     * 
+     *
      * @return A registry of shutdown hooks.
      */
     public static ShutdownHookRegistry get() {
         VMShutdownHookRegistry result = new VMShutdownHookRegistry();
         return result;
     }
-    
+
+    public ShutdownHookRegistry add(Timer timer) {
+        add(new ShutdownTimer(timer));
+        return this;
+    }
+
+    private static final class ShutdownTimer implements Runnable {
+        private final Reference<Timer> timer;
+
+        public ShutdownTimer(Timer timer) {
+            this.timer = new WeakReference<>(timer);
+        }
+
+        @Override
+        public void run() {
+            Timer t = timer.get();
+            t.cancel();
+        }
+    }
+
+    private static final class ShutdownExecutorService implements Runnable {
+        private final Reference<ExecutorService> svc;
+
+        public ShutdownExecutorService(ExecutorService svc) {
+            this.svc = new WeakReference<>(svc);
+        }
+
+        @Override
+        public void run() {
+            ExecutorService exe = svc.get();
+            if (exe != null) {
+                exe.shutdownNow();
+            }
+        }
+    }
+
     @Singleton
     static final class VMShutdownHookRegistry extends ShutdownHookRegistry implements Runnable {
-        private AtomicBoolean registered = new AtomicBoolean();
+        private final AtomicBoolean registered = new AtomicBoolean();
 
         @Override
         public void add(Runnable runnable) {
