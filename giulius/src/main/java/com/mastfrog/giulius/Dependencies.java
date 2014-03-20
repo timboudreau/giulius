@@ -216,7 +216,13 @@ public final class Dependencies {
      * unloading, etc.
      */
     public void shutdown() {
-        reg.runShutdownHooks();
+        try {
+            reg.runShutdownHooks();
+        } finally {
+            for (Dependencies d : others) {
+                d.shutdown();
+            }
+        }
     }
 
     /**
@@ -320,7 +326,7 @@ public final class Dependencies {
     public void autoShutdownRefresh(SettingsBuilder sb) {
         reg.add(sb.onShutdownRunnable());
     }
-    
+
     /**
      * Same as getInjector().injectMembers(arg)
      *
@@ -419,6 +425,16 @@ public final class Dependencies {
     private final ProtectedThreadLocal<TypeLiteral<?>> currentType = new ProtectedThreadLocal<>();
     private final ProtectedThreadLocal<TypeLiteral<?>> prevType = new ProtectedThreadLocal<>();
 
+    private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<Dependencies>());
+
+    public final Dependencies alsoShutdown(Dependencies other) {
+        if (other == this) {
+            throw new IllegalArgumentException("add to self");
+        }
+        others.add(other);
+        return this;
+    }
+
     private final class DependenciesModule extends AbstractModule {
 
         @Override
@@ -431,14 +447,14 @@ public final class Dependencies {
                 log("Loaded namespaces " + knownNamespaces);
                 knownNamespaces.addAll(settings.keySet());
                 knownNamespaces.add(Namespace.DEFAULT);
-                
+
                 Stage stage = getStage();
                 DeploymentMode mode;
                 switch (stage) {
-                    case PRODUCTION :
+                    case PRODUCTION:
                         mode = DeploymentMode.PRODUCTION;
                         break;
-                    default :
+                    default:
                         mode = DeploymentMode.DEVELOPMENT;
                 }
                 bind(DeploymentMode.class).toInstance(mode);

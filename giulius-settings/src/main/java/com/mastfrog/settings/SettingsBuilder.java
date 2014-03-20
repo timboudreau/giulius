@@ -85,7 +85,7 @@ public final class SettingsBuilder {
     private final String namespace;
 
     public SettingsBuilder() {
-        this.namespace = "defaults";
+        this.namespace = DEFAULT_NAMESPACE;
     }
 
     /**
@@ -204,6 +204,23 @@ public final class SettingsBuilder {
             return this;
         }
     }
+    
+    public SettingsBuilder addDefaultsFromEtc() {
+        File home = new File("/opt/local/etc");
+        if (!home.exists()) {
+            home = new File("/etc");
+        }
+        if (home.exists()) {
+            File file = new File(home, namespace.replace('/', '_').replace('\\', '_') + DEFAULT_EXTENSION);
+            if (file.exists()) {
+                return add(file);
+            } else {
+                log("Not adding " + file + " to settings for "
+                        + "namespace " + namespace + " because it does not exist");
+            }
+        }
+        return this;
+    }    
 
     /**
      * Add environment variables
@@ -266,15 +283,11 @@ public final class SettingsBuilder {
      * @return A settings builder
      */
     public SettingsBuilder addDefaultLocations() {
-        SettingsBuilder result = addEnv()
+        return addEnv()
                 .addSystemProperties()
                 .addGeneratedDefaultsFromClasspath()
-                .addDefaultsFromClasspath();
-        File etc = new File("/etc");
-        if (etc.exists() && etc.isDirectory()) {
-            result = result.add(new File(etc, namespace + DEFAULT_EXTENSION));
-        }
-        return result
+                .addDefaultsFromClasspath()
+                .addDefaultsFromEtc()
                 .addDefaultsFromUserHome()
                 .addDefaultsFromProcessWorkingDir();
     }
@@ -287,6 +300,10 @@ public final class SettingsBuilder {
         add(gen);
         File user = new File(directory, namespace + DEFAULT_EXTENSION);
         return add(user);
+    }
+    
+    public static SettingsBuilder create() {
+        return createWithDefaults(DEFAULT_NAMESPACE);
     }
 
     public static SettingsBuilder createWithDefaults(String namespace) {
@@ -314,6 +331,7 @@ public final class SettingsBuilder {
                 .addSystemProperties()
                 .addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath()
+                .addDefaultsFromEtc()
                 .addDefaultsFromUserHome()
                 .addDefaultsFromProcessWorkingDir();
         return b;
