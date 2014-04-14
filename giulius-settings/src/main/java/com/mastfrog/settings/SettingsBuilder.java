@@ -344,6 +344,9 @@ public final class SettingsBuilder {
      * @return
      */
     public SettingsBuilder add(String location) {
+        if (isLog()) {
+            log("Add cp " + location);
+        }
         InputStream[] streams = Streams.locate(location);
         if (streams != null) {
             for (InputStream in : streams) {
@@ -397,6 +400,9 @@ public final class SettingsBuilder {
      * @return
      */
     public SettingsBuilder add(File file) {
+        if (isLog()) {
+            log("Add " + file);
+        }
         add(new FileSource(file));
         return this;
     }
