@@ -18,5 +18,6 @@
         <module>maven-merge-configuration</module>
         <module>cluster</module>
         <module>signalreload</module>
+        <module>giulius-jdbc</module>
     </modules>
 </project>
