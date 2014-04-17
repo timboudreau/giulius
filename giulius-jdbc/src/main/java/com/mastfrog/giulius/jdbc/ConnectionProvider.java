@@ -8,9 +8,6 @@ import com.mastfrog.util.Exceptions;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 
 /**
  * Provides a JDBC connection
