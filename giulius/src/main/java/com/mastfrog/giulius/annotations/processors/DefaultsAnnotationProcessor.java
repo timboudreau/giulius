@@ -75,14 +75,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = Processor.class)
 @SupportedAnnotationTypes("com.mastfrog.guicy.annotations.Defaults")
 @SupportedSourceVersion(SourceVersion.RELEASE_6)
-public class DefaultsAnnotationProcessor extends AbstractProcessor {
-
-    private ProcessingEnvironment env;
-
-    @Override
-    public void init(ProcessingEnvironment processingEnv) {
-        this.env = processingEnv;
-    }
+public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
 
     private String findPath(Defaults anno, Element e) {
         boolean specifiesNamespace;
@@ -104,7 +97,7 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
             }
             path += SettingsBuilder.DEFAULT_EXTENSION;
         } else if (!generatedDefaults.equals(path) && specifiesNamespace) {
-            env.getMessager().printMessage(Diagnostic.Kind.WARNING, e.asType()
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, e.asType()
                     + " or its package specifies the namespace \""
                     + namespace + "\", but location=\"" + path + "\" "
                     + "overrides it.", e);
@@ -117,7 +110,7 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
         if (props == null) {
             props = new Properties();
             try {
-                FileObject fo = env.getFiler().getResource(
+                FileObject fo = processingEnv.getFiler().getResource(
                         StandardLocation.CLASS_OUTPUT,
                         "", path);
                 if (fo != null) {
@@ -127,9 +120,6 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                 }
             } catch (FileNotFoundException ex) {
                 //OK
-            } catch (FilerException ex) {
-                // XXX how to avoid this?
-                ex.printStackTrace();
             }
             propertiesForPath.put(path, props);
         }
@@ -153,7 +143,7 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
     private Namespace findNamespace(Element element) {
         Namespace result;
         //get the package before we change the value of element
-        PackageElement pe = env.getElementUtils().getPackageOf(element);
+        PackageElement pe = processingEnv.getElementUtils().getPackageOf(element);
         do {
             //search up enclosing class/method/whatever
             result = element.getAnnotation(Namespace.class);
@@ -170,7 +160,7 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                 int ix = name.toString().lastIndexOf('.');
                 if (ix > 0) {
                     name = name.subSequence(0, ix - 1);
-                    pe = env.getElementUtils().getPackageElement(name);
+                    pe = processingEnv.getElementUtils().getPackageElement(name);
                     result = pe == null ? null : pe.getAnnotation(Namespace.class);
                 } else {
                     break;
@@ -184,8 +174,8 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
     Map<String, List<Element>> elementForPath = new HashMap<>();
 
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        boolean result = true;
+    public boolean handleProcess(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        boolean result = false;
         try {
             Set<? extends Element> all = roundEnv.getElementsAnnotatedWith(Defaults.class);
             for (Element e : all) {
@@ -216,30 +206,12 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
                             String old = props.getProperty(s);
                             String nue = pp.getProperty(s);
                             if (!Objects.equals(old, nue)) {
-                                env.getMessager().printMessage(Diagnostic.Kind.WARNING, e.asType() + " redefines " + s + " from " + old + " to " + nue, e);
+                                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, e.asType() + " redefines " + s + " from " + old + " to " + nue, e);
                             }
                         }
                     }
                     props.putAll(pp);
-                }
-            }
-            if (all.isEmpty()) {
-                if (!propertiesForPath.isEmpty()) {
-                    if (!elements.isEmpty()) {
-                        for (Map.Entry<String, Properties> e : propertiesForPath.entrySet()) {
-                            String path = e.getKey();
-                            try {
-                                FileObject fo = env.getFiler().createResource(StandardLocation.CLASS_OUTPUT,
-                                        "", path, elements.toArray(new Element[0]));
-                                try (OutputStream out = fo.openOutputStream()) {
-                                    e.getValue().store(out, " Generated from annotations on:\n"
-                                            + toString(elementForPath.get(path)));
-                                }
-                            } catch (FilerException ex) {
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
+                    addLine(path, pair, e);
                 }
             }
         } catch (IOException ex) {
@@ -247,18 +219,6 @@ public class DefaultsAnnotationProcessor extends AbstractProcessor {
             return false;
         }
         return result;
-    }
-
-    private static String toString(List<Element> l) {
-        StringBuilder sb = new StringBuilder();
-        for (Iterator<Element> it = l.iterator(); it.hasNext();) {
-            sb.append("   ");
-            sb.append(it.next());
-            if (it.hasNext()) {
-                sb.append("\n");
-            }
-        }
-        return sb.toString();
     }
 
     @Override
