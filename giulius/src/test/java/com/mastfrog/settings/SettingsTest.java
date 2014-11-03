@@ -83,16 +83,20 @@ public class SettingsTest {
 
     @Test
     public void testLifecycle() throws Exception {
-        Timer timer = SettingsRefreshInterval.timer;
         RefreshInterval interval = SettingsRefreshInterval.CLASSPATH;
         interval.setMilliseconds(1);
-        PS ps = new PS(interval);
+        Object notify = new Object();
+        PS ps = new PS(interval, notify);
         Settings s = new SettingsBuilder().add(ps).build();
         Reference<Settings> ref = new WeakReference<>(s);
-        Thread.sleep(40);
+        synchronized(notify) {
+            notify.wait(40);
+        }
         int cc = ps.callCount;
         assertNotSame("Refresh task not called",0, cc);
-        Thread.sleep(40);
+        synchronized(notify) {
+            notify.wait(40);
+        }
         assertNotSame("Refresh task not being called continuously",cc, ps.callCount);
         s = null;
         for (int i = 0; i < 10; i++) {
@@ -100,12 +104,15 @@ public class SettingsTest {
             if (ref.get() == null) {
                 break;
             }
-            Thread.sleep(300);
+            Thread.sleep(20);
         }
         assertNull("Settings not garbage collected",ref.get());
 
         cc = ps.callCount;
-        Thread.sleep(30);
+        synchronized(notify) {
+            notify.wait(30);
+        }
+
         assertSame("Settings garbage collected, but its internals are "
                 + "still being refreshed", cc, ps.callCount);
     }
@@ -113,16 +120,21 @@ public class SettingsTest {
     private static class PS extends SettingsBuilder.PropertiesSource {
 
         private Properties props = new Properties();
+        private final Object notify;
 
-        PS(RefreshInterval interval) {
+        PS(RefreshInterval interval, Object notify) {
             super (interval);
             props.setProperty("test", "foo");
+            this.notify = notify;
         }
         volatile int callCount;
 
         @Override
         public Properties getProperties() throws IOException {
             callCount++;
+            synchronized(notify) {
+                notify.notifyAll();
+            }
             return props;
         }
     }
