@@ -89,10 +89,10 @@ public class SettingsTest {
         PS ps = new PS(interval);
         Settings s = new SettingsBuilder().add(ps).build();
         Reference<Settings> ref = new WeakReference<>(s);
-        Thread.sleep(20);
+        Thread.sleep(40);
         int cc = ps.callCount;
         assertNotSame("Refresh task not called",0, cc);
-        Thread.sleep(20);
+        Thread.sleep(40);
         assertNotSame("Refresh task not being called continuously",cc, ps.callCount);
         s = null;
         for (int i = 0; i < 10; i++) {
@@ -100,7 +100,7 @@ public class SettingsTest {
             if (ref.get() == null) {
                 break;
             }
-            Thread.sleep(200);
+            Thread.sleep(300);
         }
         assertNull("Settings not garbage collected",ref.get());
 
