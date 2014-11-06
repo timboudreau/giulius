@@ -90,12 +90,9 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
     }
 
     private void write() {
-        System.out.println("------------IGP WRITE " + outputFilesByProcessor.size());
         for (Map.Entry<Filer, Map<String, SortedSet<Line>>> outputFiles : outputFilesByProcessor.entrySet()) {
             Filer filer = outputFiles.getKey();
-            System.out.println("GOT " + outputFiles.getValue().size() + " files");
             for (Map.Entry<String, SortedSet<Line>> entry : outputFiles.getValue().entrySet()) {
-                System.out.println("WRITE OUT " + entry.getKey() + " -> " + entry.getValue());
                 try {
                     List<Element> elements = new ArrayList<>();
                     for (Line line : entry.getValue()) {
@@ -108,7 +105,6 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
                         try (PrintWriter w = new PrintWriter(new OutputStreamWriter(os, "UTF-8"))) {
                             for (Line line : entry.getValue()) {
                                 line.write(w);
-                                System.out.println(line);
                             }
                             w.flush();
                         }
@@ -125,7 +121,6 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
     protected abstract boolean handleProcess(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv);
 
     protected void addLine(String path, String line, Element... el) {
-        System.out.println("ADD LINE: " + line + "  --> " + path);
         Line l = new Line(count++, el, line);
         Filer filer = processingEnv.getFiler();
         Map<String, SortedSet<Line>> linesForPath = outputFilesByProcessor.get(filer);
