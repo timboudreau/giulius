@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.WeakHashMap;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -56,7 +55,7 @@ import javax.tools.StandardLocation;
  *
  * @author Tim Boudreau
  */
-abstract class IndexGeneratingProcessor extends AbstractProcessor {
+public abstract class IndexGeneratingProcessor extends AbstractProcessor {
 
     private int count;
     private final Map<Filer, Map<String, SortedSet<Line>>> outputFilesByProcessor
