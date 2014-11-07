@@ -3,7 +3,6 @@ package com.mastfrog.giulius.jdbc;
 import com.google.inject.AbstractModule;
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
-import com.sun.scenario.Settings;
 import java.sql.Connection;
 
 /**
