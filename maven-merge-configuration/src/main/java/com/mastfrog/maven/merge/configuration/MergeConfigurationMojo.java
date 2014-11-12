@@ -224,6 +224,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     case "META-INF/LICENSE.txt":
                                     case "META-INF/http/pages.list":
                                     case "META-INF/http/modules.list":
+                                    case "META-INF/http/numble.list":
                                     case "META-INF/settings/namespaces.list":
                                         Set<String> s = linesForName.get(name);
                                         if (s == null) {
@@ -333,7 +334,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 }
                                 all.putAll(p);
                             }
-                        } else if (SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name) || "META-INF/http/pages.list".equals(name) || "META-INF/http/modules.list".equals(name)) {
+                        } else if (SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name) || "META-INF/http/pages.list".equals(name) || "META-INF/http/modules.list".equals(name)|| "META-INF/http/numble.list".equals(name)) {
                             log.info("Include " + name + " in " + f);
                             try (InputStream in = jar.getInputStream(entry)) {
                                 List<String> lines = readLines(in);
@@ -361,6 +362,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 case "META-INF/LICENSE.txt":
                                 case "META-INF/settings/namespaces.list":
                                 case "META-INF/http/pages.list":
+                                case "META-INF/http/numble.list":
                                 case "META-INF/http/modules.list":
                                     Set<String> s = linesForName.get(name);
                                     if (s == null) {
