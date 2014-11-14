@@ -23,17 +23,9 @@
  */
 package com.mastfrog.settings;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -168,7 +160,11 @@ final class LayeredSettings implements Settings {
 
     @Override
     public Properties toProperties() {
-        return new FakeProperties();
+        Properties result = new Properties();
+        for (String key : this) {
+            result.setProperty(key, getString(key));
+        }
+        return result;
     }
     
     @Override
@@ -192,188 +188,6 @@ final class LayeredSettings implements Settings {
                     ss = ss.substring(0, 160) + "...";
                 }
                 sb.append(ss);
-            }
-        }
-    }
-
-    protected class FakeProperties extends Properties implements Cloneable {
-
-        @Override
-        public synchronized Object setProperty(String key, String value) {
-            throw new UnsupportedOperationException("Read only");
-        }
-
-        @Override
-        public synchronized Object put(Object key, Object value) {
-            throw new UnsupportedOperationException("Read only");
-        }
-
-        @Override
-        public synchronized Object remove(Object key) {
-            throw new UnsupportedOperationException("Read only");
-        }
-
-        @Override
-        public synchronized void putAll(Map<? extends Object, ? extends Object> t) {
-            throw new UnsupportedOperationException("Read only");
-        }
-
-        @Override
-        public synchronized void clear() {
-            throw new UnsupportedOperationException("Read only");
-        }
-
-        @Override
-        public synchronized Object clone() {
-            return new FakeProperties();
-        }
-
-        @Override
-        public String getProperty(String key) {
-            return LayeredSettings.this.getString(key);
-        }
-
-        @Override
-        public String getProperty(String key, String defaultValue) {
-            String result = getProperty(key);
-            return result == null ? defaultValue : result;
-        }
-
-        @Override
-        public Enumeration<?> propertyNames() {
-            return Collections.enumeration(allKeys());
-        }
-
-        @Override
-        public Set<String> stringPropertyNames() {
-            return allKeys();
-        }
-
-        @Override
-        public synchronized int size() {
-            return allKeys().size();
-        }
-
-        @Override
-        public synchronized boolean isEmpty() {
-            return allKeys().isEmpty();
-        }
-
-        @Override
-        public synchronized Enumeration<Object> keys() {
-            List<Object> l = new ArrayList<Object>(allKeys());
-            return Collections.enumeration(l);
-        }
-
-        @Override
-        public synchronized Enumeration<Object> elements() {
-            return super.elements();
-        }
-
-        @Override
-        @SuppressWarnings("element-type-mismatch")
-        public synchronized boolean contains(Object value) {
-            return allKeys().contains(value);
-        }
-
-        @Override
-        public boolean containsValue(Object value) {
-            if (value == null) {
-                return false;
-            }
-            String s = value + "";
-            for (String key : allKeys()) {
-                String val = getProperty(key);
-                if (val != null) {
-                    if (val.equals(s)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        @SuppressWarnings("element-type-mismatch")
-        public synchronized boolean containsKey(Object key) {
-            return allKeys().contains(key);
-        }
-
-        @Override
-        public synchronized Object get(Object key) {
-            if (key instanceof String) {
-                return getString((String) key);
-            }
-            return null;
-        }
-
-        @Override
-        public Set<Object> keySet() {
-            Set<Object> result = new HashSet<Object>(allKeys());
-            return result;
-        }
-
-        @Override
-        public Set<Entry<Object, Object>> entrySet() {
-            Set<Entry<Object, Object>> result = new HashSet<>();
-            for (String key : allKeys()) {
-                result.add(new En(key));
-            }
-            return result;
-        }
-
-        @Override
-        public Collection<Object> values() {
-            List<Object> result = new ArrayList<Object>();
-            for (String key : allKeys()) {
-                result.add(getString(key));
-            }
-            return result;
-        }
-
-        class En implements Map.Entry<Object, Object> {
-
-            private final String key;
-
-            En(String key) {
-                this.key = key;
-            }
-
-            @Override
-            public Object getKey() {
-                return key;
-            }
-
-            @Override
-            public Object getValue() {
-                return getString(key);
-            }
-
-            @Override
-            public Object setValue(Object value) {
-                throw new UnsupportedOperationException("Read only");
-            }
-
-            @Override
-            public int hashCode() {
-                int hash = 7;
-                hash = 53 * hash + Objects.hashCode(this.key);
-                return hash;
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                final En other = (En) obj;
-                if (!Objects.equals(this.key, other.key)) {
-                    return false;
-                }
-                return true;
             }
         }
     }

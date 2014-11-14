@@ -3,6 +3,7 @@ package com.mastfrog.settings;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -55,5 +56,16 @@ public class SettingsBuilderTest {
         assertEquals("true", s.getString("foo"));
         assertEquals("true", s.getString("bar"));
         assertEquals("true", s.getString("quux"));
+    }
+    
+    @Test
+    public void testLayeredSettingsToProperties() throws IOException {
+        SettingsBuilder b = new SettingsBuilder("foo")
+                .add("foo", "bar").addSystemProperties().addEnv()
+                .parseCommandLineArguments("--foo", "--baz");
+        Settings s = b.build();
+        assertTrue (s.getClass().getName(), s instanceof LayeredSettings);
+        Properties p = s.toProperties();
+        assertTrue(p.keySet().toString(), p.keySet().equals(s.allKeys()));
     }
 }
