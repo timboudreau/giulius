@@ -37,6 +37,7 @@ public class XTest {
         private final ThreadLocal<TypeLiteral<?>> loc = new ThreadLocal<>();
 
         @Override
+        @SuppressWarnings("unchecked")
         protected void configure() {
             bind(IFace.class).to(Implementation.class);
 
