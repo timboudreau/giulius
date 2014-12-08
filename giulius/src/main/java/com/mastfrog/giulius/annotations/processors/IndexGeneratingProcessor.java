@@ -60,7 +60,16 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
     private int count;
     private final Map<Filer, Map<String, SortedSet<Line>>> outputFilesByProcessor
             = new HashMap<>();
+    private final boolean processOnFinalRound;
+    
+    protected IndexGeneratingProcessor() {
+        this(false);
+    }
 
+    protected IndexGeneratingProcessor(boolean processOnFinalRound) {
+        this.processOnFinalRound = processOnFinalRound;
+    }
+    
     @Override
     public void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
@@ -74,6 +83,9 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
                 return false;
             }
             if (roundEnv.processingOver()) {
+                if (processOnFinalRound) {
+                    handleProcess(annotations, roundEnv);
+                }
                 write();
                 outputFilesByProcessor.clear();
                 return true;
