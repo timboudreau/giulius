@@ -24,6 +24,7 @@
 package com.mastfrog.maven.merge.configuration;
 
 import com.google.common.base.Objects;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -98,6 +99,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private String mainClass;
     @Parameter(property = "jarName", defaultValue = "none")
     private String jarName;
+    @Parameter(property = "exclude", defaultValue = "")
+    private String exclude = "";
     private static final Pattern PAT = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.properties");
     private static final Pattern SERVICES = Pattern.compile("META-INF\\/services\\/\\S[^\\/]*\\.*");
 
@@ -156,6 +159,12 @@ public class MergeConfigurationMojo extends AbstractMojo {
             throw new MojoFailureException("RepositorySystemSession is null");
         }
         List<File> jars = new ArrayList<>();
+        List<String> exclude = new LinkedList<>();
+        for (String ex : this.exclude.split(",")) {
+            ex = ex.trim();
+            ex = ex.replace('.', '/');
+            exclude.add(ex);
+        }
         try {
             DependencyResolutionResult result
                     = resolver.resolve(new DefaultDependencyResolutionRequest(project, repoSession));
@@ -190,7 +199,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 try {
                     File outDir = new File(project.getBuild().getOutputDirectory()).getParentFile();
                     File jar = new File(outDir, project.getBuild().getFinalName() + ".jar");
-                    System.out.println("Load from " + jar);
                     if (!jar.exists()) {
                         throw new MojoExecutionException("Could not find jar " + jar);
                     }
@@ -208,13 +216,18 @@ public class MergeConfigurationMojo extends AbstractMojo {
                         if (!outJar.exists()) {
                             outJar.createNewFile();
                         }
-                        jarOut = new JarOutputStream(new FileOutputStream(outJar), manifest);
+                        jarOut = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(outJar)), manifest);
                         jarOut.setLevel(9);
                         jarOut.setComment("Merged jar created by " + getClass().getName());
                         Enumeration<JarEntry> en = jf.entries();
                         while (en.hasMoreElements()) {
                             JarEntry e = en.nextElement();
                             String name = e.getName();
+                            for (String s : exclude) {
+                                if (name.startsWith(s)) {
+                                    continue;
+                                }
+                            }
 //                            if (!seen.contains(name)) {
                                 switch (name) {
                                     case "META-INF/MANIFEST.MF":
@@ -312,6 +325,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     while (en.hasMoreElements()) {
                         JarEntry entry = en.nextElement();
                         String name = entry.getName();
+                        for (String s : exclude) {
+                            if (name.startsWith(s)) {
+                                continue;
+                            }
+                        }
                         if (PAT.matcher(name).matches()) {
                             log.info("Include " + name + " in " + f);
                             Properties p = new Properties();
