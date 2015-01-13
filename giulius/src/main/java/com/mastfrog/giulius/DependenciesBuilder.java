@@ -33,6 +33,7 @@ import com.mastfrog.util.ConfigurationError;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -51,6 +52,7 @@ public final class DependenciesBuilder {
     private Map<String, List<SettingsBuilder>> settingsForNamespace = Maps.newHashMapWithExpectedSize(5);
     private List<Module> modules = new LinkedList<>();
     private Set<File> locations = new LinkedHashSet<>();
+    private Set<SettingsBindings> settingsBindings = EnumSet.allOf(SettingsBindings.class);
     /**
      * Get the list of namespaces this DependenciesBuilder will bind settings
      * for.  If you have called <code>addDefaultSettings()</code> this will
@@ -85,6 +87,39 @@ public final class DependenciesBuilder {
             throw new ConfigurationError("Not a directory: " + loc);
         }
         locations.add(loc);
+        return this;
+    }
+    
+    /**
+     * Disable binding of settings to some types if you know they
+     * will not be used, to save (minimal) memory.  This is only
+     * significant if you are running in &lt; 20Mb heap.
+     * @param bindings The bindings to remove
+     * @return this
+     */
+    public DependenciesBuilder disableBindings(SettingsBindings... bindings) {
+        EnumSet<SettingsBindings> toRemove = EnumSet.noneOf(SettingsBindings.class);
+        for (SettingsBindings b : bindings) {
+            toRemove.add(b);
+        }
+        settingsBindings.removeAll(toRemove);
+        return this;
+    }
+    
+    /**
+     * Explicitly set the list of types that are bound to settings to
+     * save (minimal) memory.
+     * 
+     * @param bindings The types of bindings to set up
+     * @return this
+     */
+    public DependenciesBuilder enableOnlyBindingsFor(SettingsBindings... bindings) {
+        EnumSet<SettingsBindings> newSet = EnumSet.noneOf(SettingsBindings.class);
+        for (SettingsBindings b : bindings) {
+            newSet.add(b);
+        }
+        this.settingsBindings.clear();
+        this.settingsBindings.addAll(newSet);
         return this;
     }
 
@@ -221,7 +256,7 @@ public final class DependenciesBuilder {
      * @throws IOException 
      */
     public Dependencies build() throws IOException {
-        return new Dependencies(collapse(), modules.toArray(new Module[modules.size()]));
+        return new Dependencies(collapse(), settingsBindings, modules.toArray(new Module[modules.size()]));
     }
     
     @Override

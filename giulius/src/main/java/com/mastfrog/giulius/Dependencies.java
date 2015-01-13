@@ -61,6 +61,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -95,6 +96,7 @@ public final class Dependencies {
      */
     public static final String SYSTEM_PROP_PRODUCTION_MODE = "productionMode";
     private final Map<String, Settings> settings = new HashMap<>();
+    private final Set<SettingsBindings> settingsBindings;
     private final List<Module> modules = new LinkedList<>();
     private volatile Injector injector;
 
@@ -143,10 +145,10 @@ public final class Dependencies {
      * @param modules A set of modules
      */
     public Dependencies(Settings configuration, Module... modules) {
-        this(Collections.singletonMap(Namespace.DEFAULT, configuration), modules);
+        this(Collections.singletonMap(Namespace.DEFAULT, configuration), EnumSet.allOf(SettingsBindings.class), modules);
     }
 
-    Dependencies(Map<String, Settings> settings, Module... modules) {
+    Dependencies(Map<String, Settings> settings, Set<SettingsBindings> settingsBindings, Module... modules) {
         this.settings.putAll(settings);
         if (!this.settings.containsKey(Namespace.DEFAULT)) {
             try {
@@ -158,6 +160,7 @@ public final class Dependencies {
         }
         this.modules.add(createBindings());
         this.modules.addAll(Arrays.asList(modules));
+        this.settingsBindings = settingsBindings;
     }
 
     public static DependenciesBuilder builder() {
@@ -473,43 +476,100 @@ public final class Dependencies {
                 for (String k : allKeys) {
                     Named n = Names.named(k);
                     PropertyProvider p = new PropertyProvider(k, namespacedSettings);
-                    binder.bind(Key.get(String.class, n)).toProvider(p);
-                    binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
-                    binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
-                    binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
-                    binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
-                    binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
-                    binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
-                    binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
-                    binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
-                    binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
-                    binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                    for (SettingsBindings type : settingsBindings) {
+                        switch(type) {
+                            case INT :
+                                binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
+                                break;
+                            case STRING :
+                                binder.bind(Key.get(String.class, n)).toProvider(p);
+                                break;
+                            case LONG :
+                                binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
+                                break;
+                            case BOOLEAN :
+                                binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
+                                break;
+                            case BYTE :
+                                binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
+                                break;
+                            case CHARACTER :
+                                binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
+                                break;
+                            case DOUBLE :
+                                binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
+                                break;
+                            case FLOAT :
+                                binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
+                                break;
+                            case SHORT :
+                                binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
+                                break;
+                            case BIG_DECIMAL :
+                                binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
+                                break;
+                            case BIG_INTEGER :
+                                binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                                break;
+                        }
+                    }
                 }
                 for (String namespace : knownNamespaces) {
                     Settings s = settings.get(namespace);
-                    log("BIND SETTINGS NS " + namespace + " to " + s);
                     bind(Settings.class).annotatedWith(new NamespaceImpl(namespace)).toInstance(s);
                     for (String key : s) {
                         Provider<String> p = new PropertyProvider(key, Providers.of(s));
                         Value n = new ValueImpl(key, namespace);
-                        binder.bind(String.class).annotatedWith(n).toProvider(p);
-                        binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
-                        binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
-                        binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
-                        binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
-                        binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
-                        binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
-                        binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
-                        binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
-                        binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
-                        binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                        for (SettingsBindings type : settingsBindings) {
+                            switch(type) {
+                            case INT :
+                                binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
+                                break;
+                            case STRING :
+                                binder.bind(Key.get(String.class, n)).toProvider(p);
+                                break;
+                            case LONG :
+                                binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
+                                break;
+                            case BOOLEAN :
+                                binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
+                                break;
+                            case BYTE :
+                                binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
+                                break;
+                            case CHARACTER :
+                                binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
+                                break;
+                            case DOUBLE :
+                                binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
+                                break;
+                            case FLOAT :
+                                binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
+                                break;
+                            case SHORT :
+                                binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
+                                break;
+                            case BIG_DECIMAL :
+                                binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
+                                break;
+                            case BIG_INTEGER :
+                                binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                                break;                                
+                            }   
+                        }
                     }
                 }
                 bind(Settings.class).toProvider(namespacedSettings);
                 //Provide a binding to 
                 bind(MutableSettings.class).toProvider(new MutableSettingsProvider(namespacedSettings, currentType));
                 //A hack, but it works
-                binder.bindListener(Matchers.any(), new ProvisionListenerImpl());
+
+                boolean isUsingNamespaces = knownNamespaces.size() > 1 ||
+                        (knownNamespaces.size() == 1 && Namespace.DEFAULT.equals(knownNamespaces.iterator().next()));
+                
+                if (isUsingNamespaces) {
+                    binder.bindListener(Matchers.any(), new ProvisionListenerImpl());
+                }
             } catch (Exception ioe) {
                 throw new ConfigurationError(ioe);
             }
