@@ -68,19 +68,29 @@ public abstract class ShutdownHookRegistry {
         add(new ShutdownExecutorService(svc));
         return this;
     }
+    
+    private volatile boolean running;
+    public boolean isRunningShutdownHooks() {
+        return running;
+    }
 
     protected void runShutdownHooks() {
-        Runnable[] result = hooks.toArray(new Runnable[hooks.size()]);
-        for (int i = 0; i < result.length; i++) {
-            try {
-                result[i].run();
-            } catch (Exception e) {
-                Logger.getLogger(ShutdownHookRegistry.class.getName()).log(
-                     Level.SEVERE, Arrays.asList(result) + " failed", e);
-            } finally {
-                //no matter what, don't try to run it more than once
-                hooks.remove(result[i]);
+        running = true;
+        try {
+            Runnable[] result = hooks.toArray(new Runnable[hooks.size()]);
+            for (int i = 0; i < result.length; i++) {
+                try {
+                    result[i].run();
+                } catch (Exception e) {
+                    Logger.getLogger(ShutdownHookRegistry.class.getName()).log(
+                         Level.SEVERE, result[i] + " failed", e);
+                } finally {
+                    //no matter what, don't try to run it more than once
+                    hooks.remove(result[i]);
+                }
             }
+        } finally {
+            running = false;
         }
     }
 
