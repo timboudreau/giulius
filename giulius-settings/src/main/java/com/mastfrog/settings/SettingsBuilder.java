@@ -285,7 +285,11 @@ public final class SettingsBuilder {
     public SettingsBuilder addDefaultLocations() {
         return addEnv()
                 .addSystemProperties()
-                .addGeneratedDefaultsFromClasspath()
+                .addFilesystemAndClasspathLocations();
+    }
+    
+    public SettingsBuilder addFilesystemAndClasspathLocations() {
+        return addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath()
                 .addDefaultsFromEtc()
                 .addDefaultsFromUserHome()
