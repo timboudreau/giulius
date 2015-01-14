@@ -565,8 +565,8 @@ public final class Dependencies {
                 //A hack, but it works
 
                 boolean isUsingNamespaces = knownNamespaces.size() > 1 ||
-                        (knownNamespaces.size() == 1 && Namespace.DEFAULT.equals(knownNamespaces.iterator().next()));
-                
+                        (knownNamespaces.size() == 1 && !Namespace.DEFAULT.equals(knownNamespaces.iterator().next()));
+
                 if (isUsingNamespaces) {
                     binder.bindListener(Matchers.any(), new ProvisionListenerImpl());
                 }
