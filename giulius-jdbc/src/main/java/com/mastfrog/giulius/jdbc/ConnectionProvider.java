@@ -26,8 +26,8 @@ package com.mastfrog.giulius.jdbc;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.jolbox.bonecp.BoneCP;
 import com.mastfrog.util.Exceptions;
+import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -40,13 +40,13 @@ import java.sql.SQLException;
 @Singleton
 class ConnectionProvider implements Provider<Connection> {
 
-    private final Provider<BoneCP> connectionPool;
+    private final Provider<HikariPool> connectionPool;
     private final ConnectionConfigurer configurer;
     private final JdbcInitializer init;
     private final Provider<Connection> delegate;
 
     @Inject
-    public ConnectionProvider(Provider<BoneCP> connectionPool, ConnectionConfigurer configurer, JdbcInitializer init) {
+    public ConnectionProvider(Provider<HikariPool> connectionPool, ConnectionConfigurer configurer, JdbcInitializer init) {
         this.connectionPool = connectionPool;
         this.configurer = configurer;
         this.init = init;
@@ -81,7 +81,7 @@ class ConnectionProvider implements Provider<Connection> {
         @Override
         public synchronized Connection get() {
             try {
-                BoneCP pool = connectionPool.get();
+                HikariPool pool = connectionPool.get();
                 Connection result = pool.getConnection();
                 result = configurer.onProvideConnection(result);
                 if (first) {

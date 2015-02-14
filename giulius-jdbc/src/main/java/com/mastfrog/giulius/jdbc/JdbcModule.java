@@ -24,8 +24,8 @@
 package com.mastfrog.giulius.jdbc;
 
 import com.google.inject.AbstractModule;
-import com.jolbox.bonecp.BoneCP;
-import com.jolbox.bonecp.BoneCPConfig;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.pool.HikariPool;
 import java.sql.Connection;
 
 /**
@@ -40,13 +40,25 @@ public class JdbcModule extends AbstractModule {
     public static final String JDBC_URL = "jdbc.url";
     public static final String JDBC_USER = "jdbc.user";
     public static final String JDBC_PASSWORD = "jdbc.password";
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final String PARTITION_COUNT = "jdbc.partition.count";
     public static final String MIN_CONNECTIONS_PER_PARTITION = "jdbc.min.connections.per.partition";
     public static final String CONNECTION_TIMEOUT_MINUTES = "jdbc.connection.timeout.minutes";
     public static final String MAX_CONNECTIONS_PER_PARTITION = "jdbc.max.connections.per.partition";
     public static final String MAX_CONNECTION_AGE_MINUTES = "jdbc.max.connection.age.minutes";
     public static final String CLOSE_OPEN_STATEMENTS = "jdbc.close.open.statements";
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final String CLOSE_CONNECTION_WATCH = "jdbc.close.connection.watch";
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final String ACQUIRE_RETRY_ATTEMPTS = "jdbc.acquire.retry.attempts";
     public static final String READ_ONLY = "jdbc.read.only";
     public static final String IDLE_MAX_AGE_SECONDS = "jdbc.idle.max.age";
@@ -58,9 +70,21 @@ public class JdbcModule extends AbstractModule {
     public static final String POSTGRES_RECEIVE_BUFFER_SIZE = "jdbc.postgres.receive.buffer.size";
     public static final String POSTGRES_KEEP_ALIVE = "jdbc.postgres.keep.alive";
 
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final boolean DEFAULT_CLOSE_OPEN_STATEMENTS = true;
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final boolean DEFAULT_CLOSE_CONNECTION_WATCH = true;
     public static final boolean DEFAULT_READ_ONLY = false;
+    @Deprecated
+    /**
+     * @deprecated Unused with HikariCP
+     */
     public static final int DEFAULT_ACQUIRE_RETRY_ATTEMPTS = 2;
     public static final String DEFAULT_JDBC_URL = "jdbc:postgresql://localhost:5432/postgres";
     public static final int DEFAULT_PARTITION_COUNT = 1;
@@ -71,9 +95,8 @@ public class JdbcModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(BoneCPConfig.class).toProvider(ConnectionPoolConfigProvider.class);
-        bind(BoneCP.class).toProvider(ConnectionPoolProvider.class);
-        bind(BoneCPConfig.class).toProvider(ConnectionPoolConfigProvider.class);
+        bind(HikariPool.class).toProvider(ConnectionPoolProvider.class);
+        bind(HikariConfig.class).toProvider(ConnectionPoolConfigProvider.class);
         bind(Connection.class).toProvider(ConnectionProvider.class);
     }
 }

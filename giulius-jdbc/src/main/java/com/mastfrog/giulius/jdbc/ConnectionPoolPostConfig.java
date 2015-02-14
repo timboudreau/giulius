@@ -24,7 +24,7 @@
 package com.mastfrog.giulius.jdbc;
 
 import com.google.inject.ImplementedBy;
-import com.jolbox.bonecp.BoneCPConfig;
+import com.zaxxer.hikari.HikariConfig;
 
 /**
  * Configures additional properties of the BoneCPConfig before the pool is
@@ -36,5 +36,5 @@ import com.jolbox.bonecp.BoneCPConfig;
 @ImplementedBy(ConnectionPoolPostConfigImpl.class)
 public interface ConnectionPoolPostConfig {
 
-    BoneCPConfig onConfigure(BoneCPConfig config);
+    HikariConfig onConfigure(HikariConfig config);
 }

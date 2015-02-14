@@ -26,11 +26,10 @@ package com.mastfrog.giulius.jdbc;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.jolbox.bonecp.BoneCP;
-import com.jolbox.bonecp.BoneCPConfig;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.util.Exceptions;
-import java.sql.SQLException;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.pool.HikariPool;
 
 /**
  * Provides a BoneCP connection pool
@@ -38,26 +37,26 @@ import java.sql.SQLException;
  * @author Tim Boudreau
  */
 @Singleton
-class ConnectionPoolProvider implements Provider<BoneCP>, Runnable {
+class ConnectionPoolProvider implements Provider<HikariPool>, Runnable {
 
-    private volatile BoneCP instance;
-    private final Provider<BoneCPConfig> config;
+    private volatile HikariPool instance;
+    private final Provider<HikariConfig> config;
 
     @Inject
-    public ConnectionPoolProvider(Provider<BoneCPConfig> config, ShutdownHookRegistry reg) {
+    public ConnectionPoolProvider(Provider<HikariConfig> config, ShutdownHookRegistry reg) {
         this.config = config;
         reg.add(this);
     }
 
     @Override
-    public BoneCP get() {
+    public HikariPool get() {
         if (instance == null) {
             synchronized (this) {
                 if (instance == null) {
                     try {
-                        BoneCP cp = new BoneCP(config.get());
-                        instance = cp;
-                    } catch (SQLException ex) {
+                        HikariPool pool = new HikariPool(config.get());
+                        instance = pool;
+                    } catch (Exception ex) {
                         Exceptions.chuck(ex);
                     }
                 }
@@ -70,7 +69,11 @@ class ConnectionPoolProvider implements Provider<BoneCP>, Runnable {
     public void run() {
         synchronized(this) {
             if (instance != null) {
-                instance.shutdown();
+                try {
+                    instance.shutdown();
+                } catch (InterruptedException ex) {
+                    Exceptions.chuck(ex);
+                }
             }
         }
     }

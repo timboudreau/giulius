@@ -24,7 +24,6 @@
 package com.mastfrog.giulius.jdbc;
 
 import com.google.inject.Inject;
-import com.jolbox.bonecp.BoneCPConfig;
 import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_KEEP_ALIVE;
 import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_LOGIN_TIMEOUT;
 import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_LOG_UNCLOSED_CONNECTIONS;
@@ -32,6 +31,7 @@ import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_RECEIVE_BUFFER_SIZE;
 import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_SEND_BUFFER_SIZE;
 import static com.mastfrog.giulius.jdbc.JdbcModule.POSTGRES_SOCKET_TIMEOUT;
 import com.mastfrog.settings.Settings;
+import com.zaxxer.hikari.HikariConfig;
 import java.util.Properties;
 
 final class ConnectionPoolPostConfigImpl implements ConnectionPoolPostConfig {
@@ -44,7 +44,7 @@ final class ConnectionPoolPostConfigImpl implements ConnectionPoolPostConfig {
     }
 
     @Override
-    public BoneCPConfig onConfigure(BoneCPConfig config) {
+    public HikariConfig onConfigure(HikariConfig config) {
         String url = config.getJdbcUrl();
         // http://jdbc.postgresql.org/documentation/head/connect.html
         if (url.contains("postgres")) {
@@ -63,7 +63,7 @@ final class ConnectionPoolPostConfigImpl implements ConnectionPoolPostConfig {
             putIfNotNull(props, "socketTimeout", socketTimeout);
             putIfNotNull(props, "logUnclosedConnections", logUnclosedConnections);
             if (!props.isEmpty()) {
-                config.setDriverProperties(props);
+                config.setDataSourceProperties(props);
             }
         }
         return config;
