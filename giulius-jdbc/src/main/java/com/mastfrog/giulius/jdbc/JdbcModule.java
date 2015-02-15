@@ -89,6 +89,11 @@ public class JdbcModule extends AbstractModule {
     public static final String DEFAULT_JDBC_URL = "jdbc:postgresql://localhost:5432/postgres";
     public static final int DEFAULT_PARTITION_COUNT = 1;
     public static final int DEFAULT_MIN_CONNECTIONS_PER_PARTITION = 1;
+    /**
+     * Deprecated - computed from cores - not used
+     * @deprecated
+     */
+    @Deprecated
     public static final int DEFAULT_MAX_CONNECTIONS_PER_PARTITION = 6;
     public static final int DEFAULT_CONNECTION_TIMEOUT_MINUTES = 3;
     public static final String DEFAULT_JDBC_USER = "postgres";
@@ -98,5 +103,10 @@ public class JdbcModule extends AbstractModule {
         bind(HikariPool.class).toProvider(ConnectionPoolProvider.class);
         bind(HikariConfig.class).toProvider(ConnectionPoolConfigProvider.class);
         bind(Connection.class).toProvider(ConnectionProvider.class);
+    }
+    
+    static int defaultMaxConnectionsPerPartition() {
+        int cores = Runtime.getRuntime().availableProcessors();
+        return Math.max(2, (cores * 2) + 1);
     }
 }
