@@ -18,5 +18,6 @@
         <module>cluster</module>
         <module>signalreload</module>
         <module>giulius-jdbc</module>
+        <module>giulius-mongodb</module>
     </modules>
 </project>
