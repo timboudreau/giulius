@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>giulius-parent</artifactId>
-        <version>1.6.1.1-dev</version>
+        <version>1.6.1.2-dev</version>
     </parent>
     <name>Giulius JDBC</name>
     <artifactId>giulius-jdbc</artifactId>
