@@ -19,5 +19,6 @@
         <module>signalreload</module>
         <module>giulius-jdbc</module>
         <module>giulius-mongodb</module>
+        <module>giulius-mongojack</module>
     </modules>
 </project>
