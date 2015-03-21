@@ -110,7 +110,8 @@ public abstract class ExtensibleJsonObject implements Iterable<Map.Entry<String,
         }
         Set<String> result = new HashSet<>();
         for (Constructor c : getClass().getConstructors()) {
-            int pc = c.getParameterCount();
+//            int pc = c.getParameterCount(); // JDK 8
+            int pc = c.getParameters().length;
             Annotation[][] annos = c.getParameterAnnotations();
             for (int i = 0; i < pc; i++) {
                 Annotation[] curr = annos[i];
