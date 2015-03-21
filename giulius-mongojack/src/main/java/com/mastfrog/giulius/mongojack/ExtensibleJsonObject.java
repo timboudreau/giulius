@@ -14,20 +14,37 @@ import java.util.Set;
 
 /**
  * Base class for objects that have some typed fields but can also support
- * ad-hoc properties.
+ * ad-hoc properties it does not define.  This is used in order to write
+ * POJO classes which can be serialized/deserialized either from the web or from
+ * MongoDB which are allowed to contain properties not explicitly defined, and
+ * have a way of retaining them.
+ * <p/>
+ * Implementations should use final fields and a constructor annotated with
+ * &#064;JsonCreator whose arguments use &#064;JsonProperty to identify them - 
+ * these annotations are also used to ensure the catch-all setter cannot be
+ * used to override property names or cause duplicate keys in the resulting JSON.
  *
  * @author Tim Boudreau
  */
-public class ExtensibleJsonObject implements Iterable<Map.Entry<String, Object>> {
+public abstract class ExtensibleJsonObject implements Iterable<Map.Entry<String, Object>> {
 
     @JsonIgnore
-    public final Map<String, Object> metadata = new HashMap<>();
+    private final Map<String, Object> metadata = new HashMap<>();
 
+    /**
+     * Gets properties that are not explicitly defined but which are present.
+     * @return The additional properties
+     */
     @JsonAnyGetter
     public Map<String, Object> metadata() {
         return metadata;
     }
 
+    /**
+     * Setter for Jackson to use with ad-hoc properties.
+     * @param key The property name
+     * @param value The vaue
+     */
     @JsonAnySetter
     public void put(String key, Object value) {
         if (propertyNames().contains(key)) {
@@ -37,13 +54,25 @@ public class ExtensibleJsonObject implements Iterable<Map.Entry<String, Object>>
         metadata.put(key, value);
     }
 
+    /**
+     * Iterate non-standard key/value pairs.
+     * @return An iterator
+     */
     @Override
     public Iterator<Map.Entry<String, Object>> iterator() {
         return metadata.entrySet().iterator();
     }
 
+    /**
+     * Get a property not defined on the child class but which was
+     * present at deserialization.
+     * @param <T> The type
+     * @param key The name of the property
+     * @param type The type
+     * @return A property or null
+     */
     public <T> T get(String key, Class<T> type) {
-        return type.cast(metadata.get(key));
+        return metadata.containsKey(key) ? type.cast(metadata.get(key)) : null;
     }
 
     @Override
@@ -65,6 +94,15 @@ public class ExtensibleJsonObject implements Iterable<Map.Entry<String, Object>>
         return false;
     }
 
+    /**
+     * Return a set of those property names which *are* defined on this
+     * class, and therefore should not be used with the catch-all setter.
+     * The default implementation looks at the constructor arguments for
+     * &#064;JsonProperty annotations returns the set of all such property
+     * names.
+     * 
+     * @return The set of property names this subclass defines.
+     */
     protected Set<String> propertyNames() {
         Set<String> cached = cache.get(getClass());
         if (cached != null) {

@@ -15,6 +15,8 @@ import java.util.List;
 import org.mongojack.JacksonDBCollection;
 
 /**
+ * Wraps the Giulius mongo module with support for MongoJack which uses
+ * Jackson to serialize/deserialize.
  *
  * @author Tim Boudreau
  */
@@ -24,7 +26,7 @@ public class MongoJacksonModule extends AbstractModule {
 
     private final GiuliusMongoModule mongo;
 
-    MongoJacksonModule(String name) {
+    public MongoJacksonModule(String name) {
         mongo = new GiuliusMongoModule(name);
     }
 
