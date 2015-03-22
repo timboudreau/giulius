@@ -1,5 +1,6 @@
 package com.mastfrog.giulius.mongojack;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Key;
@@ -77,8 +78,9 @@ public class MongoJacksonModule extends AbstractModule {
         void bind(Binder binder) {
             Named anno = Names.named(bindingName);
             Provider<DBCollection> collectionProvider = binder.getProvider(Key.get(DBCollection.class, anno));
-            Provider<JacksonDBCollection<T, R>> result = new JacksonDBCollectionProvider<>(collectionProvider, left, right);
-            binder.bind(tl).toProvider(result);
+            Provider<JacksonDBCollection<T, R>> result = new JacksonDBCollectionProvider<>(collectionProvider, left, right, binder.getProvider(ObjectMapper.class));
+            System.out.println("BIND " + tl + " to " + result);
+            binder.bind(tl).annotatedWith(anno).toProvider(result);
         }
     }
 
@@ -87,17 +89,26 @@ public class MongoJacksonModule extends AbstractModule {
         private final Provider<DBCollection> dbCollection;
         private final Class<T> left;
         private final Class<R> right;
+        private final Provider<ObjectMapper> mapper;
+        private ObjectMapper mapperInstance;
 
-        JacksonDBCollectionProvider(Provider<DBCollection> dbCollection, Class<T> left, Class<R> right) {
+        JacksonDBCollectionProvider(Provider<DBCollection> dbCollection, Class<T> left, Class<R> right, Provider<ObjectMapper> mapper) {
             this.dbCollection = dbCollection;
             this.left = left;
             this.right = right;
+            this.mapper = mapper;
         }
 
         @Override
         public JacksonDBCollection<T, R> get() {
             DBCollection coll = dbCollection.get();
-            return JacksonDBCollection.wrap(coll, left, right);
+            // Ensure we don't pollute the globally bound object mapper
+            ObjectMapper m = mapperInstance == null ? mapperInstance = mapper.get().copy() : mapperInstance;
+            return JacksonDBCollection.wrap(coll, left, right, m);
+        }
+        
+        public String toString() {
+            return "JacksonDbCollection<" + left.getName() + "," + right.getName() + ">";
         }
     }
 }
