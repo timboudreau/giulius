@@ -79,7 +79,6 @@ public class MongoJacksonModule extends AbstractModule {
             Named anno = Names.named(bindingName);
             Provider<DBCollection> collectionProvider = binder.getProvider(Key.get(DBCollection.class, anno));
             Provider<JacksonDBCollection<T, R>> result = new JacksonDBCollectionProvider<>(collectionProvider, left, right, binder.getProvider(ObjectMapper.class));
-            System.out.println("BIND " + tl + " to " + result);
             binder.bind(tl).annotatedWith(anno).toProvider(result);
         }
     }
