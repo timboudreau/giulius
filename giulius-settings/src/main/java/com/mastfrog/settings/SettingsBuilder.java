@@ -138,6 +138,16 @@ public final class SettingsBuilder {
         this.all.addAll(sb.all);
         return this;
     }
+    
+    public SettingsBuilder add(String key, boolean value) {
+        add(key, Boolean.toString(value));
+        return this;
+    }
+
+    public SettingsBuilder add(String key, int value) {
+        add(key, Integer.toString(value));
+        return this;
+    }
 
     /**
      * Add any properties file generated from the &#064;Defaults annotation.
