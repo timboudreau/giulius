@@ -471,7 +471,10 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     }
                 }
                 if (jarOut != null) {
-                    log.warn("Concatenating " + fileCountForName.get(e.getKey()) + " copies of " + e.getKey());
+                    int count = fileCountForName.get(e.getKey());
+                    if (count > 1) {
+                        log.warn("Concatenating " + count + " copies of " + e.getKey());
+                    }
                     JarEntry je = new JarEntry(e.getKey());
                     try {
                         jarOut.putNextEntry(je);
