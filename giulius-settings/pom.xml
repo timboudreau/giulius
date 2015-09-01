@@ -4,7 +4,7 @@
     <parent>
         <artifactId>mastfrog-parent</artifactId>
         <groupId>com.mastfrog</groupId>
-        <version>1.6.2</version>
+        <version>1.6.3</version>
         <relativePath/>
     </parent>
     <artifactId>giulius-settings</artifactId>
