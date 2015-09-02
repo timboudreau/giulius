@@ -10,6 +10,8 @@ import static com.mastfrog.acteur.mongo.GiuliusMongoModule.DEFAULT_MAX_WAIT_MILL
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_CONNECTIONS;
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_WAIT_MILLIS;
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_PASSWORD;
+import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL;
+import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED;
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_USER;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.settings.Settings;
@@ -19,7 +21,6 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,8 +80,12 @@ final class MongoClientProvider implements Provider<MongoClient>, Runnable {
                         registry.onBeforeCreateMongoClient(host, port);
                         int maxWait = settings.getInt(SETTINGS_KEY_MAX_WAIT_MILLIS, DEFAULT_MAX_WAIT_MILLIS);
                         int maxConnections = settings.getInt(SETTINGS_KEY_MAX_CONNECTIONS, DEFAULT_MAX_CONNECTIONS);
-                        MongoClientOptions opts = MongoClientOptions.builder()
-                                .autoConnectRetry(true).connectionsPerHost(maxConnections)
+                        boolean ssl = settings.getBoolean(SETTINGS_KEY_MONGO_SSL, false);
+                        boolean invalidAllowed = settings.getBoolean(SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED, false);
+                        MongoClientOptions opts = MongoClientOptions.builder().legacyDefaults()
+                                .connectionsPerHost(maxConnections)
+                                .sslEnabled(ssl)
+                                .sslInvalidHostNameAllowed(invalidAllowed)
                                 .cursorFinalizerEnabled(true)
                                 .readPreference(ReadPreference.nearest())
                                 .maxWaitTime(maxWait).build();
@@ -104,7 +109,7 @@ final class MongoClientProvider implements Provider<MongoClient>, Runnable {
                             hooks.add(this);
                             added = true;
                         }
-                    } catch (UnknownHostException ex) {
+                    } catch (Exception ex) {
                         Exceptions.chuck(ex);
                     }
                 }

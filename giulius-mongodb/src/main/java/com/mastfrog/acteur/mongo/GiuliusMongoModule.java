@@ -16,12 +16,14 @@ import java.util.Set;
  *
  * @author Tim Boudreau
  */
-public final class GiuliusMongoModule extends AbstractModule implements MongoConfig<GiuliusMongoModule> {
+public final class GiuliusMongoModule extends AbstractModule implements MongoConfigModule {
 
     public static final String MONGO_HOST = "mongoHost";
     public static final String MONGO_PORT = "mongoPort";
     public static final String DATABASE_NAME = "_dbName";
     public static final String SETTINGS_KEY_MONGO_USER = "mongo.user";
+    public static final String SETTINGS_KEY_MONGO_SSL = "mongo.ssl";
+    public static final String SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED = "mongo.ssl.allow.invalid.hostnames";
     public static final String SETTINGS_KEY_MONGO_PASSWORD = "mongo.password";
     public static final String SETTINGS_KEY_MAX_WAIT_MILLIS = "mongo.max.wait.millis";
     public static final int DEFAULT_MAX_WAIT_MILLIS = 20000;

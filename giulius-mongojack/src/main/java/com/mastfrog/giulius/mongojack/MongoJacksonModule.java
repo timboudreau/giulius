@@ -9,6 +9,7 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.mastfrog.acteur.mongo.GiuliusMongoModule;
+import com.mastfrog.acteur.mongo.MongoConfigModule;
 import com.mastfrog.acteur.mongo.MongoInitializer;
 import com.mongodb.DBCollection;
 import java.util.LinkedList;
@@ -16,8 +17,8 @@ import java.util.List;
 import org.mongojack.JacksonDBCollection;
 
 /**
- * Wraps the Giulius mongo module with support for MongoJack which uses
- * Jackson to serialize/deserialize.
+ * Wraps the Giulius mongo module with support for MongoJack which uses Jackson
+ * to serialize/deserialize.
  *
  * @author Tim Boudreau
  */
@@ -25,10 +26,14 @@ public class MongoJacksonModule extends AbstractModule {
 
     private final List<Entry<?, ?>> entries = new LinkedList<>();
 
-    private final GiuliusMongoModule mongo;
+    private final MongoConfigModule mongo;
 
     public MongoJacksonModule(String name) {
-        mongo = new GiuliusMongoModule(name);
+        this(new GiuliusMongoModule(name));
+    }
+
+    public MongoJacksonModule(MongoConfigModule module) {
+        mongo = module;
     }
 
     public MongoJacksonModule addInitializer(Class<? extends MongoInitializer> type) {
@@ -47,6 +52,16 @@ public class MongoJacksonModule extends AbstractModule {
         return this;
     }
 
+    public MongoJacksonModule bindCollection(String bindingName) {
+        mongo.bindCollection(bindingName);
+        return this;
+    }
+
+    public MongoJacksonModule bindCollection(String bindingName, String collectionName) {
+        mongo.bindCollection(bindingName, collectionName);
+        return this;
+    }
+
     public final String getDatabaseName() {
         return mongo.getDatabaseName();
     }
@@ -55,7 +70,7 @@ public class MongoJacksonModule extends AbstractModule {
     protected void configure() {
         install(mongo);
         Binder binder = binder();
-        for (Entry<?,?> e : entries) {
+        for (Entry<?, ?> e : entries) {
             e.bind(binder);
         }
         entries.clear();
@@ -105,7 +120,7 @@ public class MongoJacksonModule extends AbstractModule {
             ObjectMapper m = mapperInstance == null ? mapperInstance = mapper.get().copy() : mapperInstance;
             return JacksonDBCollection.wrap(coll, left, right, m);
         }
-        
+
         public String toString() {
             return "JacksonDbCollection<" + left.getName() + "," + right.getName() + ">";
         }

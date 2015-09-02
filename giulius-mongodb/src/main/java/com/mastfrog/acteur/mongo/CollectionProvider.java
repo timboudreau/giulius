@@ -5,6 +5,7 @@ import com.mastfrog.util.Exceptions;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.MongoCommandException;
 
 /**
  *
@@ -35,8 +36,8 @@ final class CollectionProvider implements Provider<DBCollection> {
                         DBCollection coll = d.createCollection(name, arg);
                         registry.onCreateCollection(coll);
                         return collection = coll;
-                    } catch (com.mongodb.CommandFailureException ex) {
-                        if ("collection already exists".equals(ex.getCommandResult().getErrorMessage())) {
+                    } catch (MongoCommandException ex) {
+                        if ("collection already exists".equals(ex.getErrorMessage())) {
                             return d.getCollection(name);
                         }
                         return Exceptions.chuck(ex);
