@@ -78,6 +78,7 @@ public abstract class ShutdownHookRegistry {
         running = true;
         try {
             Runnable[] result = hooks.toArray(new Runnable[hooks.size()]);
+            hooks.clear();
             for (int i = 0; i < result.length; i++) {
                 try {
                     result[i].run();
