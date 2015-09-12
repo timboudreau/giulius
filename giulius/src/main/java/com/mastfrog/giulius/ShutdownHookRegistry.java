@@ -30,9 +30,10 @@ import com.mastfrog.util.Checks;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,15 +48,17 @@ import java.util.logging.Logger;
  */
 @ImplementedBy(VMShutdownHookRegistry.class)
 public abstract class ShutdownHookRegistry {
-    private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<Runnable>(10));
+
+    private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<Runnable>(20));
 
     protected ShutdownHookRegistry() {
         //package private
     }
 
     /**
-     * Add a runnable which should run on VM shutdown or logical shutdown
-     * of a subsystem.
+     * Add a runnable which should run on VM shutdown or logical shutdown of a
+     * subsystem.
+     *
      * @see com.mastfrog.guicy.Dependencies.shutdown
      * @param runnable A runnable
      */
@@ -65,11 +68,13 @@ public abstract class ShutdownHookRegistry {
     }
 
     public ShutdownHookRegistry add(ExecutorService svc) {
+        Checks.notNull("svc", svc);
         add(new ShutdownExecutorService(svc));
         return this;
     }
-    
+
     private volatile boolean running;
+
     public boolean isRunningShutdownHooks() {
         return running;
     }
@@ -77,14 +82,23 @@ public abstract class ShutdownHookRegistry {
     protected void runShutdownHooks() {
         running = true;
         try {
-            Runnable[] result = hooks.toArray(new Runnable[hooks.size()]);
-            hooks.clear();
+            Set<Integer> identities = new HashSet<>();
+            Runnable[] result;
+            synchronized (hooks) {
+                result = hooks.toArray(new Runnable[hooks.size()]);
+                hooks.clear();
+            }
             for (int i = 0; i < result.length; i++) {
+                int id = System.identityHashCode(result[i]);
+                if (identities.contains(id)) {
+                    continue;
+                }
+                identities.add(id);
                 try {
                     result[i].run();
                 } catch (Exception e) {
                     Logger.getLogger(ShutdownHookRegistry.class.getName()).log(
-                         Level.SEVERE, result[i] + " failed", e);
+                            Level.SEVERE, result[i] + " failed", e);
                 } finally {
                     //no matter what, don't try to run it more than once
                     hooks.remove(result[i]);
@@ -96,9 +110,9 @@ public abstract class ShutdownHookRegistry {
     }
 
     /**
-     * Get a shutdown hook registry instance.  This method is only for use
-     * in things like ServletContextListeners where there is no control
-     * over lifecycle.  The returned instance is not a singleton.
+     * Get a shutdown hook registry instance. This method is only for use in
+     * things like ServletContextListeners where there is no control over
+     * lifecycle. The returned instance is not a singleton.
      *
      * @return A registry of shutdown hooks.
      */
@@ -108,11 +122,13 @@ public abstract class ShutdownHookRegistry {
     }
 
     public ShutdownHookRegistry add(Timer timer) {
+        Checks.notNull("timer", timer);
         add(new ShutdownTimer(timer));
         return this;
     }
 
     private static final class ShutdownTimer implements Runnable {
+
         private final Reference<Timer> timer;
 
         public ShutdownTimer(Timer timer) {
@@ -127,6 +143,7 @@ public abstract class ShutdownHookRegistry {
     }
 
     private static final class ShutdownExecutorService implements Runnable {
+
         private final Reference<ExecutorService> svc;
 
         public ShutdownExecutorService(ExecutorService svc) {
@@ -144,6 +161,7 @@ public abstract class ShutdownHookRegistry {
 
     @Singleton
     static final class VMShutdownHookRegistry extends ShutdownHookRegistry implements Runnable {
+
         private final AtomicBoolean registered = new AtomicBoolean();
 
         @Override
