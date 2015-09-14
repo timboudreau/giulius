@@ -30,6 +30,7 @@ import com.mongodb.async.client.MongoCollection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
@@ -94,8 +95,8 @@ public abstract class MongoAsyncInitializer {
     public static class Registry {
 
         private final List<MongoAsyncInitializer> initializers = Collections.synchronizedList(new LinkedList<MongoAsyncInitializer>());
-
-        private Registry() {
+        @Inject
+        Registry() {
         }
 
         void register(MongoAsyncInitializer init) {
