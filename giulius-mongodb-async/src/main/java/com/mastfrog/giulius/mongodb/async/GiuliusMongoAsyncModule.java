@@ -369,22 +369,18 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             this.genericType = genericType;
         }
 
-        @Override
         public String getTypeName() {
             return MongoCollection.class.getName();
         }
 
-        @Override
         public Type[] getActualTypeArguments() {
             return new Type[]{genericType};
         }
 
-        @Override
         public Type getRawType() {
             return MongoCollection.class;
         }
 
-        @Override
         public Type getOwnerType() {
             return null;
         }
