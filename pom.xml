@@ -20,5 +20,6 @@
         <module>giulius-jdbc</module>
         <module>giulius-mongodb</module>
         <module>giulius-mongojack</module>
+        <module>giulius-mongodb-async</module>
     </modules>
 </project>
