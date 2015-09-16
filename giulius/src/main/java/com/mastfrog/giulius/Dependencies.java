@@ -181,13 +181,61 @@ public final class Dependencies {
      */
     public Injector getInjector() {
         if (injector == null) {
-            synchronized (this) {
+            if (getStage() == Stage.PRODUCTION) {
                 if (injector == null) {
                     injector = Guice.createInjector(getStage(), modules);
+                }
+            } else {
+                synchronized (this) {
+                    try (ThreadLocalCounter c = ctr.enter()) {
+                        if (c.get() > 1) {
+                            throw new IllegalStateException("Reentrant call to getInjector() on one thread."
+                                    + "Something is asking for an instance of "
+                                    + "Dependencies or the Injector while the injector is being initialized - probably "
+                                    + "an eager singleton.  The injector may not be created twice.");
+                        }
+                        if (injector == null) {
+                            injector = Guice.createInjector(getStage(), modules);
+                        }
+                    }
                 }
             }
         }
         return injector;
+    }
+
+    private final ThreadLocalCounter ctr = new ThreadLocalCounter();
+
+    private static final class ThreadLocalCounter extends QuietAutoCloseable {
+
+        private final ThreadLocal<Integer> local = new ThreadLocal<>();
+
+        public int get() {
+            Integer result = local.get();
+            return result == null ? 0 : result;
+        }
+
+        ThreadLocalCounter enter() {
+            Integer val = local.get();
+            if (val == null) {
+                val = 0;
+            }
+            val++;
+            local.set(val);
+            return this;
+        }
+
+        @Override
+        public void close() {
+            Integer val = local.get();
+            assert val != null;
+            val--;
+            if (val == 0) {
+                local.remove();
+            } else {
+                local.set(val);
+            }
+        }
     }
 
     /**
@@ -477,38 +525,38 @@ public final class Dependencies {
                     Named n = Names.named(k);
                     PropertyProvider p = new PropertyProvider(k, namespacedSettings);
                     for (SettingsBindings type : settingsBindings) {
-                        switch(type) {
-                            case INT :
+                        switch (type) {
+                            case INT:
                                 binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
                                 break;
-                            case STRING :
+                            case STRING:
                                 binder.bind(Key.get(String.class, n)).toProvider(p);
                                 break;
-                            case LONG :
+                            case LONG:
                                 binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
                                 break;
-                            case BOOLEAN :
+                            case BOOLEAN:
                                 binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
                                 break;
-                            case BYTE :
+                            case BYTE:
                                 binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
                                 break;
-                            case CHARACTER :
+                            case CHARACTER:
                                 binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
                                 break;
-                            case DOUBLE :
+                            case DOUBLE:
                                 binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
                                 break;
-                            case FLOAT :
+                            case FLOAT:
                                 binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
                                 break;
-                            case SHORT :
+                            case SHORT:
                                 binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
                                 break;
-                            case BIG_DECIMAL :
+                            case BIG_DECIMAL:
                                 binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
                                 break;
-                            case BIG_INTEGER :
+                            case BIG_INTEGER:
                                 binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
                                 break;
                         }
@@ -521,41 +569,41 @@ public final class Dependencies {
                         Provider<String> p = new PropertyProvider(key, Providers.of(s));
                         Value n = new ValueImpl(key, namespace);
                         for (SettingsBindings type : settingsBindings) {
-                            switch(type) {
-                            case INT :
-                                binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
-                                break;
-                            case STRING :
-                                binder.bind(Key.get(String.class, n)).toProvider(p);
-                                break;
-                            case LONG :
-                                binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
-                                break;
-                            case BOOLEAN :
-                                binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
-                                break;
-                            case BYTE :
-                                binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
-                                break;
-                            case CHARACTER :
-                                binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
-                                break;
-                            case DOUBLE :
-                                binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
-                                break;
-                            case FLOAT :
-                                binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
-                                break;
-                            case SHORT :
-                                binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
-                                break;
-                            case BIG_DECIMAL :
-                                binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
-                                break;
-                            case BIG_INTEGER :
-                                binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
-                                break;                                
-                            }   
+                            switch (type) {
+                                case INT:
+                                    binder.bind(Key.get(Integer.class, n)).toProvider(new IntProvider(p));
+                                    break;
+                                case STRING:
+                                    binder.bind(Key.get(String.class, n)).toProvider(p);
+                                    break;
+                                case LONG:
+                                    binder.bind(Key.get(Long.class, n)).toProvider(new LongProvider(p));
+                                    break;
+                                case BOOLEAN:
+                                    binder.bind(Key.get(Boolean.class, n)).toProvider(new BooleanProvider(p));
+                                    break;
+                                case BYTE:
+                                    binder.bind(Key.get(Byte.class, n)).toProvider(new ByteProvider(p));
+                                    break;
+                                case CHARACTER:
+                                    binder.bind(Key.get(Character.class, n)).toProvider(new CharacterProvider(p));
+                                    break;
+                                case DOUBLE:
+                                    binder.bind(Key.get(Double.class, n)).toProvider(new DoubleProvider(p));
+                                    break;
+                                case FLOAT:
+                                    binder.bind(Key.get(Float.class, n)).toProvider(new FloatProvider(p));
+                                    break;
+                                case SHORT:
+                                    binder.bind(Key.get(Short.class, n)).toProvider(new ShortProvider(p));
+                                    break;
+                                case BIG_DECIMAL:
+                                    binder.bind(Key.get(BigDecimal.class, n)).toProvider(new BigDecimalProvider(p));
+                                    break;
+                                case BIG_INTEGER:
+                                    binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                                    break;
+                            }
                         }
                     }
                 }
@@ -564,8 +612,8 @@ public final class Dependencies {
                 bind(MutableSettings.class).toProvider(new MutableSettingsProvider(namespacedSettings, currentType));
                 //A hack, but it works
 
-                boolean isUsingNamespaces = knownNamespaces.size() > 1 ||
-                        (knownNamespaces.size() == 1 && !Namespace.DEFAULT.equals(knownNamespaces.iterator().next()));
+                boolean isUsingNamespaces = knownNamespaces.size() > 1
+                        || (knownNamespaces.size() == 1 && !Namespace.DEFAULT.equals(knownNamespaces.iterator().next()));
 
                 if (isUsingNamespaces) {
                     binder.bindListener(Matchers.any(), new ProvisionListenerImpl());

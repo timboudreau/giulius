@@ -45,6 +45,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 import org.bson.Document;
 import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.Codec;
@@ -97,7 +98,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         codecProviders.add(prov);
         return this;
     }
-    
+
     private void checkSettings() {
         if (settings != null) {
             throw new ConfigurationError("You are providing your own "
@@ -151,7 +152,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         return this;
     }
 
-    private class CodecRegistryProvider implements Provider<CodecRegistry> {
+    @Singleton
+    private class CodecRegistryProvider implements CodecRegistry {
 
         private final Provider<Dependencies> deps;
         private CodecRegistry registry;
@@ -160,8 +162,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             this.deps = deps;
         }
 
-        @Override
-        public CodecRegistry get() {
+        private CodecRegistry get() {
             if (registry != null) {
                 return registry;
             }
@@ -178,9 +179,22 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             if (total == 0) {
                 return DEFAULT_CODEC_REGISTRY;
             }
-            CodecRegistry forProviders = CodecRegistries.fromCodecs(codecs);
-            CodecRegistry forCodecs = CodecRegistries.fromProviders(providers);
-            return registry = CodecRegistries.fromRegistries(DEFAULT_CODEC_REGISTRY, forProviders, forCodecs);
+            List<CodecRegistry> all = new LinkedList<>();
+            if (!codecs.isEmpty()) {
+                CodecRegistry forProviders = CodecRegistries.fromCodecs(codecs);
+                all.add(forProviders);
+            }
+            if (!providers.isEmpty()) {
+                CodecRegistry forCodecs = CodecRegistries.fromProviders(providers);
+                all.add(forCodecs);
+            }
+            all.add(DEFAULT_CODEC_REGISTRY);
+            return registry = CodecRegistries.fromRegistries(all);
+        }
+
+        @Override
+        public <T> Codec<T> get(Class<T> type) {
+            return get().get(type);
         }
     }
     // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
@@ -272,8 +286,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * <code>&#064;Named(&quot;someBinding&quot;) MongoCollection&lt;MyType&gt;</code>.
      * where <code>MyType</code> is tha passed type.
      *
-     * @param bindingName The name of the binding that will appear in &#064;Named
-     * annotations
+     * @param bindingName The name of the binding that will appear in
+     * &#064;Named annotations
      * @param collectionName The name of the collection to be created/used in
      * MongoDB, which may differ from the binding name
      * @return this
@@ -295,7 +309,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         } else {
             bind(MongoClientSettings.class).toProvider(MongoClientSettingsProvider.class).asEagerSingleton();
         }
-        bind(CodecRegistry.class).toProvider(new CodecRegistryProvider(binder().getProvider(Dependencies.class)));
+        bind(CodecRegistry.class).toInstance(new CodecRegistryProvider(binder().getProvider(Dependencies.class)));
         // Bind this as an eager singleton so that the client shutdown hook runs before the
         // MongoHarness shutdown hook shuts down the server - otherwise, can get exceptions thrown
         // during shutdown
