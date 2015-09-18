@@ -82,4 +82,6 @@ public interface MongoAsyncConfig<SpecificType extends MongoAsyncConfig> {
     SpecificType bindCollection(String bindingName);
 
     SpecificType withInitializer(Class<? extends MongoAsyncInitializer> initializerType);
+    
+    SpecificType withDynamicCodecs(Class<? extends DynamicCodecs> codecs);
 }

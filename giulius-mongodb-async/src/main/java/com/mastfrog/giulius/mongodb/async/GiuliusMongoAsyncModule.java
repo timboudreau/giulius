@@ -51,10 +51,18 @@ import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DocumentCodecProvider;
 import org.bson.codecs.ValueCodecProvider;
+import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import org.bson.codecs.configuration.CodecRegistry;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 
 /**
  * Supports MongoDB Guice bindings, allowing &#064;Named to be used to inject
@@ -152,14 +160,35 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         return this;
     }
 
+    private Class<? extends DynamicCodecs> dynCodecs;
+
+    public GiuliusMongoAsyncModule withDynamicCodecs(Class<? extends DynamicCodecs> codecs) {
+        checkDone();
+        if (dynCodecs != null) {
+            throw new ConfigurationError("Dynamic codecs already set");
+        }
+        this.dynCodecs = codecs;
+        return this;
+    }
+
+    static class DefaultFallbackCodecs implements DynamicCodecs {
+
+        @Override
+        public <T> Codec<T> createCodec(Class<T> type, CodecConfigurationException ex) {
+            throw ex;
+        }
+    }
+
     @Singleton
-    private class CodecRegistryProvider implements CodecRegistry {
+    private class CodecRegistryImpl implements CodecRegistry {
 
         private final Provider<Dependencies> deps;
         private CodecRegistry registry;
+        private final Provider<DynamicCodecs> fallback;
 
-        CodecRegistryProvider(Provider<Dependencies> deps) {
+        CodecRegistryImpl(Provider<Dependencies> deps, Provider<DynamicCodecs> fallback) {
             this.deps = deps;
+            this.fallback = fallback;
         }
 
         private CodecRegistry get() {
@@ -194,7 +223,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
         @Override
         public <T> Codec<T> get(Class<T> type) {
-            return get().get(type);
+            try {
+                return get().get(type);
+            } catch (CodecConfigurationException ex) {
+                return fallback.get().createCodec(type, ex);
+            }
         }
     }
     // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
@@ -309,7 +342,10 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         } else {
             bind(MongoClientSettings.class).toProvider(MongoClientSettingsProvider.class).asEagerSingleton();
         }
-        bind(CodecRegistry.class).toInstance(new CodecRegistryProvider(binder().getProvider(Dependencies.class)));
+        if (this.dynCodecs != null) {
+            bind(DynamicCodecs.class).to(this.dynCodecs);
+        }
+        bind(CodecRegistry.class).toInstance(new CodecRegistryImpl(binder().getProvider(Dependencies.class), binder().getProvider(DynamicCodecs.class)));
         // Bind this as an eager singleton so that the client shutdown hook runs before the
         // MongoHarness shutdown hook shuts down the server - otherwise, can get exceptions thrown
         // during shutdown
