@@ -23,6 +23,11 @@
             <scope>test</scope>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>com.mastfrog</groupId>
+            <artifactId>mongo-promises</artifactId>
+            <type>jar</type>
+        </dependency>        
     </dependencies>
     <build>
         <plugins>

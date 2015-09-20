@@ -117,9 +117,10 @@ public final class GiuliusMongoModule extends AbstractModule implements MongoCon
         }
 
         for (Map.Entry<String, String> e : collectionForName.entrySet()) {
+            CollectionProvider prov = new CollectionProvider(binder().getProvider(DB.class),
+                    e.getValue(), binder().getProvider(MongoInitializer.Registry.class));
             bind(DBCollection.class).annotatedWith(Names.named(e.getKey())).toProvider(
-                    new CollectionProvider(binder().getProvider(DB.class),
-                    e.getValue(), binder().getProvider(MongoInitializer.Registry.class)));
+                    prov);
         }
     }
 }

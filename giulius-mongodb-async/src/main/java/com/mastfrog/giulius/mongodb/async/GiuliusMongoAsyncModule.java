@@ -29,6 +29,7 @@ import com.google.inject.Key;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
+import com.mastfrog.asyncpromises.mongo.CollectionPromises;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.ConfigurationError;
@@ -54,14 +55,7 @@ import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import org.bson.codecs.configuration.CodecRegistry;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 
 /**
@@ -76,7 +70,12 @@ import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
  * <li>MongoClient</li>
  * <li>MongoDatabase</li>
  * <li>MongoCollection - bind multiple collections and inject them using
- * &#064;Named</li>
+ * &#064;Named - if you specify a type, you can inject MongoCollection
+ * parameterized on either your type or Document</li>
+ * <li>CollectionPromises - bind multiple collections and inject a
+ * promise/builder based way to access them using &#064;Named - if you specify a
+ * type, you can inject MongoCollection parameterized on either your type or
+ * Document</li>
  * </ul>
  *
  * @author Tim Boudreau
@@ -398,6 +397,10 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 Type t = new FakeType<>(type);
                 Key<MongoCollection<T>> key = (Key<MongoCollection<T>>) Key.get(t, Names.named(bindingName));
                 binder.bind(key).toProvider(typedProvider);
+                CollectionPromisesProvider<T> promises = new CollectionPromisesProvider<>(typedProvider);
+                Type ct = new FakeType2<>(type);
+                Key<CollectionPromises<T>> promiseKey = (Key<CollectionPromises<T>>) Key.get(ct, Names.named(bindingName));
+                binder.bind(promiseKey).toProvider(promises);
             }
         }
     }
@@ -433,6 +436,45 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
         public Type getOwnerType() {
             return null;
+        }
+    }
+
+    static class FakeType2<T> implements ParameterizedType {
+
+        private final Class<T> genericType;
+
+        public FakeType2(Class<T> genericType) {
+            this.genericType = genericType;
+        }
+
+        public String getTypeName() {
+            return CollectionPromises.class.getName();
+        }
+
+        public Type[] getActualTypeArguments() {
+            return new Type[]{genericType};
+        }
+
+        public Type getRawType() {
+            return CollectionPromises.class;
+        }
+
+        public Type getOwnerType() {
+            return null;
+        }
+    }
+
+    static class CollectionPromisesProvider<T> implements Provider<CollectionPromises<T>> {
+
+        private final MongoTypedCollectionProvider<T> prov;
+
+        public CollectionPromisesProvider(MongoTypedCollectionProvider<T> prov) {
+            this.prov = prov;
+        }
+
+        @Override
+        public CollectionPromises<T> get() {
+            return new CollectionPromises<>(prov.get());
         }
     }
 }
