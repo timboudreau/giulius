@@ -1,5 +1,6 @@
-<?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <artifactId>guicy-parent</artifactId>
         <groupId>com.mastfrog</groupId>
@@ -33,4 +34,23 @@
             </plugin>
         </plugins>
     </build>
+    <url>https://github.com/timboudreau/giulius</url>
+    <scm>
+        <url>https://github.com/timboudreau/giulius</url>
+        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
+        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
+    </scm>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Tim Boudreau</name>
+            <email>tim@timboudreau.com</email>
+            <url>https://timboudreau.com</url>
+        </developer>
+    </developers>
 </project>
