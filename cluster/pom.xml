@@ -4,7 +4,7 @@
     <parent>
         <artifactId>mastfrog-parent</artifactId>
         <groupId>com.mastfrog</groupId>
-        <version>1.6.3</version>
+        <version>1.6.5</version>
         <relativePath/>
     </parent>
     <artifactId>cluster</artifactId>
@@ -13,12 +13,29 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>util</artifactId>
-            <type>jar</type>
         </dependency>
     </dependencies>
+    <url>https://github.com/timboudreau/giulius</url>
+    <scm>
+        <url>https://github.com/timboudreau/giulius</url>
+        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
+        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
+    </scm>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Tim Boudreau</name>
+            <email>tim@timboudreau.com</email>
+            <url>https://timboudreau.com</url>
+        </developer>
+    </developers>
 </project>

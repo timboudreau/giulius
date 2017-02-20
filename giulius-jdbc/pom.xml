@@ -4,31 +4,46 @@
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>giulius-parent</artifactId>
-        <version>1.6.3</version>
+        <version>1.6.5</version>
     </parent>
     <name>Giulius JDBC</name>
     <artifactId>giulius-jdbc</artifactId>
-    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <scope>compile</scope>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>giulius-settings</artifactId>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>giulius</artifactId>
-            <type>jar</type>
         </dependency>
     </dependencies>
+    <url>https://github.com/timboudreau/giulius</url>
+    <scm>
+        <url>https://github.com/timboudreau/giulius</url>
+        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
+        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
+    </scm>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Tim Boudreau</name>
+            <email>tim@timboudreau.com</email>
+            <url>https://timboudreau.com</url>
+        </developer>
+    </developers>
 </project>

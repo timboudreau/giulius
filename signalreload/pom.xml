@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>mastfrog-parent</artifactId>
-        <version>1.6.3</version>
+        <version>1.6.5</version>
         <relativePath/>
     </parent>
     <artifactId>signalreload</artifactId>
@@ -12,12 +12,25 @@
         <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>giulius</artifactId>
-            <type>jar</type>
         </dependency>
     </dependencies>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
-    </properties>
+    <url>https://github.com/timboudreau/giulius</url>
+    <scm>
+        <url>https://github.com/timboudreau/giulius</url>
+        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
+        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
+    </scm>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Tim Boudreau</name>
+            <email>tim@timboudreau.com</email>
+            <url>https://timboudreau.com</url>
+        </developer>
+    </developers>
 </project>
