@@ -229,6 +229,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             }
         }
     }
+    
     // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
     private static final CodecRegistry DEFAULT_CODEC_REGISTRY
             = fromProviders(asList(new ValueCodecProvider(),
@@ -391,6 +392,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             Provider<KnownCollections> knownProvider = binder.getProvider(KnownCollections.class);
             Provider<MongoAsyncInitializer.Registry> inits = binder.getProvider(MongoAsyncInitializer.Registry.class);
             MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(dbProvider, collection, Document.class, knownProvider, opts, inits);
+            CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
+            binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
             if (type != Document.class) {
                 MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<T>(dbProvider, collection, type, knownProvider, opts, inits);
@@ -409,8 +412,13 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * TypeLiteral for MongoCollection parameterized on BSON Document.
      */
     public static final TypeLiteral<MongoCollection<Document>> MONGO_DOCUMENT_COLLECTION = new TL();
+    public static final TypeLiteral<CollectionPromises<Document>> COLLECTION_PROMISES = new CPL();
 
     static class TL extends TypeLiteral<MongoCollection<Document>> {
+
+    }
+
+    static class CPL extends TypeLiteral<CollectionPromises<Document>> {
 
     }
 
