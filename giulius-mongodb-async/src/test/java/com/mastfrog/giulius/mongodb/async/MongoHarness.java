@@ -44,6 +44,10 @@ public class MongoHarness {
     private final int port;
     private final Init mongo;
     private static int count = 1;
+    /*
+    Try to connect too soon and you get a crash: https://jira.mongodb.org/browse/SERVER-23441
+    */
+    private static final int CONNECT_WAIT_MILLIS = 500;
 
     @Inject
     MongoHarness(@Named("mongoPort") int port, Init mongo) throws IOException, InterruptedException {
@@ -166,7 +170,7 @@ public class MongoHarness {
             if (fname == null) {
                 fname = "mongo-" + System.currentTimeMillis() + "-" + count++;
             } else {
-                fname += "-" + count++;
+                fname += "-" + System.currentTimeMillis() + "-" + count++;
             }
             File mongoDir = new File(tmp, fname);
             if (!mongoDir.mkdirs()) {
@@ -197,7 +201,7 @@ public class MongoHarness {
 
             // XXX instead of sleep, loop trying to connect?
             Process result = pb.start();
-            Thread.sleep(150);
+            Thread.sleep(CONNECT_WAIT_MILLIS);
             for (int i = 0;; i++) {
                 try {
                     Socket s = new Socket("localhost", port);
