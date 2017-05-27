@@ -10,7 +10,9 @@
     <artifactId>maven-merge-configuration</artifactId>
     <name>maven-merge-configuration</name>
     <packaging>maven-plugin</packaging>
-    <properties/>
+    <properties>
+        <enforcer.skip>true</enforcer.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -39,12 +41,6 @@
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
         </dependency>
-        <!--        <dependency>
-            <groupId>org.netbeans.external</groupId>
-            <artifactId>maven-core-3.0</artifactId>
-            <version>RELEASE70-BETA</version>
-            <type>jar</type>
-        </dependency>-->
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
@@ -54,7 +50,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.2</version>
+                <version>3.5</version>
                 <configuration>
                     <goalPrefix>merge-configuration</goalPrefix>
                     <!-- Utterly non-obvious: http://bit.ly/WwuNiJ -->
