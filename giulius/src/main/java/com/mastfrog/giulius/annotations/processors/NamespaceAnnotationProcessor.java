@@ -23,9 +23,9 @@
  */
 package com.mastfrog.giulius.annotations.processors;
 
-import com.mastfrog.guicy.annotations.Defaults;
-import com.mastfrog.guicy.annotations.Namespace;
-import com.mastfrog.guicy.annotations.Value;
+import com.mastfrog.giulius.annotations.Defaults;
+import com.mastfrog.giulius.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Value;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;

@@ -25,8 +25,8 @@
 
 package com.mastfrog.settings.ns1;
 
-import com.mastfrog.guicy.annotations.Defaults;
-import com.mastfrog.guicy.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Defaults;
+import com.mastfrog.giulius.annotations.Namespace;
 
 /**
  *

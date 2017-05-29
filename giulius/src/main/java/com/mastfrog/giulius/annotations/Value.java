@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.guicy.annotations;
+package com.mastfrog.giulius.annotations;
 
 import com.google.inject.BindingAnnotation;
 import static java.lang.annotation.ElementType.*;

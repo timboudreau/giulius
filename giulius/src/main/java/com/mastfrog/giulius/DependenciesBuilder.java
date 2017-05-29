@@ -25,7 +25,7 @@ package com.mastfrog.giulius;
 
 import com.google.common.collect.Maps;
 import com.google.inject.Module;
-import com.mastfrog.guicy.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.util.Checks;

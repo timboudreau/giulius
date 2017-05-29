@@ -23,8 +23,8 @@
  */
 package com.mastfrog.giulius.annotations.processors;
 
-import com.mastfrog.guicy.annotations.Defaults;
-import com.mastfrog.guicy.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Defaults;
+import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.SettingsBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -44,10 +44,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Completion;
-import javax.annotation.processing.FilerException;
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -73,7 +70,7 @@ import org.openide.util.lookup.ServiceProvider;
  * @author Tim Boudreau
  */
 @ServiceProvider(service = Processor.class)
-@SupportedAnnotationTypes("com.mastfrog.guicy.annotations.Defaults")
+@SupportedAnnotationTypes({"com.mastfrog.giulius.annotations.Defaults", "com.mastfrog.guicy.annotations.Defaults"})
 @SupportedSourceVersion(SourceVersion.RELEASE_6)
 public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
 

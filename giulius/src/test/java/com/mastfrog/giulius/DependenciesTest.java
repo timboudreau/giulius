@@ -29,7 +29,7 @@ import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.settings.MutableSettings;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.mastfrog.guicy.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Namespace;
 import java.io.IOException;
 import static org.junit.Assert.*;
 import org.junit.Test;

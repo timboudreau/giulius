@@ -34,7 +34,7 @@ import static com.mastfrog.giulius.SettingsBindings.DOUBLE;
 import static com.mastfrog.giulius.SettingsBindings.FLOAT;
 import static com.mastfrog.giulius.SettingsBindings.INT;
 import static com.mastfrog.giulius.SettingsBindings.STRING;
-import com.mastfrog.guicy.annotations.Namespace;
+import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
 import java.io.IOException;
