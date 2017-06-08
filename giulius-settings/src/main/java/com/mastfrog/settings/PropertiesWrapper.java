@@ -35,7 +35,7 @@ class PropertiesWrapper implements Settings {
 
     private final Properties props;
 
-    public PropertiesWrapper(Properties props) {
+    PropertiesWrapper(Properties props) {
         this.props = props;
     }
 

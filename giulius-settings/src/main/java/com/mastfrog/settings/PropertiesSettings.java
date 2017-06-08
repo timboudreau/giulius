@@ -35,7 +35,7 @@ import java.util.Set;
 final class PropertiesSettings extends DelegatingProperties implements Settings, PropertiesContainer {
     private final String origin;
     
-    public PropertiesSettings(String origin) {
+    PropertiesSettings(String origin) {
         this.origin = origin;
     }
     

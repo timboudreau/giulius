@@ -687,6 +687,7 @@ public final class SettingsBuilder {
             return properties;
         }
 
+        @Override
         public String toString() {
             return "FIXED: " + properties;
         }
@@ -717,6 +718,7 @@ public final class SettingsBuilder {
             return this.result = result;
         }
 
+        @Override
         public String toString() {
             return in + "";
         }
@@ -746,6 +748,7 @@ public final class SettingsBuilder {
             return props;
         }
 
+        @Override
         public String toString() {
             return "File: " + file.getAbsolutePath();
         }
@@ -764,6 +767,7 @@ public final class SettingsBuilder {
             throw new UnsupportedOperationException("Should not be called");
         }
 
+        @Override
         public String toString() {
             return "Settings " + settings;
         }

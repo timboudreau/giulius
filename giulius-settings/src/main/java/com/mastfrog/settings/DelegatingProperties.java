@@ -67,90 +67,112 @@ class DelegatingProperties extends Properties {
         }
     }
 
+    @Override
     public void save(OutputStream out, String comments) {
         getDelegate().save(out, comments);
     }
 
+    @Override
     public void store(Writer writer, String comments) throws IOException {
         getDelegate().store(writer, comments);
     }
 
+    @Override
     public void store(OutputStream out, String comments) throws IOException {
         getDelegate().store(out, comments);
     }
 
+    @Override
     public void storeToXML(OutputStream os, String comment) throws IOException {
         getDelegate().storeToXML(os, comment);
     }
 
+    @Override
     public void storeToXML(OutputStream os, String comment, String encoding) throws IOException {
         getDelegate().storeToXML(os, comment, encoding);
     }
 
+    @Override
     public String getProperty(String key) {
         return getDelegate().getProperty(key);
     }
 
+    @Override
     public String getProperty(String key, String defaultValue) {
         return getDelegate().getProperty(key, defaultValue);
     }
 
+    @Override
     public Enumeration<?> propertyNames() {
         return getDelegate().propertyNames();
     }
 
+    @Override
     public Set<String> stringPropertyNames() {
         return getDelegate().stringPropertyNames();
     }
 
+    @Override
     public void list(PrintStream out) {
         getDelegate().list(out);
     }
 
+    @Override
     public void list(PrintWriter out) {
         getDelegate().list(out);
     }
 
+    @Override
     public synchronized int size() {
         return getDelegate().size();
     }
 
+    @Override
     public synchronized boolean isEmpty() {
         return getDelegate().isEmpty();
     }
 
+    @Override
     public synchronized Enumeration<Object> keys() {
         return getDelegate().keys();
     }
 
+    @Override
     public synchronized Enumeration<Object> elements() {
         return getDelegate().elements();
     }
 
+    @Override
     public synchronized boolean contains(Object value) {
         return getDelegate().contains(value);
     }
 
+    @Override
     public boolean containsValue(Object value) {
         return getDelegate().containsValue(value);
     }
 
+    @Override
     public synchronized boolean containsKey(Object key) {
         return getDelegate().containsKey(key);
     }
 
+    @Override
     public synchronized Object get(Object key) {
         return getDelegate().get(key);
     }
 
+    @Override
     public Set<Object> keySet() {
         return Collections.unmodifiableSet(getDelegate().keySet());
     }
 
+    @Override
     public Set<Map.Entry<Object, Object>> entrySet() {
         return Collections.unmodifiableSet(getDelegate().entrySet());
     }
 
+    @Override
     public Collection<Object> values() {
         return Collections.unmodifiableCollection(getDelegate().values());
     }
@@ -208,5 +230,10 @@ class DelegatingProperties extends Properties {
     @Override
     public int hashCode() {
         return System.identityHashCode(this);
+    }
+
+    @Override
+    public synchronized Object clone() {
+        return super.clone(); //To change body of generated methods, choose Tools | Templates.
     }
 }

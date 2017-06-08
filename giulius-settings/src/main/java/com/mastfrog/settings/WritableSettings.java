@@ -39,7 +39,7 @@ final class WritableSettings implements MutableSettings {
     protected Settings settings;
     private final Object lock = new Object();
     private final Properties writeLayer = new Properties();
-    private Set<String> cleared = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> cleared = Collections.synchronizedSet(new HashSet<>());
 
     WritableSettings(String ns, Settings settings) {
         this.ns = ns;

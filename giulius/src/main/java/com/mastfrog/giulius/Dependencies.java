@@ -104,6 +104,7 @@ public final class Dependencies {
         this(SettingsBuilder.createDefault().build(), modules);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(super.toString()).append(" {\n");
         for (Iterator<Module> it = modules.iterator(); it.hasNext();) {
@@ -391,7 +392,7 @@ public final class Dependencies {
 
         private final String name;
 
-        public NamespaceImpl(String name) {
+        NamespaceImpl(String name) {
             this.name = name;
         }
 
@@ -448,6 +449,7 @@ public final class Dependencies {
             return Value.class;
         }
 
+        @Override
         public int hashCode() {
             // This is specified in java.lang.Annotation.
             int result = (127 * "value".hashCode()) ^ key.hashCode();
@@ -467,16 +469,13 @@ public final class Dependencies {
             if (!Objects.equals(this.ns, other.ns)) {
                 return false;
             }
-            if (!Objects.equals(this.key, other.key)) {
-                return false;
-            }
-            return true;
+            return Objects.equals(this.key, other.key);
         }
     }
     private final ProtectedThreadLocal<TypeLiteral<?>> currentType = new ProtectedThreadLocal<>();
     private final ProtectedThreadLocal<TypeLiteral<?>> prevType = new ProtectedThreadLocal<>();
 
-    private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<Dependencies>());
+    private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
 
     public final Dependencies alsoShutdown(Dependencies other) {
         if (other == this) {
@@ -618,14 +617,14 @@ public final class Dependencies {
                 if (isUsingNamespaces) {
                     binder.bindListener(Matchers.any(), new ProvisionListenerImpl());
                 }
-            } catch (Exception ioe) {
+            } catch (IOException ioe) {
                 throw new ConfigurationError(ioe);
             }
         }
 
         private class ProvisionListenerImpl implements ProvisionListener {
 
-            public ProvisionListenerImpl() {
+            ProvisionListenerImpl() {
             }
 
             @Override
@@ -653,7 +652,7 @@ public final class Dependencies {
         private final Provider<Settings> namespaced;
         private final ProtectedThreadLocal<?> injectingInto;
 
-        public MutableSettingsProvider(Provider<Settings> namespaced, ProtectedThreadLocal<?> injectingInto) {
+        MutableSettingsProvider(Provider<Settings> namespaced, ProtectedThreadLocal<?> injectingInto) {
             this.namespaced = namespaced;
             this.injectingInto = injectingInto;
         }
@@ -683,7 +682,7 @@ public final class Dependencies {
         private final Dependencies deps;
 
         @Inject
-        public NamespacedSettingsProvider(Dependencies deps) {
+         NamespacedSettingsProvider(Dependencies deps) {
             this.deps = deps;
         }
 
@@ -706,7 +705,7 @@ public final class Dependencies {
                                     break;
                                 } else {
                                     pkg = Package.getPackage(m.group(1));
-                                    if (pkg == null || pkg.getName().equals("")) {
+                                    if (pkg == null || pkg.getName().isEmpty()) {
                                         break;
                                     }
                                 }

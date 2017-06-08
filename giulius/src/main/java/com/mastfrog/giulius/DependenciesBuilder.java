@@ -49,10 +49,10 @@ import java.util.Set;
  * @author Tim Boudreau
  */
 public final class DependenciesBuilder {
-    private Map<String, List<SettingsBuilder>> settingsForNamespace = Maps.newHashMapWithExpectedSize(5);
-    private List<Module> modules = new LinkedList<>();
-    private Set<File> locations = new LinkedHashSet<>();
-    private Set<SettingsBindings> settingsBindings = EnumSet.allOf(SettingsBindings.class);
+    private final Map<String, List<SettingsBuilder>> settingsForNamespace = Maps.newHashMapWithExpectedSize(5);
+    private final List<Module> modules = new LinkedList<>();
+    private final Set<File> locations = new LinkedHashSet<>();
+    private final Set<SettingsBindings> settingsBindings = EnumSet.allOf(SettingsBindings.class);
     /**
      * Get the list of namespaces this DependenciesBuilder will bind settings
      * for.  If you have called <code>addDefaultSettings()</code> this will
@@ -99,9 +99,7 @@ public final class DependenciesBuilder {
      */
     public DependenciesBuilder disableBindings(SettingsBindings... bindings) {
         EnumSet<SettingsBindings> toRemove = EnumSet.noneOf(SettingsBindings.class);
-        for (SettingsBindings b : bindings) {
-            toRemove.add(b);
-        }
+        toRemove.addAll(Arrays.asList(bindings));
         settingsBindings.removeAll(toRemove);
         return this;
     }
@@ -115,9 +113,7 @@ public final class DependenciesBuilder {
      */
     public DependenciesBuilder enableOnlyBindingsFor(SettingsBindings... bindings) {
         EnumSet<SettingsBindings> newSet = EnumSet.noneOf(SettingsBindings.class);
-        for (SettingsBindings b : bindings) {
-            newSet.add(b);
-        }
+        newSet.addAll(Arrays.asList(bindings));
         this.settingsBindings.clear();
         this.settingsBindings.addAll(newSet);
         return this;

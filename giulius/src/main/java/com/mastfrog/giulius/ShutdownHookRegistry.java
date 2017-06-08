@@ -46,7 +46,7 @@ import java.util.logging.Logger;
  */
 @ImplementedBy(VMShutdownHookRegistry.class)
 public abstract class ShutdownHookRegistry {
-    private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<Runnable>(10));
+    private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<>(10));
 
     protected ShutdownHookRegistry() {
         //package private
@@ -77,15 +77,14 @@ public abstract class ShutdownHookRegistry {
         running = true;
         try {
             Runnable[] result = hooks.toArray(new Runnable[hooks.size()]);
-            for (int i = 0; i < result.length; i++) {
+            for (Runnable result1 : result) {
                 try {
-                    result[i].run();
+                    result1.run();
                 } catch (Exception e) {
-                    Logger.getLogger(ShutdownHookRegistry.class.getName()).log(
-                         Level.SEVERE, result[i] + " failed", e);
+                    Logger.getLogger(ShutdownHookRegistry.class.getName()).log(Level.SEVERE, result1 + " failed", e);
                 } finally {
                     //no matter what, don't try to run it more than once
-                    hooks.remove(result[i]);
+                    hooks.remove(result1);
                 }
             }
         } finally {
@@ -113,7 +112,7 @@ public abstract class ShutdownHookRegistry {
     private static final class ShutdownTimer implements Runnable {
         private final Reference<Timer> timer;
 
-        public ShutdownTimer(Timer timer) {
+        ShutdownTimer(Timer timer) {
             this.timer = new WeakReference<>(timer);
         }
 
@@ -127,7 +126,7 @@ public abstract class ShutdownHookRegistry {
     private static final class ShutdownExecutorService implements Runnable {
         private final Reference<ExecutorService> svc;
 
-        public ShutdownExecutorService(ExecutorService svc) {
+        ShutdownExecutorService(ExecutorService svc) {
             this.svc = new WeakReference<>(svc);
         }
 
