@@ -187,6 +187,20 @@ public final class DependenciesBuilder {
     public List<SettingsBuilder> getSettings(String ns) {
         return settingsForNamespace.get(ns);
     }
+    
+    /**
+     * Add a Settings tied to the default namespace.  Note that if you have called
+     * <code>addDefaultSettings()</code>, this will merge these settings with
+     * any settings files for that namespace which are on the classpath.
+     * 
+     * @param settings The settings
+     * @param namespace The namespace, referenced by &#064;Namespace annotations
+     * on the related classes
+     * @return this
+     */
+    public DependenciesBuilder add(Settings settings) {
+        return add(settings, Namespace.DEFAULT);
+    }
 
     /**
      * Add a Settings tied to a specific namespace.  Note that if you have called
