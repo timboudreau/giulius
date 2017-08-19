@@ -49,7 +49,6 @@ public abstract class ShutdownHookRegistry {
     private final List<Runnable> hooks = Collections.synchronizedList(new ArrayList<>(10));
 
     protected ShutdownHookRegistry() {
-        //package private
     }
 
     /**
