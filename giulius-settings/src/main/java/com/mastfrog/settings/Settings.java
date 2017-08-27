@@ -23,6 +23,7 @@
  */
 package com.mastfrog.settings;
 
+import com.mastfrog.util.Checks;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
@@ -92,6 +93,13 @@ public interface Settings extends Iterable<String> {
      * @return
      */
     public Properties toProperties();
+
+    default Settings withPrefix(String pfx) {
+        if (Checks.notNull("pfx", pfx).length() == 0) {
+            return this;
+        }
+        return new PrefixedSettings(pfx, this);
+    }
     
     public Settings EMPTY = new Settings() {
 
@@ -159,6 +167,5 @@ public interface Settings extends Iterable<String> {
         public Iterator<String> iterator() {
             return allKeys().iterator();
         }
-        
     };
 }
