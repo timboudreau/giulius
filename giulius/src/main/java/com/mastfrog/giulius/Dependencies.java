@@ -472,8 +472,8 @@ public final class Dependencies {
             return Objects.equals(this.key, other.key);
         }
     }
-    private final ProtectedThreadLocal<TypeLiteral<?>> currentType = new ProtectedThreadLocal<>();
-    private final ProtectedThreadLocal<TypeLiteral<?>> prevType = new ProtectedThreadLocal<>();
+    static final ProtectedThreadLocal<TypeLiteral<?>> currentType = new ProtectedThreadLocal<>();
+    static final ProtectedThreadLocal<TypeLiteral<?>> prevType = new ProtectedThreadLocal<>();
 
     private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
 
