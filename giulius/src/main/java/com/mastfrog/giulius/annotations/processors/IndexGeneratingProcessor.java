@@ -215,7 +215,7 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
         public String toString() {
             StringBuilder sb = new StringBuilder();
             String origin = origin();
-            if (origin != null) {
+            if (origin != null && !line.contains(origin)) {
                 sb.append(comment(origin));
             }
             sb.append(line).append("\n");
