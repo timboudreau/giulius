@@ -180,7 +180,7 @@ public abstract class IndexGeneratingProcessor extends AbstractProcessor {
 
         private void write(PrintWriter w) {
             String origin = origin();
-            if (origin != null) {
+            if (origin != null && !line.contains(origin)) {
                 w.println(comment(origin));
             }
             w.println(line);
