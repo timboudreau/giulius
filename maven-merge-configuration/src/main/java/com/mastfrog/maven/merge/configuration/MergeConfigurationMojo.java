@@ -110,7 +110,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private boolean skipMavenMetadata = true;
     @Parameter(property = "normalizeMetaInfPropertiesFiles", defaultValue = "true")
     private boolean normalizeMetaInfPropertiesFiles = true;
-    @Parameter(property = "normalizeMetaInfPropertiesFiles", defaultValue = "false")
+    @Parameter(property = "skipLicenseFiles", defaultValue = "false")
     private boolean skipLicenseFiles = false;
 
     private static final Pattern SIG1 = Pattern.compile("META-INF\\/[^\\/]*\\.SF");
@@ -121,6 +121,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private ProjectDependenciesResolver resolver;
     @Component
     MavenProject project;
+
     private static final boolean notSigFile(String name) {
         return !SIG1.matcher(name).find() && !SIG2.matcher(name).find() && !SIG3.matcher(name).find();
     }
@@ -133,10 +134,15 @@ public class MergeConfigurationMojo extends AbstractMojo {
             result = name.toLowerCase().contains("license");
         }
         if (result) {
-            getLog().warn("OMIT " + name);
+            getLog().debug("OMIT " + name);
         }
         return result;
     }
+
+    private boolean rewritablePropertiesFile(String name) {
+        return normalizeMetaInfPropertiesFiles && name.endsWith(".properties") && name.startsWith("META-INF");
+    }
+
     private List<String> readLines(InputStream in) throws IOException {
         List<String> result = new LinkedList<>();
         InputStreamReader isr = new InputStreamReader(in);
@@ -184,10 +190,12 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         List<File> jars = new ArrayList<>();
         List<String> exclude = new LinkedList<>();
-        for (String ex : this.exclude.split(",")) {
+        for (String ex : this.exclude.split("[,\\s]")) {
             ex = ex.trim();
             ex = ex.replace('.', '/');
-            exclude.add(ex);
+            if (!ex.isEmpty()) {
+                exclude.add(ex);
+            }
         }
         try {
             DependencyResolutionResult result
@@ -209,7 +217,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
             throw new MojoExecutionException("Collecting dependencies failed", ex);
         }
 
-        Map<String, Properties> m = new LinkedHashMap<>();
+        Map<String, Properties> propertiesForFileName = new LinkedHashMap<>();
 
         Map<String, Set<String>> linesForName = new LinkedHashMap<>();
         Map<String, Integer> fileCountForName = new HashMap<>();
@@ -256,7 +264,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                             origins.add(jar.getName());
                             for (String s : exclude) {
                                 if (!s.isEmpty() && name.startsWith(s)) {
-                                    log.info("EXCLUDE " + s + " " + exclude);
+                                    log.debug("EXCLUDE " + s + " " + exclude);
                                     continue;
                                 }
                             }
@@ -313,16 +321,16 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                             s2.addAll(readLines(in));
                                         }
                                         seen.add(name);
-                                    } else if (PAT.matcher(name).matches()) {
+                                    } else if (PAT.matcher(name).matches() || rewritablePropertiesFile(name)) {
                                         log.info("Include " + name);
                                         Properties p = new Properties();
                                         try (InputStream in = jf.getInputStream(e)) {
                                             p.load(in);
                                         }
-                                        Properties all = m.get(name);
+                                        Properties all = propertiesForFileName.get(name);
                                         if (all == null) {
                                             all = p;
-                                            m.put(name, p);
+                                            propertiesForFileName.put(name, p);
                                         } else {
                                             for (String key : p.stringPropertyNames()) {
                                                 if (all.containsKey(key)) {
@@ -369,28 +377,31 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     while (en.hasMoreElements()) {
                         JarEntry entry = en.nextElement();
                         String name = entry.getName();
+                        if (shouldSkip(name)) {
+                            continue;
+                        }
+                        for (String s : exclude) {
+                            if (!s.isEmpty() && name.startsWith(s)) {
+                                log.debug("EXCLUDE " + name + " " + exclude);
+                                continue;
+                            }
+                        }
                         List<String> origins = originsOf.get(name);
                         if (origins == null) {
                             origins = new ArrayList<>(5);
                             originsOf.put(name, origins);
                         }
                         origins.add(f.getName());
-                        for (String s : exclude) {
-                            if (!s.isEmpty() && name.startsWith(s)) {
-                                log.info("EXCLUDE " + name + " " + exclude);
-                                continue;
-                            }
-                        }
                         if (PAT.matcher(name).matches()) {
                             log.info("Include " + name + " in " + f);
                             Properties p = new Properties();
                             try (InputStream in = jar.getInputStream(entry)) {
                                 p.load(in);
                             }
-                            Properties all = m.get(name);
+                            Properties all = propertiesForFileName.get(name);
                             if (all == null) {
                                 all = p;
-                                m.put(name, p);
+                                propertiesForFileName.put(name, p);
                             } else {
                                 for (String key : p.stringPropertyNames()) {
                                     if (all.containsKey(key)) {
@@ -489,8 +500,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     throw new MojoExecutionException("Error opening " + f, ex);
                 }
             }
-            if (!m.isEmpty()) {
-                log.warn("Writing merged files: " + m.keySet());
+            if (!propertiesForFileName.isEmpty()) {
+                log.warn("Writing merged files: " + propertiesForFileName.keySet());
             } else {
                 return;
             }
@@ -557,7 +568,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     }
                 }
             }
-            for (Map.Entry<String, Properties> e : m.entrySet()) {
+            for (Map.Entry<String, Properties> e : propertiesForFileName.entrySet()) {
                 if (shouldSkip(e.getKey())) {
                     continue;
                 }
@@ -595,7 +606,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     throw new IllegalStateException("Don't have an origin for " + e.getKey() + " in " + originsOf);
                 }
                 String ogs = sortedToString(origins);
-                log.info("Saving merged properties to " + outFile + " from " + originsOf.get(e.getKey()));
+                if (origins.size() == 1) {
+                    log.info("Rewriting properties " + outFile + " from " + ogs + " for repeatable builds");
+                } else {
+                    log.info("Saving merged properties to " + outFile + " from " + ogs);
+                }
                 String comment = "Merged by " + getClass().getSimpleName() + " from  " + ogs;
                 try {
                     try (FileOutputStream out = new FileOutputStream(outFile)) {
