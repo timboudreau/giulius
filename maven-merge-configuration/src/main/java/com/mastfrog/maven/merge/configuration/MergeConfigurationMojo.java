@@ -180,6 +180,28 @@ public class MergeConfigurationMojo extends AbstractMojo {
         return name;
     }
 
+    private Set<String> excludes;
+
+    private boolean isExcluded(String name) {
+        if (excludes == null) {
+            excludes = new HashSet<>();
+            for (String ex : this.exclude.split("[,\\s]")) {
+                ex = ex.trim();
+                ex = ex.replace('.', '/');
+                if (!ex.isEmpty()) {
+                    excludes.add(ex);
+                }
+            }
+        }
+        for (String s : excludes) {
+            if (!s.isEmpty() && name.startsWith(s)) {
+                getLog().debug("EXCLUDE " + name + " " + exclude);
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         // XXX a LOT of duplicate code here
@@ -189,14 +211,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
             throw new MojoFailureException("RepositorySystemSession is null");
         }
         List<File> jars = new ArrayList<>();
-        List<String> exclude = new LinkedList<>();
-        for (String ex : this.exclude.split("[,\\s]")) {
-            ex = ex.trim();
-            ex = ex.replace('.', '/');
-            if (!ex.isEmpty()) {
-                exclude.add(ex);
-            }
-        }
         try {
             DependencyResolutionResult result
                     = resolver.resolve(new DefaultDependencyResolutionRequest(project, repoSession));
@@ -262,11 +276,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 originsOf.put(name, origins);
                             }
                             origins.add(jar.getName());
-                            for (String s : exclude) {
-                                if (!s.isEmpty() && name.startsWith(s)) {
-                                    log.debug("EXCLUDE " + s + " " + exclude);
-                                    continue;
-                                }
+                            if (isExcluded(name)) {
+                                continue;
                             }
 //                            if (!seen.contains(name)) {
                             switch (name) {
@@ -344,7 +355,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                             all.putAll(p);
                                         }
                                     } else if (!seen.contains(name) && notSigFile(name)) {
-                                        log.info("Bundle " + name);
+                                        log.debug("Bundle " + name);
                                         JarEntry je = new JarEntry(name);
                                         je.setTime(e.getTime());
                                         try {
@@ -377,14 +388,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     while (en.hasMoreElements()) {
                         JarEntry entry = en.nextElement();
                         String name = entry.getName();
-                        if (shouldSkip(name)) {
+                        if (shouldSkip(name) || isExcluded(name)) {
                             continue;
-                        }
-                        for (String s : exclude) {
-                            if (!s.isEmpty() && name.startsWith(s)) {
-                                log.debug("EXCLUDE " + name + " " + exclude);
-                                continue;
-                            }
                         }
                         List<String> origins = originsOf.get(name);
                         if (origins == null) {
@@ -393,7 +398,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                         }
                         origins.add(f.getName());
                         if (PAT.matcher(name).matches()) {
-                            log.info("Include " + name + " in " + f);
+                            log.debug("Combine or rewrite " + name + " in " + f);
                             Properties p = new Properties();
                             try (InputStream in = jar.getInputStream(entry)) {
                                 p.load(in);
@@ -433,7 +438,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                             }
                             fileCountForName.put(name, ct);
                         } else if (jarOut != null) {
-//                            if (!seen.contains(name)) {
                             switch (name) {
                                 case "META-INF/MANIFEST.MF":
                                 case "META-INF/":
@@ -488,11 +492,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                         }
                                     }
                             }
-//                            } else {
-//                                if (!name.endsWith("/") && !name.startsWith("META-INF")) {
-//                                    log.warn("Saw more than one " + name + ".  One will clobber the other.");
-//                                }
-//                            }
                             seen.add(name);
                         }
                     }
@@ -507,13 +506,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
             String outDir = project.getBuild().getOutputDirectory();
             File dir = new File(outDir);
-            // Don't bother rewriting META-INF/services files of which there is
-            // only one
-//            for (Map.Entry<String, Integer> e : fileCountForName.entrySet()) {
-//                if (e.getValue() == 1) {
-//                    linesForName.remove(e.getKey());
-//                }
-//            }
             for (Map.Entry<String, Set<String>> e : linesForName.entrySet()) {
                 if (shouldSkip(e.getKey())) {
                     continue;
@@ -540,11 +532,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 if (!outFile.isDirectory()) {
                     try (FileOutputStream out = new FileOutputStream(outFile)) {
                         printLines(lines, out, true);
-//                        try (PrintStream ps = new PrintStream(out)) {
-//                            for (String line : lines) {
-//                                ps.println(line);
-//                            }
-//                        }
                     } catch (IOException ex) {
                         throw new MojoFailureException("Exception writing " + outFile, ex);
                     }
@@ -558,10 +545,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     try {
                         jarOut.putNextEntry(je);
                         printLines(lines, jarOut, false);
-//                        PrintStream ps = new PrintStream(jarOut);
-//                        for (String line : lines) {
-//                            ps.println(line);
-//                        }
                         jarOut.closeEntry();
                     } catch (IOException ex) {
                         throw new MojoFailureException("Exception writing " + outFile, ex);
@@ -569,7 +552,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 }
             }
             for (Map.Entry<String, Properties> e : propertiesForFileName.entrySet()) {
-                if (shouldSkip(e.getKey())) {
+                if (shouldSkip(e.getKey()) || isExcluded(e.getKey())) {
                     continue;
                 }
                 File outFile = new File(dir, e.getKey());
