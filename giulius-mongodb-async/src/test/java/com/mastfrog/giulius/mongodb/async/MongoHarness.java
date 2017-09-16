@@ -186,7 +186,6 @@ public class MongoHarness {
         }
 
         Process startMongoDB(int port) throws IOException, InterruptedException {
-            System.out.println("Start MongoDB on " + port);
             Checks.nonZero("port", port);
             Checks.nonNegative("port", port);
             System.out.println("Starting mongodb on port " + port + " with data dir " + mongoDir);
@@ -206,14 +205,14 @@ public class MongoHarness {
                 try {
                     Socket s = new Socket("localhost", port);
                     s.close();
-                    Thread.sleep(50);
+                    Thread.sleep(CONNECT_WAIT_MILLIS);;
                     break;
                 } catch (ConnectException e) {
                     if (i > 1750) {
                         throw new IOException("Could not connect to mongodb "
                                 + "after " + i + " attempts.  Assuming it's dead.");
                     }
-                    Thread.yield();
+                    Thread.sleep(i > 1700 ? 400 : i > 1500 ? 250 : i > 1000 ? 125 : 50);
                 }
             }
             return result;
