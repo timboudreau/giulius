@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Giulius Threadpool</title>
+    </head>
+    <body>
+        <h1>Giulius Threadpool API</h1>
+        <p>
+            Provides a means of binding instances of Executor/ExecutorService using
+            Guice's <code>&#064;Named</code>, and the ability to customize how
+            they are initialized via Settings.
+        </p>
+        <h2>Usage</h2>
+        <p>
+            The simplest usage, accepting all the defaults, is to, in your Guice
+            module, simply install an instance of 
+            <code><a href='ThreadModule.html'>ThreadModule</a></code> and call its
+            <code>builder()</code> method, customize things how you want and call
+            <code>bind()</code>, e.g.
+        </p>
+        <pre>
+            install(new ThreadModule().builder("workers").bind());
+        </pre>
+        <p>
+            That will get you a thread pool with <code>Runtime.getRuntime().availableProcessors()</code>
+            threads.  Code that wants to use it can then do, e.g.
+        </p>
+        <pre>
+            @Inject
+            public MyService (&#064;Named("workers") Executor threadPool) { ... }
+        </pre>
+        <h2>What Gets Bound</h2>
+        <p>
+            <code>Executor</code> and <code>ExecuctorService</code> are bound to the created
+            executor.  If you set the type to <a href='ThreadPoolType.html#SCHEDULED'>SCHEDULED</a>
+            you also get a binding to <code>ScheduledExecutorService</code>.
+        </p>
+        <p>
+            Additionally, an instance of <code><a href='ThreadCount.html'>ThreadCount</a></code>
+            is bound, which lets you retrieve the actual thread count used, for things (such as
+            Netty's EventExecutors) which need to know that explicitly.
+        </p>
+        <p>
+            <code>ThreadGroup</code> and <code>ThreadFactory</code> are also bound using the
+            same binding name.
+        </p>
+        <h2>Unhandled Exceptions</h2>
+        <p>
+            If you do not pass an explicit <code>UncaughtExceptionHandler</code> to the
+            <code><a href='ExecutorServiceBuilder.html'>ExecutorServiceBuilder</a></code>,
+            you will need to bind <code>UncaughtExceptionHandler</code> in your own code
+            (to log exceptions, or shut something down, whatever you like).
+        </p>
+        <p>
+            If you get an exception at startup saying that none was bound, that's your problem.
+        </p>
+        <h2>Binding Names and Settings</h2>
+        <p>
+            The point here is for some parameters to be customizable via Settings, so configuration
+            files and command-line switches can override defaults.  So this library will look in
+            Settings, using the passed binding name, for the following things:
+        </p>
+        <ul>
+            <li><code>$BINDING_NAME</code> - an integer value for the thread count</li>
+            <li><code>$BINDING_NAME.priority</code> - the thread priority to use</li>
+            <li><code>$BINDING_NAME.type</code> - the type - the name of a constant on 
+                <code><a href='ThreadPoolType.html'>ThreadPoolType</a></code> - this is useful
+                for cases where the environment dictates a different choice than the default - for
+                example, ForkJoinPool is preferable to use with Netty, <b>but</b> if you want
+                to run your application in, say, a 7MB heap, conventional pools are less
+                memory-intensive.
+                <ul>
+                    <li><i><b>Note:</b> this can be used to turn a <code>ScheduledExecutorService</code> into something that 
+                            is not one.  Don't do that, or there will be no <code>ScheduledExecutorService</code> under the 
+                            right name to inject.</i></li>
+                </ul>
+            </li>
+            <li><code>$BINDING_NAME.stackSize</code> - Change the stack size for created threads (don't use unless you <i>really</i> know
+                what you're doing!) rather than use the JVM's default</li>
+        </ul>
+        <h4>Limitations of FORK_JOIN and WORK_STEALING pools</h4>
+        <p>
+            The stack size is not settable for fork-join and work stealing pools (a work stealing pool is just
+            a <code>ForkJoinPool</code> with different initialization parameters); also, the thread group
+            is not settable.  These are limitations of the API exposed by the JDK.
+        </p>
+        <h2>Shutdown</h2>
+        <p>
+            All created <code>ExecutorService</code>s are attached to Giulius's
+            <code>ShutdownHookRegistry</code>, which by default uses a JVM shutdown hook - but
+            which the <code>giulius-tests</code> library uses to cleanly shutdown and unload
+            after each unit test.
+        </p>
+        <h3>Shutdown Order</h3>
+        <p>
+            By design, <code>ShutdownHookRegistry</code> runs shutdown hooks in reverse order
+            that they were installed.  However, if you are injecting Guice Providers, it is
+            possible to wind up with code trying to use an <code>ExecutorService</code> after
+            it has been stopped.  This usually shows up in the form of a bunch of 
+            <code>ExecutionExcptions</code> logged at the end of a unit test, which are
+            harmless but can obscure the source of a real test failure.  For example, the
+            following code can create that situation:
+        </p>
+        <pre>
+public class MyService implements Runnable {
+    
+    private final Provider&lt;ExecutorService&gt; threadPool;
+    &#064;Inject
+    MyService(&#064;Named("workers") Provider&lt;ExecutorService&gt; threadPool, ShutdownHookRegistry reg) {
+        this.threadPool = threadPool;
+        reg.add(this); // Thread pool is not started yet, but MyService will be stopped after
+    }
+
+    public void start() {
+        threadPool.get().submit(new SomeWorker()); // thread pool gets started on call to get()
+    }
+}
+        </pre>
+        <p>
+            To avoid that situation, simply call <code>eager()</code> on your
+            <code><a href='ExecutorServiceBuilder.html'>ExecutorServiceBuilder</a></code> to
+            ensure it is created before anything that uses it is.
+        </p>
+    </body>
+</html>

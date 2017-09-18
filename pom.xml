@@ -21,6 +21,7 @@
         <module>giulius-mongodb</module>
         <module>giulius-mongojack</module>
         <module>giulius-mongodb-async</module>
+        <module>giulius-threadpool</module>
     </modules>
     <url>https://github.com/timboudreau/giulius</url>
     <scm>

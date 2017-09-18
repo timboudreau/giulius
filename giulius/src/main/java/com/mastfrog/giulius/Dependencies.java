@@ -508,6 +508,7 @@ public final class Dependencies {
                         mode = DeploymentMode.DEVELOPMENT;
                 }
                 bind(DeploymentMode.class).toInstance(mode);
+                reg.setDeploymentMode(mode);
 
                 Set<String> allKeys = new HashSet<>();
                 for (String namespace : knownNamespaces) {
