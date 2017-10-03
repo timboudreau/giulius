@@ -235,7 +235,6 @@ public abstract class ShutdownHookRegistry {
                 Exceptions.chuck(ex);
             }
         }
-
     }
 
     private static final class ShutdownExecutorService implements Marker {
@@ -256,7 +255,7 @@ public abstract class ShutdownHookRegistry {
                 try {
                     exe.awaitTermination(10, TimeUnit.SECONDS);
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(ShutdownHookRegistry.class.getName()).log(Level.INFO,
+                    Logger.getLogger(ShutdownHookRegistry.class.getName()).log(Level.FINEST,
                             "Interrupted waiting for shutudown of " + exe + " allocated at " + allocation, ex);
                 } finally {
                     if (!exe.isTerminated()) {
