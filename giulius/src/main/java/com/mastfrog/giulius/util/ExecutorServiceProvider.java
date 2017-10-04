@@ -41,7 +41,9 @@ import java.util.function.Supplier;
  * shutdown does not necessarily mean the VM itself is being shut down).
  *
  * @author Tim Boudreau
+ * @deprecated The giulius-threadpool library offers all of this and more
  */
+@Deprecated
 public final class ExecutorServiceProvider implements Provider<ExecutorService> {
 
     private final AtomicBoolean registered = new AtomicBoolean();
