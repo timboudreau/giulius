@@ -68,6 +68,7 @@ class DelegatingProperties extends Properties {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void save(OutputStream out, String comments) {
         getDelegate().save(out, comments);
     }

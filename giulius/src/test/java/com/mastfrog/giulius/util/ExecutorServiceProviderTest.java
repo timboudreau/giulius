@@ -63,6 +63,7 @@ public class ExecutorServiceProviderTest {
     static class M implements Module {
 
         @Override
+        @SuppressWarnings("deprecated")
         public void configure(Binder binder) {
             Provider<ExecutorService> a = ExecutorServiceProvider.provider(2, binder);
             binder.bind(ExecutorService.class).toProvider(a);

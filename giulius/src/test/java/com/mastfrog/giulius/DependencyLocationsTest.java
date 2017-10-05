@@ -1,7 +1,5 @@
 package com.mastfrog.giulius;
 
-import com.mastfrog.giulius.Dependencies;
-import com.mastfrog.giulius.DependenciesBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.Settings;
@@ -28,10 +26,10 @@ public class DependencyLocationsTest {
 
     @Before
     public void setUp() throws IOException {
-        System.setProperty(SettingsBuilder.class.getName() + ".log", "true");
-        System.setProperty(Dependencies.class.getName() + ".log", "true");
-        System.setProperty(Settings.class.getName() + ".log", "true");
-        
+//        System.setProperty(SettingsBuilder.class.getName() + ".log", "true");
+//        System.setProperty(Dependencies.class.getName() + ".log", "true");
+//        System.setProperty(Settings.class.getName() + ".log", "true");
+
         dir.mkdirs();
         hooProps = new File(dir, "hoo" + SettingsBuilder.DEFAULT_EXTENSION);
         defProps = new File(dir, SettingsBuilder.DEFAULT_NAMESPACE + SettingsBuilder.DEFAULT_EXTENSION);
@@ -39,7 +37,7 @@ public class DependencyLocationsTest {
         assertTrue(hooProps.createNewFile());
         assertTrue(defProps.createNewFile());
         assertTrue(genDefProps.createNewFile());
-        
+
         Properties fpp = new Properties();
         Properties dpp = new Properties();
         Properties gpp = new Properties();
@@ -64,16 +62,16 @@ public class DependencyLocationsTest {
         b.addNamespace("hoo");
         b.addDefaultSettings();
         Dependencies deps = b.build();
-        
+
         Settings hooNs = deps.getSettings("hoo");
         assertNotNull(hooNs);
-        
+
         Settings def = deps.getSettings(Namespace.DEFAULT);
         assertNotNull(def);
-        
+
         assertEquals ("bar", hooNs.getString("hoo"));
         assertEquals ("moo", hooNs.getString("stuff"));
-        
+
         assertEquals ("ugg", def.getString("hoo"));
         assertEquals ("buzz", hooNs.getString("chortle"));
     }

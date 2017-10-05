@@ -30,12 +30,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
@@ -56,7 +51,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = Processor.class)
 @SupportedAnnotationTypes({"com.mastfrog.guicy.annotations.Namespace", "com.mastfrog.guicy.annotations.Value",
 "com.mastfrog.giulius.annotations.Namespace", "com.mastfrog.giulius.annotations.Value"})
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class NamespaceAnnotationProcessor extends IndexGeneratingProcessor {
 
     private static final char[] illegalChars = "/\\/:[],'\"<>?%+".toCharArray();

@@ -652,6 +652,7 @@ public final class Dependencies {
 
         private final Provider<Settings> namespaced;
         private final ProtectedThreadLocal<?> injectingInto;
+        private static Set<String> WARNED = new HashSet<>();
 
         MutableSettingsProvider(Provider<Settings> namespaced, ProtectedThreadLocal<?> injectingInto) {
             this.namespaced = namespaced;
@@ -665,10 +666,17 @@ public final class Dependencies {
                 return (MutableSettings) result;
             } else {
                 try {
-                    new Exception(injectingInto.get() + " is requesting MutableSettings, "
-                            + "but none was bound.  Creating ephemeral settings, "
-                            + "but probably nothing but this object will see "
-                            + "the contents.").printStackTrace();
+                    Object warnAbout = injectingInto.get();
+                    if (warnAbout != null) {
+                        String toWarn = warnAbout.toString();
+                        if (!WARNED.contains(toWarn)) {
+                            WARNED.add(toWarn);
+                            System.out.println(injectingInto.get() + " is requesting MutableSettings, "
+                                    + "but none was bound.  Creating ephemeral settings, "
+                                    + "but probably nothing but this object will see "
+                                    + "the contents.");
+                        }
+                    }
                     return new SettingsBuilder().add(result).buildMutableSettings();
                 } catch (IOException ex) {
                     return Exceptions.chuck(ex);
@@ -683,7 +691,7 @@ public final class Dependencies {
         private final Dependencies deps;
 
         @Inject
-         NamespacedSettingsProvider(Dependencies deps) {
+        NamespacedSettingsProvider(Dependencies deps) {
             this.deps = deps;
         }
 

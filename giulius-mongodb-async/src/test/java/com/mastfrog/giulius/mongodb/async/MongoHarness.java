@@ -5,15 +5,12 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
-import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.Ordered;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.SETTINGS_KEY_DATABASE_NAME;
-import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Exceptions;
 import com.mongodb.ServerAddress;
-import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterConnectionMode;
 import com.mongodb.connection.ClusterSettings;
@@ -100,12 +97,12 @@ public class MongoHarness {
                 pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 try {
                     Process shutdown = pb.start();
-                    System.out.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
+                    System.err.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
                     boolean exited = false;
                     for (int i = 0; i < 19000; i++) {
                         try {
                             int exit = shutdown.exitValue();
-                            System.out.println("Shutdown mongodb call exited with " + exit);
+                            System.err.println("Shutdown mongodb call exited with " + exit);
                             break;
                         } catch (IllegalThreadStateException ex) {
 //                            System.out.println("no exit code yet, sleeping");
@@ -116,11 +113,11 @@ public class MongoHarness {
                             }
                         }
                     }
-                    System.out.println("Wait for mongodb exit");
+                    System.err.println("Wait for mongodb exit");
                     for (int i = 0; i < 10000; i++) {
                         try {
                             int code = mongo.exitValue();
-                            System.out.println("Mongo server exit code " + code);
+                            System.err.println("Mongo server exit code " + code);
                             exited = true;
                             break;
                         } catch (IllegalThreadStateException ex) {
@@ -134,7 +131,7 @@ public class MongoHarness {
                             e.printStackTrace();
                         }
                         if (!exited && i > 30) {
-                            System.out.println("Mongodb has not exited; kill it");
+                            System.err.println("Mongodb has not exited; kill it");
                             mongo.destroy();
                         }
                     }
@@ -188,13 +185,13 @@ public class MongoHarness {
         Process startMongoDB(int port) throws IOException, InterruptedException {
             Checks.nonZero("port", port);
             Checks.nonNegative("port", port);
-            System.out.println("Starting mongodb on port " + port + " with data dir " + mongoDir);
+            System.err.println("Starting mongodb on port " + port + " with data dir " + mongoDir);
             ProcessBuilder pb = new ProcessBuilder().command("mongod", "--dbpath",
                     mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
                     "--noprealloc", "--slowms", "5", "--port", "" + port,
                     "--maxConns", "50", "--nohttpinterface", "--syncdelay", "0", "--oplogSize", "1",
                     "--diaglog", "0");
-            System.out.println(pb.command());
+            System.err.println(pb.command());
             pb.redirectError(ProcessBuilder.Redirect.INHERIT);
             pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
@@ -316,14 +313,5 @@ public class MongoHarness {
                 return false;
             }
         }
-    }
-    
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Dependencies deps = new Dependencies(SettingsBuilder.createWithDefaults("test").build(), new Module(), new GiuliusMongoAsyncModule());
-        deps.getInstance(MongoClient.class);
-        MongoHarness harn = deps.getInstance(MongoHarness.class);
-//        harn.mongo.startMongoDB(37021);
-        System.out.println("FAILED? " + harn.failed());
-        Thread.sleep(20000);
     }
 }
