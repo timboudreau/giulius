@@ -40,10 +40,6 @@ public class DependencyLocationsTest {
         assertTrue(defProps.createNewFile());
         assertTrue(genDefProps.createNewFile());
         
-        System.out.println("Create " + hooProps);
-        System.out.println("Create " + defProps);
-        System.out.println("Create " + genDefProps);
-
         Properties fpp = new Properties();
         Properties dpp = new Properties();
         Properties gpp = new Properties();
@@ -67,7 +63,6 @@ public class DependencyLocationsTest {
         b.addDefaultLocation(dir);
         b.addNamespace("hoo");
         b.addDefaultSettings();
-        System.out.println("BUILDER:\n" + b);
         Dependencies deps = b.build();
         
         Settings hooNs = deps.getSettings("hoo");

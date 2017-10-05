@@ -28,6 +28,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.annotations.Namespace;
+import com.mastfrog.settings.GetsNonNamespacedValue;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.settings.ns1.GetsNamespacedValue;
@@ -39,7 +40,6 @@ import org.junit.Test;
  * @author Tim Boudreau
  */
 public class NamespaceTest {
-/*
     @Test
     public void testNamespaceAnnotationOnPackage() throws Exception {
         Dependencies deps = Dependencies.builder().addDefaultSettings()
@@ -60,13 +60,10 @@ public class NamespaceTest {
 
         GetsNonNamespacedValue non = deps.getInstance(GetsNonNamespacedValue.class);
         GetsNamespacedValue ns = deps.getInstance(GetsNamespacedValue.class);
-        System.out.println("NS " + ns.liesel);
-        System.out.println("NON " + non.liesel);
         assertEquals("frog", non.liesel);
         assertEquals("cat", ns.liesel);
         assertFalse(ns.liesel.equals(non.liesel));
     }
-    */
 
     @Test
     public void testNamespaceOnImplementationClass() throws Exception {
@@ -79,8 +76,6 @@ public class NamespaceTest {
         
         deps.getInjector();
         
-        System.err.println("\n\n\n\n\n\n\n\n********************************************\n\n\n");
-
         IFace i = deps.getInstance(IFace.class);
         assertNotNull(i);
         assertTrue(i instanceof Implementation);
@@ -112,9 +107,7 @@ public class NamespaceTest {
 
         @Inject
         public Implementation(Settings settings) {
-            System.out.println("INJECTED SETTINGS IS " + settings);
             this.settings = settings;
-            Thread.dumpStack();
         }
 
         @Override

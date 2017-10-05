@@ -9,7 +9,6 @@ import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
-import java.util.Timer;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -49,9 +48,6 @@ public class SettingsTest {
     @Test
     public void testLoad() throws IOException {
         com.mastfrog.settings.Settings config = new SettingsBuilder().add("com/mastfrog/configuration/others.properties").add("com/mastfrog/configuration/more.properties").build();
-        for (String s : config) {
-            System.out.println(s + "=" + config.getString(s));
-        }
         assertTrue(config.allKeys().contains("whee"));
         assertEquals("oobiedoobie", config.getString("whee"));
         assertTrue(config.allKeys().contains("foo"));

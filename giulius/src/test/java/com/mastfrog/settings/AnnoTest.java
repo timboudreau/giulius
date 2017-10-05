@@ -9,7 +9,6 @@ import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
 import com.mastfrog.util.Streams;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Properties;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -63,19 +62,6 @@ public class AnnoTest {
         assertEquals("poodle", sb.getString("monkey"));
 
         DependenciesBuilder dp = Dependencies.builder().add(sb, "foo").addDefaultSettings();
-        System.out.println("BUILDER: \n" + dp);
-        
-        for (String ns : dp.namespaces()) {
-            List<SettingsBuilder> l = dp.getSettings(ns);
-            if (l == null) {
-                System.out.println("NULL SETTINGS FOR " + ns);
-            } else {
-                System.out.println("  " + ns);
-                for (SettingsBuilder s : l) {
-                    System.out.println("    " + s);
-                }
-            }
-        }
         
         Dependencies deps = dp.build();
         X x = deps.getInstance(X.class);

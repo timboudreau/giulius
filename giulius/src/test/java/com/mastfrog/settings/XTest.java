@@ -53,7 +53,6 @@ public class XTest {
             m = new Matcher() {
                 @Override
                 public boolean matches(Object t) {
-                    System.out.println("MATCHES " + t + " type " + t.getClass());
                     if (t instanceof TypeLiteral) {
                     }
                     return true;
@@ -75,13 +74,11 @@ public class XTest {
                 @Override
                 public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
                     if (type.getRawType() == Stage.class) {
-                        Thread.dumpStack();
                         return;
                     }
                     if (type.getRawType() == P.class) {
                         return;
                     }
-                    System.out.println("HEAR " + type);
                     loc.set(type);
                 }
             });
@@ -129,7 +126,6 @@ public class XTest {
                 if (loc.get() != null) {
                     ns = findNamespace(loc.get());
                 }
-                System.out.println("TL IS " + l);
                 try {
                     String namespace = ns == null ? "default" : ns.value();
                     Settings s = new SettingsBuilder(namespace).add("bar", namespace.equals("foo") ? "true" : "false").build();
@@ -154,7 +150,6 @@ public class XTest {
 
         @Inject
         public Implementation(Settings settings) {
-            System.out.println("INJECTED SETTINGS IS " + settings);
             this.settings = settings;
         }
 

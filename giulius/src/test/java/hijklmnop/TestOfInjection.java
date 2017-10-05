@@ -15,12 +15,7 @@ public class TestOfInjection {
     @Test
     public void test() throws IOException {
         Dependencies deps = Dependencies.builder().addDefaultSettings().build();
-
-        System.out.println("\n\n\n*************************************************\n\n\n");
-        
-        
         ThingThatNeedsThingThatNeedsThing tt = deps.getInstance(ThingThatNeedsThingThatNeedsThing.class);
         assertEquals("wucky", tt.toString());
-
     }
 }
