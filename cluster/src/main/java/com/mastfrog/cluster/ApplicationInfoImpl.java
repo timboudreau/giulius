@@ -23,13 +23,17 @@
  */
 package com.mastfrog.cluster;
 
-import com.mastfrog.util.GUIDFactory;
+import com.google.inject.Singleton;
+import com.mastfrog.util.Exceptions;
 import com.mastfrog.util.Streams;
+import com.mastfrog.util.Strings;
+import com.mastfrog.util.UniqueIDs;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +41,7 @@ import java.util.logging.Logger;
  *
  * @author Tim Boudreau
  */
+@Singleton
 class ApplicationInfoImpl implements ApplicationInfo {
 
     private static final Logger logger = Logger.getLogger(ApplicationInfo.class.getName());
@@ -85,19 +90,20 @@ class ApplicationInfoImpl implements ApplicationInfo {
     private static String findProcessId() {
         String result = System.getProperty(PROCESS_GUID);
         if (result == null) {
-            result = GUIDFactory.get().newGUID(1, 4);
+            result = Strings.shuffleAndExtract(ThreadLocalRandom.current(), uids().newId(), 4);
             System.setProperty(PROCESS_GUID, result);
         }
         return result;
     }
-    
+
     private static final String loadingClassName;
+
     static {
         @SuppressWarnings({"ThrowableInstanceNotThrown", "ThrowableInstanceNeverThrown"})
         Exception e = new Exception();
         StackTraceElement el = e.getStackTrace()[e.getStackTrace().length - 1];
         String[] nm = el.getClassName().split("\\.");
-        loadingClassName = nm[nm.length-1];
+        loadingClassName = nm[nm.length - 1];
     }
 
     private static String findMainClassName() {
@@ -128,6 +134,26 @@ class ApplicationInfoImpl implements ApplicationInfo {
         return findInstallationGuid(findMainClassName());
     }
 
+    static UniqueIDs uids;
+
+    private static UniqueIDs uids() {
+        if (uids == null) {
+            boolean write = Boolean.valueOf(System.getProperty(SYSTEM_PROPERTY_NO_WRITES));
+            if (!write) {
+                return UniqueIDs.noFile();
+            }
+            File f = new File(System.getProperty("user.home"));
+            File uidsFile = new File(f, ".uids");
+            try {
+                uids = new UniqueIDs(uidsFile);
+            } catch (IOException ex) {
+                Exceptions.printStackTrace(ex);
+                uids = UniqueIDs.noFile();
+            }
+        }
+        return uids;
+    }
+
     private static String findInstallationGuid(String name) {
         String result = System.getProperty(SGUID);
         if (result == null) {
@@ -144,7 +170,7 @@ class ApplicationInfoImpl implements ApplicationInfo {
             }
             if (result == null) {
                 try {
-                    result = GUIDFactory.get().newGUID(1, 7);
+                    result = Strings.shuffleAndExtract(ThreadLocalRandom.current(), uids().newId(), 7);
                     System.setProperty(SGUID, result);
                     boolean write = Boolean.valueOf(System.getProperty(SYSTEM_PROPERTY_NO_WRITES));
                     if (write && f.createNewFile()) {
