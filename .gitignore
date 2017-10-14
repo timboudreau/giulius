@@ -10,7 +10,7 @@
 target/
 
 /cluster-ids/nbproject/private/
-/nb-configuration.xml
+nb-configuration.xml
 
 /giulius/nbproject/
 /giulius-settings/nbproject/

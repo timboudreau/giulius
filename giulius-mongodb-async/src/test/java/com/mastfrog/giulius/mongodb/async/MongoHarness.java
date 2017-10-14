@@ -43,7 +43,7 @@ public class MongoHarness {
     private static int count = 1;
     /*
     Try to connect too soon and you get a crash: https://jira.mongodb.org/browse/SERVER-23441
-    */
+     */
     private static final int CONNECT_WAIT_MILLIS = 500;
 
     @Inject
@@ -88,13 +88,42 @@ public class MongoHarness {
             return settings;
         }
 
+        void handleOutput(ProcessBuilder pb, String suffix) {
+            if (suffix == null) {
+                suffix = "";
+            }
+            if (Boolean.getBoolean("acteur.debug")) {
+                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            }
+            if (Boolean.getBoolean("mongo.tmplog")) {
+                String tmq = System.getProperty("testMethodQname");
+                if (tmq == null) {
+                    tmq = MongoHarness.class.getSimpleName();
+                }
+                tmq += "-" + System.currentTimeMillis() + "-" + suffix;
+                File tmp = new File(System.getProperty("java.io.tmpdir"));
+                File err = new File(tmp, tmq + ".err");
+                File out = new File(tmp, tmq + ".err");
+                pb.redirectError(err);
+                pb.redirectOutput(out);
+            } else {
+                System.err.println("Discarding mongodb output.  Set system property acteur.debug to true to inherit "
+                        + "it, or mongo.tmplog to true to write it to a file in /tmp");
+                pb.redirectError(new File("/dev/null"));
+                pb.redirectOutput(new File("/dev/null"));
+                // JDK 9:
+//                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+//                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            }
+        }
+
         public void stop() {
             if (mongo != null) {
                 String[] cmd = new String[]{"mongod", "--dbpath",
                     mongoDir.getAbsolutePath(), "--shutdown", "--port", "" + port};
                 ProcessBuilder pb = new ProcessBuilder().command(cmd);
-                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-                pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                handleOutput(pb, "mongodb-shutdown");
                 try {
                     Process shutdown = pb.start();
                     System.err.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
@@ -192,8 +221,7 @@ public class MongoHarness {
                     "--maxConns", "50", "--nohttpinterface", "--syncdelay", "0", "--oplogSize", "1",
                     "--diaglog", "0");
             System.err.println(pb.command());
-            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            handleOutput(pb, "mongodb");
 
             // XXX instead of sleep, loop trying to connect?
             Process result = pb.start();
