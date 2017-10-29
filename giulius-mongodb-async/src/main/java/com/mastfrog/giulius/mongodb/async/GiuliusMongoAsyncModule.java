@@ -35,12 +35,12 @@ import com.mastfrog.util.Checks;
 import com.mastfrog.util.ConfigurationError;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
+import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import static java.util.Arrays.asList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,15 +48,11 @@ import java.util.Set;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import org.bson.Document;
-import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.Codec;
-import org.bson.codecs.DocumentCodecProvider;
-import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 
 /**
  * Supports MongoDB Guice bindings, allowing &#064;Named to be used to inject
@@ -91,6 +87,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
     private final Set<Codec<?>> codecs = new HashSet<>();
     private final Set<Class<? extends Codec<?>>> codecTypes = new HashSet<>();
     private final Set<Class<? extends CodecProvider>> codecProviderTypes = new HashSet<>();
+
+    @SuppressWarnings("LeakingThisInConstructor")
+    public GiuliusMongoAsyncModule() {
+        Java8DateTimeCodecProvider.installCodecs(this);
+    }
 
     /**
      * Add a codec to decode objects from BSON.
@@ -217,7 +218,19 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 all.add(forCodecs);
             }
             all.add(DEFAULT_CODEC_REGISTRY);
+            all.add(CodecRegistries.fromProviders(new Java8DateTimeCodecProvider()));
             return registry = CodecRegistries.fromRegistries(all);
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder(super.toString()).append('{');
+            for (CodecProvider prov : codecProviders) {
+                sb.append("prov: ").append(prov).append(',');
+            }
+            for(Codec codec : codecs) {
+                sb.append("codec: " + codec).append(",");
+            }
+            return sb.toString();
         }
 
         @Override
@@ -232,9 +245,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
     
     // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
     private static final CodecRegistry DEFAULT_CODEC_REGISTRY
-            = fromProviders(asList(new ValueCodecProvider(),
-                    new DocumentCodecProvider(),
-                    new BsonValueCodecProvider()));
+            = MongoClients.getDefaultCodecRegistry();
+//            = fromProviders(asList(
+//                    new ValueCodecProvider(),
+//                    new DocumentCodecProvider(),
+//                    new BsonValueCodecProvider()));
 
     private void checkDone() {
         if (done) {

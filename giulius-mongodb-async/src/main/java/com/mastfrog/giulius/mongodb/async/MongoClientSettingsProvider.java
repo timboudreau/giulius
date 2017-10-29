@@ -122,8 +122,6 @@ final class MongoClientSettingsProvider implements Provider<MongoClientSettings>
             sb.credentialList(Arrays.asList(credential));
         }
         clientSettings = sb.build();
-        System.out.println("REGISTRY: " + registry);
-        
     }
 
     private WriteConcern findWriteConcern(String setting) {
