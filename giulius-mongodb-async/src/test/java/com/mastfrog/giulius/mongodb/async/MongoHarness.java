@@ -95,8 +95,7 @@ public class MongoHarness {
             if (Boolean.getBoolean("acteur.debug")) {
                 pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                 pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-            }
-            if (Boolean.getBoolean("mongo.tmplog")) {
+            } else if (Boolean.getBoolean("mongo.tmplog")) {
                 String tmq = System.getProperty("testMethodQname");
                 if (tmq == null) {
                     tmq = MongoHarness.class.getSimpleName();
