@@ -86,12 +86,12 @@ public class SettingsTest {
         Settings s = new SettingsBuilder().add(ps).build();
         Reference<Settings> ref = new WeakReference<>(s);
         synchronized(notify) {
-            notify.wait(40);
+            notify.wait(200);
         }
         int cc = ps.callCount;
         assertNotSame("Refresh task not called",0, cc);
         synchronized(notify) {
-            notify.wait(40);
+            notify.wait(200);
         }
         assertNotSame("Refresh task not being called continuously",cc, ps.callCount);
         s = null;
