@@ -103,7 +103,7 @@ public class SettingsTest {
             Thread.sleep(20);
         }
         assertNull("Settings not garbage collected",ref.get());
-
+        Thread.sleep(200);
         cc = ps.callCount;
         synchronized(notify) {
             notify.wait(30);
