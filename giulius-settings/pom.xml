@@ -4,7 +4,7 @@
     <parent>
         <artifactId>mastfrog-parent</artifactId>
         <groupId>com.mastfrog</groupId>
-        <version>2.0.7</version>
+        <version>2.0.8</version>
         <relativePath/>
     </parent>
     <artifactId>giulius-settings</artifactId>
@@ -34,4 +34,25 @@
             <url>https://timboudreau.com</url>
         </developer>
     </developers>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <parallelMavenExecution>false</parallelMavenExecution>
+                    <trimStackTrace>false</trimStackTrace>
+                    <systemPropertyVariables>
+                        <unit.test>true</unit.test>
+                        <forkNumber>${surefire.forkNumber}</forkNumber>
+                    </systemPropertyVariables>
+                    <environmentVariables>
+                        <some.property>hello</some.property>
+                        <another.property>woo hoo</another.property>
+                        <intprop>32</intprop>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License
  *
  * Copyright 2013 Tim Boudreau.
@@ -37,6 +37,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -81,7 +82,8 @@ public final class SettingsBuilder {
      * <code>generated-</code>
      */
     public static final String GENERATED_PREFIX = "generated-";
-    private final List<PropertiesSource> all = new ArrayList<>(5);
+    private final List<PropertiesSource> all = new ArrayList<>(7);
+    private final Set<String> environmentKeys = new HashSet<>(12);
     private final String namespace;
 
     public SettingsBuilder() {
@@ -138,7 +140,7 @@ public final class SettingsBuilder {
         this.all.addAll(sb.all);
         return this;
     }
-    
+
     public SettingsBuilder add(String key, boolean value) {
         add(key, Boolean.toString(value));
         return this;
@@ -146,6 +148,21 @@ public final class SettingsBuilder {
 
     public SettingsBuilder add(String key, int value) {
         add(key, Integer.toString(value));
+        return this;
+    }
+
+    public SettingsBuilder add(String key, long value) {
+        add(key, Long.toString(value));
+        return this;
+    }
+
+    public SettingsBuilder add(String key, double value) {
+        add(key, Double.toString(value));
+        return this;
+    }
+
+    public SettingsBuilder add(String key, float value) {
+        add(key, Float.toString(value));
         return this;
     }
 
@@ -214,7 +231,7 @@ public final class SettingsBuilder {
             return this;
         }
     }
-    
+
     public SettingsBuilder addDefaultsFromEtc() {
         File home = new File("/opt/local/etc");
         if (!home.exists()) {
@@ -230,15 +247,21 @@ public final class SettingsBuilder {
             }
         }
         return this;
-    }    
+    }
 
     /**
-     * Add environment variables
+     * Add environment variables. If you wish to restrict the set of environment
+     * variables used, make and calls to
+     * <code>restrictEnvironmentProperties()</code> before calling this method.
      *
      * @return this
      */
     public SettingsBuilder addEnv() {
-        return add(new EnvPropertiesSource());
+        return add(new FixedPropertiesSource(new EnvironmentProperties(environmentKeys)));
+    }
+
+    int sourceCount() {
+        return all.size();
     }
 
     /**
@@ -249,6 +272,19 @@ public final class SettingsBuilder {
      * @return
      */
     public SettingsBuilder add(String key, String value) {
+        // Avoid adding lots of single-property properties instances
+        if (!all.isEmpty()) {
+            PropertiesSource last = all.get(all.size() - 1);
+            if (last instanceof FixedPropertiesSource) {
+                FixedPropertiesSource fp = (FixedPropertiesSource) last;
+                if (fp.properties.getClass() == Properties.class) {
+                    if (!fp.properties.containsKey(key)) {
+                        fp.properties.setProperty(key, value);
+                        return this;
+                    }
+                }
+            }
+        }
         Properties props = new Properties();
         props.setProperty(key, value);
         return add(props);
@@ -297,13 +333,52 @@ public final class SettingsBuilder {
                 .addSystemProperties()
                 .addFilesystemAndClasspathLocations();
     }
-    
+
     public SettingsBuilder addFilesystemAndClasspathLocations() {
         return addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath()
                 .addDefaultsFromEtc()
                 .addDefaultsFromUserHome()
                 .addDefaultsFromProcessWorkingDir();
+    }
+
+    public SettingsBuilder restrictEnvironmentProperties(String... props) {
+        this.environmentKeys.addAll(Arrays.asList(props));
+        return this;
+    }
+
+    /**
+     * Add system properties, the default locations for this SettingsBuilder's
+     * namespace (e.g.
+     * <code>/etc/$NAMESPACE.properties, $HOME/$NAMESPACE.properties, $PWD/$NAMESPACE.properties</code>
+     * and so forth), then layer the passed command-line arguments on top of
+     * that, further overridden by environment variables.
+     *
+     * @param args The command line arguments
+     * @return This SettingsBuilder
+     */
+    public SettingsBuilder addDefaultLocationsAndParseArgs(String... args) {
+        return addDefaultLocationsAndParseArgs(Collections.<Character, String>emptyMap(), args);
+    }
+
+    /**
+     * Add system properties, the default locations for this SettingsBuilder's
+     * namespace (e.g.
+     * <code>/etc/$NAMESPACE.properties, $HOME/$NAMESPACE.properties, $PWD/$NAMESPACE.properties</code>
+     * and so forth), then layer the passed command-line arguments on top of
+     * that, further overridden by environment variables.
+     *
+     * @param expansions Optional mapping of character to settings-string
+     * extensions, e.g. translating "-f" to "--foo" before procssing command
+     * line arguments.
+     *
+     * @param args The command line arguments
+     * @return This SettingsBuilder
+     */
+    public SettingsBuilder addDefaultLocationsAndParseArgs(Map<Character, String> expansions, String... args) {
+        expansions = expansions == null ? Collections.<Character, String>emptyMap() : expansions;
+        return addSystemProperties().addFilesystemAndClasspathLocations()
+                .parseCommandLineArguments(expansions, args).addEnv();
     }
 
     public SettingsBuilder addLocation(File directory) {
@@ -315,7 +390,7 @@ public final class SettingsBuilder {
         File user = new File(directory, namespace + DEFAULT_EXTENSION);
         return add(user);
     }
-    
+
     public static SettingsBuilder create() {
         return createWithDefaults(DEFAULT_NAMESPACE);
     }
@@ -327,9 +402,8 @@ public final class SettingsBuilder {
 
     /**
      * Create a settings builder which will provide settings from the following
-     * locations, last-first: <ol> <li>Environment variables</li> <li>System
-     * properties</li> <li>All files named
-     * /com/mastfrog/generated-defaults.properties on the classpath
+     * locations, last-first: <ol> <li>System properties</li> <li>All files
+     * named /com/mastfrog/generated-defaults.properties on the classpath
      * (annotation-generated files in JARs); precedence is determined by
      * classpath order</li> <li>All files named
      * /com/mastfrog/defaults.properties (hand-written files in JARs);
@@ -341,7 +415,7 @@ public final class SettingsBuilder {
      */
     public static SettingsBuilder createDefault() {
         SettingsBuilder b = new SettingsBuilder()
-                .addEnv()
+                //                .addEnv()
                 .addSystemProperties()
                 .addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath()
@@ -570,6 +644,14 @@ public final class SettingsBuilder {
         return p.isEmpty() ? this : add(p);
     }
 
+    public String toString() {
+        StringBuilder sb = new StringBuilder("SettingsBuilder").append('[');
+        for (PropertiesSource src : all) {
+            sb.append('\n').append(src).append('\n');
+        }
+        return sb.toString();
+    }
+
     /**
      * Create a Settings which has a mutable, ephemeral layer which overrides
      * the rest
@@ -676,7 +758,7 @@ public final class SettingsBuilder {
 
     private static final class FixedPropertiesSource extends PropertiesSource {
 
-        private final Properties properties;
+        final Properties properties;
 
         FixedPropertiesSource(Properties properties) {
             this.properties = properties;
@@ -787,25 +869,6 @@ public final class SettingsBuilder {
         @Override
         public String toString() {
             return "System Properties";
-        }
-    }
-
-    private static final class EnvPropertiesSource extends PropertiesSource {
-
-        EnvPropertiesSource() {
-            super(RefreshInterval.NONE);
-        }
-
-        @Override
-        public Properties getProperties() throws IOException {
-            Properties p = new Properties();
-            p.putAll(System.getenv());
-            return p;
-        }
-
-        @Override
-        public String toString() {
-            return "Environment Variables";
         }
     }
 
