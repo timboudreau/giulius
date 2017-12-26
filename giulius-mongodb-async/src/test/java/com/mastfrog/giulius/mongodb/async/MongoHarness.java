@@ -217,8 +217,7 @@ public class MongoHarness {
             ProcessBuilder pb = new ProcessBuilder().command("mongod", "--dbpath",
                     mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
                     "--noprealloc", "--slowms", "5", "--port", "" + port,
-                    "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1",
-                    "--diaglog", "0");
+                    "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1");
             System.err.println(pb.command());
             handleOutput(pb, "mongodb");
 
