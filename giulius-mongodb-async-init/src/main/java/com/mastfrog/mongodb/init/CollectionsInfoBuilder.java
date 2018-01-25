@@ -57,7 +57,7 @@ public final class CollectionsInfoBuilder<T> {
      * @return A builder for a single collection, whose build method returns
      * this CollectionsInfoBuilder
      */
-    public OneCollectionInfoBuilder<CollectionsInfoBuilder> add(String collectionName) {
+    public OneCollectionInfoBuilder<CollectionsInfoBuilder<T>, T> add(String collectionName) {
         return new OneCollectionInfoBuilder<>(collectionName, this);
     }
 

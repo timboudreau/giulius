@@ -36,7 +36,7 @@ import org.bson.conversions.Bson;
  *
  * @author Tim Boudreau
  */
-public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R>, R extends CollectionsInfoBuilder> {
+public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R, X>, R extends CollectionsInfoBuilder<X>, X> {
 
     private final String name;
     private final T parent;
@@ -56,7 +56,7 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R>, R ext
      * @param value
      * @return
      */
-    public IndexInfoBuilder<T, R> put(String key, Object value) {
+    public IndexInfoBuilder<T, R, X> put(String key, Object value) {
         description.append(key, value);
         return this;
     }
@@ -68,7 +68,7 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R>, R ext
      * @param desc The description document
      * @return this
      */
-    public IndexInfoBuilder<T, R> putDescription(Document desc) {
+    public IndexInfoBuilder<T, R, X> putDescription(Document desc) {
         for (String key : desc.keySet()) {
             description.put(key, desc.get(key));
         }
@@ -86,92 +86,92 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R>, R ext
         return parent;
     }
 
-    public IndexInfoBuilder<T, R> background(boolean background) {
+    public IndexInfoBuilder<T, R, X> background(boolean background) {
         options.background(background);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> unique(boolean unique) {
+    public IndexInfoBuilder<T, R, X> unique(boolean unique) {
         options.unique(unique);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> name(String name) {
+    public IndexInfoBuilder<T, R, X> name(String name) {
         options.name(name);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> sparse(boolean sparse) {
+    public IndexInfoBuilder<T, R, X> sparse(boolean sparse) {
         options.sparse(sparse);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> expireAfter(Long expireAfter, TimeUnit timeUnit) {
+    public IndexInfoBuilder<T, R, X> expireAfter(Long expireAfter, TimeUnit timeUnit) {
         options.expireAfter(expireAfter, timeUnit);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> version(Integer version) {
+    public IndexInfoBuilder<T, R, X> version(Integer version) {
         options.version(version);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> weights(Bson weights) {
+    public IndexInfoBuilder<T, R, X> weights(Bson weights) {
         options.weights(weights);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> defaultLanguage(String defaultLanguage) {
+    public IndexInfoBuilder<T, R, X> defaultLanguage(String defaultLanguage) {
         options.defaultLanguage(defaultLanguage);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> languageOverride(String languageOverride) {
+    public IndexInfoBuilder<T, R, X> languageOverride(String languageOverride) {
         options.languageOverride(languageOverride);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> textVersion(Integer textVersion) {
+    public IndexInfoBuilder<T, R, X> textVersion(Integer textVersion) {
         options.textVersion(textVersion);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> sphereVersion(Integer sphereVersion) {
+    public IndexInfoBuilder<T, R, X> sphereVersion(Integer sphereVersion) {
         options.sphereVersion(sphereVersion);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> bits(Integer bits) {
+    public IndexInfoBuilder<T, R, X> bits(Integer bits) {
         options.bits(bits);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> min(Double min) {
+    public IndexInfoBuilder<T, R, X> min(Double min) {
         options.min(min);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> max(Double max) {
+    public IndexInfoBuilder<T, R, X> max(Double max) {
         options.max(max);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> bucketSize(Double bucketSize) {
+    public IndexInfoBuilder<T, R, X> bucketSize(Double bucketSize) {
         options.bucketSize(bucketSize);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> storageEngine(Bson storageEngine) {
+    public IndexInfoBuilder<T, R, X> storageEngine(Bson storageEngine) {
         options.storageEngine(storageEngine);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> partialFilterExpression(Bson partialFilterExpression) {
+    public IndexInfoBuilder<T, R, X> partialFilterExpression(Bson partialFilterExpression) {
         options.partialFilterExpression(partialFilterExpression);
         return this;
     }
 
-    public IndexInfoBuilder<T, R> collation(Collation collation) {
+    public IndexInfoBuilder<T, R, X> collation(Collation collation) {
         options.collation(collation);
         return this;
     }

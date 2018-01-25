@@ -41,7 +41,7 @@ import org.bson.conversions.Bson;
  *
  * @author Tim Boudreau
  */
-public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder> {
+public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder<R>, R> {
 
     public final String name;
     public final Set<IndexInfo> indexInfos = new HashSet<>();
@@ -72,8 +72,8 @@ public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder> {
      * @param name The name of the index
      * @return A builder for that index, whose build method returns this object
      */
-    public IndexInfoBuilder<OneCollectionInfoBuilder<T>, T> withIndex(String name) {
-        return new IndexInfoBuilder<OneCollectionInfoBuilder<T>, T>(this, name);
+    public IndexInfoBuilder<OneCollectionInfoBuilder<T, R>, T, R> withIndex(String name) {
+        return new IndexInfoBuilder<OneCollectionInfoBuilder<T, R>, T, R>(this, name);
     }
 
     /**
@@ -85,47 +85,47 @@ public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder> {
      * @param d A document.
      * @return this
      */
-    public OneCollectionInfoBuilder<T> insertDocumentIfCreating(Document d) {
+    public OneCollectionInfoBuilder<T, R> insertDocumentIfCreating(Document d) {
         prepopulate.add(d);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> autoIndex(boolean autoIndex) {
+    public OneCollectionInfoBuilder<T, R> autoIndex(boolean autoIndex) {
         opts.autoIndex(autoIndex);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> maxDocuments(long maxDocuments) {
+    public OneCollectionInfoBuilder<T, R> maxDocuments(long maxDocuments) {
         opts.maxDocuments(maxDocuments);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> capped(boolean capped) {
+    public OneCollectionInfoBuilder<T, R> capped(boolean capped) {
         opts.capped(capped);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> sizeInBytes(long sizeInBytes) {
+    public OneCollectionInfoBuilder<T, R> sizeInBytes(long sizeInBytes) {
         opts.sizeInBytes(sizeInBytes);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> storageEngineOptions(Bson storageEngineOptions) {
+    public OneCollectionInfoBuilder<T, R> storageEngineOptions(Bson storageEngineOptions) {
         opts.storageEngineOptions(storageEngineOptions);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> indexOptionDefaults(IndexOptionDefaults indexOptionDefaults) {
+    public OneCollectionInfoBuilder<T, R> indexOptionDefaults(IndexOptionDefaults indexOptionDefaults) {
         opts.indexOptionDefaults(indexOptionDefaults);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> validationOptions(ValidationOptions validationOptions) {
+    public OneCollectionInfoBuilder<T, R> validationOptions(ValidationOptions validationOptions) {
         opts.validationOptions(validationOptions);
         return this;
     }
 
-    public OneCollectionInfoBuilder<T> collation(Collation collation) {
+    public OneCollectionInfoBuilder<T, R> collation(Collation collation) {
         opts.collation(collation);
         return this;
     }
