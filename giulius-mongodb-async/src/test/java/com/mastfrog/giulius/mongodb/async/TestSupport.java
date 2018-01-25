@@ -206,4 +206,19 @@ public class TestSupport implements Function<Throwable, Boolean> {
             });
         };
     }
+    
+    public <T> SingleResultCallback<T> vcallback(Runnable receiver) {
+        return (T t, Throwable thrwbl) -> {
+            if ( apply( thrwbl ) ) {
+                return;
+            }
+            run( () -> {
+                receiver.run();
+            } );
+        };
+    }
+    
+    public <T> SingleResultCallback<T> doneCallback() {
+        return vcallback(this::done);
+    }
 }
