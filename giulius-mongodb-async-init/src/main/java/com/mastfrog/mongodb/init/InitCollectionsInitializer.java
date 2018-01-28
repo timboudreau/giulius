@@ -23,6 +23,7 @@
  */
 package com.mastfrog.mongodb.init;
 
+import com.mastfrog.giulius.Ordered;
 import static com.mastfrog.giulius.mongodb.async.MongoAsyncConfig.SETTINGS_KEY_DATABASE_NAME;
 import com.mastfrog.giulius.mongodb.async.MongoAsyncInitializer;
 import com.mastfrog.settings.Settings;
@@ -39,6 +40,7 @@ import javax.inject.Named;
  *
  * @author Tim Boudreau
  */
+@Ordered(Integer.MIN_VALUE + 10)
 class InitCollectionsInitializer extends MongoAsyncInitializer {
 
     private final CollectionsInfo info;
@@ -47,7 +49,7 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
     public static final boolean DEFAULT_BLOCKING = true;
     private final boolean blocking;
 
-    static boolean LOG = false;
+    static boolean LOG = true;
 
     @Inject
     InitCollectionsInitializer(Registry reg, CollectionsInfo info, @Named(SETTINGS_KEY_DATABASE_NAME) String dbName, Settings settings) {

@@ -24,6 +24,11 @@
 package com.mastfrog.mongodb.init;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.TypeLiteral;
+import com.mastfrog.mongodb.migration.Migration;
+import com.mastfrog.mongodb.migration.MigrationBuilder;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * A guice module for attaching collection and index initialization on startup.
@@ -33,6 +38,15 @@ import com.google.inject.AbstractModule;
 public class MongoInitModule extends AbstractModule {
 
     private CollectionsInfo info;
+    private final Set<Migration> migrations = new LinkedHashSet<>();
+
+    public MigrationBuilder<MongoInitModule> addMigration(String name, int toVersion) {
+        return new MigrationBuilder<>(name, toVersion, (m) -> {
+            migrations.add(m);
+            return MongoInitModule.this;
+        }
+        );
+    }
 
     /**
      * Get a builder which can be used to define collections and their
@@ -45,7 +59,7 @@ public class MongoInitModule extends AbstractModule {
         if (info != null) {
             throw new IllegalStateException("Collection info already configured");
         }
-        return new CollectionsInfoBuilder<MongoInitModule>(this, (ifo) -> {
+        return new CollectionsInfoBuilder<>(this, (ifo) -> {
             MongoInitModule.this.info = ifo;
         });
     }
@@ -55,6 +69,11 @@ public class MongoInitModule extends AbstractModule {
         if (info != null) {
             bind(CollectionsInfo.class).toInstance(info);
             bind(InitCollectionsInitializer.class).asEagerSingleton();
+        }
+        bind(new TypeLiteral<Set<Migration>>() {
+        }).toInstance(new LinkedHashSet<>(migrations));
+        if (!migrations.isEmpty()) {
+            bind(InitMigrationsInitializer.class).asEagerSingleton();
         }
     }
 }

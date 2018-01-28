@@ -151,7 +151,7 @@ public class MongoHarness {
                         } catch (IllegalThreadStateException ex) {
 //                            System.out.println("Not exited yet; sleep 100ms");
                             try {
-                                Thread.sleep(10);
+                                Thread.sleep(20);
                             } catch (InterruptedException ex1) {
                                 Exceptions.printStackTrace(ex1);
                             }
@@ -159,7 +159,7 @@ public class MongoHarness {
                             e.printStackTrace();
                         }
                         if (!exited && i > 30) {
-                            System.err.println("Mongodb has not exited; kill it");
+//                            System.err.println("Mongodb has not exited; kill it");
                             mongo.destroy();
                         }
                     }

@@ -29,6 +29,7 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.IndexOptionDefaults;
 import com.mongodb.client.model.ValidationOptions;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -89,6 +90,12 @@ public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder<R>,
         prepopulate.add(d);
         return this;
     }
+
+    public OneCollectionInfoBuilder<T, R> insertDocumentsIfCreating(Collection<Document> d) {
+        prepopulate.addAll(d);
+        return this;
+    }
+
 
     public OneCollectionInfoBuilder<T, R> autoIndex(boolean autoIndex) {
         opts.autoIndex(autoIndex);

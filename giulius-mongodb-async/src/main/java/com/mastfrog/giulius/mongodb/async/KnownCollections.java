@@ -55,7 +55,7 @@ class KnownCollections implements Iterable<String> {
     @Inject
     KnownCollections(Provider<MongoDatabase> dbProvider, Settings settings) {
         this.dbProvider = dbProvider;
-        maxWaitSeconds = settings.getInt(SETTINGS_KEY_MAX_WAIT_SECONDS, 10);
+        maxWaitSeconds = settings.getInt(SETTINGS_KEY_MAX_WAIT_SECONDS, 30);
     }
     
     synchronized void add(String created) {
@@ -98,8 +98,10 @@ class KnownCollections implements Iterable<String> {
         @Override
         public void onResult(AsyncBatchCursor<String> t, Throwable thrwbl) {
             cursor = t;
-            cursor.setBatchSize(200);
-            t.next(src);
+            if (cursor != null) {
+                cursor.setBatchSize(200);
+                t.next(src);
+            }
         }
 
         Set<String> await() {
@@ -125,6 +127,7 @@ class KnownCollections implements Iterable<String> {
                     allCollections.addAll(t);
                     cursor.next(this);
                 } else {
+                    cursor.close();
                     latch.countDown();
                 }
             }

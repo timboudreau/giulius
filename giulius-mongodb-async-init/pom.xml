@@ -39,8 +39,41 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>acteur-mongo-async</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>        
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>giulius-tests</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+                <!-- to enable console logging in real time -->
+                <!--
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.20.1</version>
+                <configuration>
+                    <parallelMavenExecution>false</parallelMavenExecution>
+                    <reuseForks>false</reuseForks>
+                    <parallel>none</parallel>
+                    <threadCount>0</threadCount>
+                    <forkMode>never</forkMode>
+                    <forkCount>0</forkCount>
+                    <trimStackTrace>false</trimStackTrace>
+                    <useFile>false</useFile>
+                    <systemPropertyVariables>
+                        <unit.test>true</unit.test>
+                        <acteur.debug>true</acteur.debug>
+                        <forkNumber>${surefire.forkNumber}</forkNumber>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>            
+        </plugins>
+                -->
+    </build>
 </project>
