@@ -61,7 +61,7 @@ public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder<R>,
      *
      * @return The parent CollectionsInfoBuilder
      */
-    public T build() {
+    public T buildCollection() {
         OneCollectionInfo result = new OneCollectionInfo(name, opts, indexInfos.toArray(new IndexInfo[0]), prepopulate.toArray(new Document[0]));
         parent.add(result);
         return parent;
@@ -73,8 +73,8 @@ public final class OneCollectionInfoBuilder<T extends CollectionsInfoBuilder<R>,
      * @param name The name of the index
      * @return A builder for that index, whose build method returns this object
      */
-    public IndexInfoBuilder<OneCollectionInfoBuilder<T, R>, T, R> withIndex(String name) {
-        return new IndexInfoBuilder<OneCollectionInfoBuilder<T, R>, T, R>(this, name);
+    public IndexInfoBuilder<OneCollectionInfoBuilder<T, R>, T, R> ensureIndex(String name) {
+        return new IndexInfoBuilder<>(this, name);
     }
 
     /**

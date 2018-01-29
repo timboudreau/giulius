@@ -54,13 +54,13 @@ public class CollectionsInfoTest {
         b.add("stuff").capped(true).maxDocuments(5).sizeInBytes(80000)
                 .validationOptions(new ValidationOptions().validationLevel(ValidationLevel.MODERATE))
                 .indexOptionDefaults(new IndexOptionDefaults().storageEngine(new Document("eng", "x")))
-                .withIndex("num").background(true).put("ix", 1).build()
+                .ensureIndex("num").background(true).index("ix", 1).buildIndex()
                 .insertDocumentIfCreating(new Document("baz", "quux").append("ix", 13))
-                .build()
-                .add("junk").withIndex("wubbles").unique(true).put("word", 1)
+                .buildCollection()
+                .add("junk").ensureIndex("wubbles").unique(true).index("word", 1)
                 .bits(32).bucketSize(5.2).collation(Collation.builder().locale("en-US").backwards(true).build())
                 .languageOverride("fr-FR").sparse(true).unique(true).version(52)
-                .build().build().build();
+                .buildIndex().buildCollection().build();
     }
 
     @Test

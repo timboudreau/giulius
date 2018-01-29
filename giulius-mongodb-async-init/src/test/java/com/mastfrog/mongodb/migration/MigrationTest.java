@@ -179,8 +179,8 @@ public class MigrationTest {
         @Override
         protected void configure() {
             MongoInitModule m = new MongoInitModule();
-            m.withCollections().add("stuff").insertDocumentsIfCreating(toInsert).build()
-                    .add("migrations").build().build();
+            m.withCollections().add("stuff").insertDocumentsIfCreating(toInsert).buildCollection()
+                    .add("migrations").buildCollection().build();
             m.addMigration("stuff-new", 10).backup("stuff", new Document("index", new Document("$lte", 50)))
                     .migrateCollection("stuff", mig(false)).build();
             install(m);

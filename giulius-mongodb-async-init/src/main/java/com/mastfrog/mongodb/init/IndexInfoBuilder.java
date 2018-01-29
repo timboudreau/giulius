@@ -56,8 +56,28 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R, X>, R 
      * @param value
      * @return
      */
-    public IndexInfoBuilder<T, R, X> put(String key, Object value) {
+    public IndexInfoBuilder<T, R, X> index(String key, Object value) {
         description.append(key, value);
+        return this;
+    }
+
+    public IndexInfoBuilder<T, R, X> indexText(String key) {
+        description.append(key, "text");
+        return this;
+    }
+
+    public IndexInfoBuilder<T, R, X> indexAscending(String key) {
+        description.append(key, 1);
+        return this;
+    }
+
+    public IndexInfoBuilder<T, R, X> indexDescending(String key) {
+        description.append(key, -1);
+        return this;
+    }
+
+    public IndexInfoBuilder<T, R, X> indexHashed(String key) {
+        description.append(key, "hashed");
         return this;
     }
 
@@ -68,7 +88,7 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R, X>, R 
      * @param desc The description document
      * @return this
      */
-    public IndexInfoBuilder<T, R, X> putDescription(Document desc) {
+    public IndexInfoBuilder<T, R, X> index(Document desc) {
         for (String key : desc.keySet()) {
             description.put(key, desc.get(key));
         }
@@ -80,7 +100,7 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R, X>, R 
      *
      * @return A collection builder
      */
-    public T build() {
+    public T buildIndex() {
         IndexInfo info = new IndexInfo(name, description, options);
         parent.indexInfos.add(info);
         return parent;
@@ -104,6 +124,10 @@ public final class IndexInfoBuilder<T extends OneCollectionInfoBuilder<R, X>, R 
     public IndexInfoBuilder<T, R, X> sparse(boolean sparse) {
         options.sparse(sparse);
         return this;
+    }
+
+    public IndexInfoBuilder<T, R, X> sparse() {
+        return sparse(true);
     }
 
     public IndexInfoBuilder<T, R, X> expireAfter(Long expireAfter, TimeUnit timeUnit) {

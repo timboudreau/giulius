@@ -141,15 +141,15 @@ public class InitCollectionsInitializerTest {
         protected void configure() {
             MongoInitModule mod = new MongoInitModule();
             mod.withCollections().add("stuff").capped(true).maxDocuments(5).sizeInBytes(80000)
-                    .withIndex("num").background(true).put("ix", 1).build()
+                    .ensureIndex("num").background(true).index("ix", 1).buildIndex()
                     .insertDocumentIfCreating(new Document("foo", "bar").append("ix", 22))
                     .insertDocumentIfCreating(new Document("baz", "quux").append("ix", 13))
-                    .build()
-                    .add("junk").withIndex("wubbles").unique(true).put("word", 1).build()
+                    .buildCollection()
+                    .add("junk").ensureIndex("wubbles").unique(true).index("word", 1).buildIndex()
                     .insertDocumentIfCreating(new Document("word", "hey"))
                     .insertDocumentIfCreating(new Document("word", "foo"))
                     .insertDocumentIfCreating(new Document("word", "zoopa"))
-                    .build().build();
+                    .buildCollection().build();
             install(mod);
 
             install(new GiuliusMongoAsyncModule().bindCollection("stuff").bindCollection("junk"));
