@@ -31,6 +31,7 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.mastfrog.asyncpromises.mongo.CollectionPromises;
 import com.mastfrog.giulius.Dependencies;
+import com.mastfrog.settings.Settings;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.ConfigurationError;
 import com.mongodb.async.client.MongoClient;
@@ -350,6 +351,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
     @Override
     protected void configure() {
+        Provider<String> dbNameProvider = binder().getProvider(Key.get(String.class, Names.named(SETTINGS_KEY_DATABASE_NAME)));
+        Provider<MongoAsyncInitializer.Registry> registryProvider = binder().getProvider(MongoAsyncInitializer.Registry.class);
+        Provider<Settings> settingsProvider = binder().getProvider(Settings.class);
+        ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider, settingsProvider);
+        bind(ExistingCollections.class).toInstance(existing);
         for (Class<? extends MongoAsyncInitializer> itype : this.initializers) {
             bind(itype).asEagerSingleton();;
         }
@@ -368,6 +374,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         bind(MongoClient.class).toProvider(IndirectMongoClientProvider.class);
         bind(MongoDatabase.class).toProvider(MongoDatabaseProvider.class).in(Scopes.SINGLETON);
         for (CollectionBinding<?> binding : bindings) {
+            existing.addBound(binding.collection, binding.opts);
             binding.bind(binder());
         }
     }
@@ -422,14 +429,15 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         void bind(Binder binder) {
             Provider<MongoClient> clientProvider = binder.getProvider(MongoClient.class);
             Provider<MongoDatabase> dbProvider = binder.getProvider(MongoDatabase.class);
-            Provider<KnownCollections> knownProvider = binder.getProvider(KnownCollections.class);
             Provider<MongoAsyncInitializer.Registry> inits = binder.getProvider(MongoAsyncInitializer.Registry.class);
-            MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(dbProvider, collection, Document.class, knownProvider, opts, inits, clientProvider);
+            Provider<ExistingCollections> existingProvider = binder.getProvider(ExistingCollections.class);
+
+            MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(collection, Document.class, existingProvider, clientProvider);
             CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
             binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
             if (type != Document.class) {
-                MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<T>(dbProvider, collection, type, knownProvider, opts, inits, clientProvider);
+                MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<>(collection, type, existingProvider, clientProvider);
                 Type t = new FakeType<>(type);
                 Key<MongoCollection<T>> key = (Key<MongoCollection<T>>) Key.get(t, Names.named(bindingName));
                 binder.bind(key).toProvider(typedProvider);

@@ -43,6 +43,7 @@ import javax.inject.Singleton;
 public abstract class MongoAsyncInitializer {
 
     private final Registry reg;
+
     /**
      * Create a new MongoAsyncInitializer. Just ask for the Registry to be
      * injected, and pass it to the super constructor.
@@ -96,20 +97,29 @@ public abstract class MongoAsyncInitializer {
      * @param collection The collection
      */
     protected final void createdCollection(String name, MongoCollection<?> collection) {
-        reg.onCreateCollection(name, collection);
+        reg.collectionCreated(name, collection);
     }
 
     /**
-     * Registry of mongo initializers - has no user-callable methods.  Just
-     * pass this to the super constructor of your MongoAsyncInitializer and
-     * the right thing will happen.
+     * Registry of mongo initializers - has no user-callable methods. Just pass
+     * this to the super constructor of your MongoAsyncInitializer and the right
+     * thing will happen.
      */
     @Singleton
     public static class Registry {
 
         private final List<MongoAsyncInitializer> initializers = Collections.synchronizedList(new LinkedList<MongoAsyncInitializer>());
+        private final ExistingCollections existing;
+
         @Inject
-        Registry() {
+        Registry(ExistingCollections existing) {
+            this.existing = existing;
+        }
+
+        void collectionCreated(String name, MongoCollection<?> collection) {
+            if (existing.addExisting(name)) {
+                onCreateCollection(name, collection);
+            }
         }
 
         void register(MongoAsyncInitializer init) {

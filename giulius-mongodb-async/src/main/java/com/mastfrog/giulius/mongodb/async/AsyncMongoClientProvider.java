@@ -42,11 +42,12 @@ final class AsyncMongoClientProvider implements Provider<MongoClient>, Runnable 
 
     @Inject
     @SuppressWarnings("LeakingThisInConstructor")
-    AsyncMongoClientProvider(MongoClientSettings settings, MongoAsyncInitializer.Registry inits, ShutdownHookRegistry reg) {
+    AsyncMongoClientProvider(MongoClientSettings settings, MongoAsyncInitializer.Registry inits, ShutdownHookRegistry reg, ExistingCollections colls) {
         settings = inits.onBeforeCreateMongoClient(settings);
         MongoClient client = MongoClients.create(settings);
-        client = inits.onAfterCreateMongoClient(client);
         this.client = client;
+        colls.init(client, this);
+        client = inits.onAfterCreateMongoClient(client);
         reg.add(this);
     }
 

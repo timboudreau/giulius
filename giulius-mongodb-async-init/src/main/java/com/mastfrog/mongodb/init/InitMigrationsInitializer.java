@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -91,10 +90,7 @@ final class InitMigrationsInitializer extends MongoAsyncInitializer implements F
             latch.countDown();
         });
         try {
-            ForkJoinPool.commonPool().submit(() -> {
-                System.out.println("Start initialization");
-                first.complete(new Document());
-            });
+            first.complete(new Document());
             System.out.println("Wait on latch");
             latch.await();
             System.out.println("Exit wait on latch");

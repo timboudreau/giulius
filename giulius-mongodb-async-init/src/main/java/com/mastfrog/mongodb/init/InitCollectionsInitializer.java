@@ -31,7 +31,6 @@ import com.mastfrog.util.Exceptions;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -86,10 +85,8 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
         if (LOG) {
             System.err.println("init " + c);
         }
-        ForkJoinPool.commonPool().submit(() -> {
-            info.init(db, c, (t, u) -> {
-                super.createdCollection(dbName, u);
-            });
+        info.init(db, c, (t, u) -> {
+            super.createdCollection(dbName, u);
         });
         if (blocking) {
             try {
