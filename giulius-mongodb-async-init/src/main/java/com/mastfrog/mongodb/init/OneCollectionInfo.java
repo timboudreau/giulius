@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -76,7 +77,7 @@ final class OneCollectionInfo {
         return o instanceof OneCollectionInfo && ((OneCollectionInfo) o).name.equals(name);
     }
 
-    void init(MongoDatabase db, Set<String> existingCollectionNames, Consumer<Throwable> c) {
+    void init(MongoDatabase db, Set<String> existingCollectionNames, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
         boolean creating = !existingCollectionNames.contains(name);
         if (creating) {
             if (LOG) {
@@ -87,14 +88,15 @@ final class OneCollectionInfo {
                     c.accept(thrown);
                     return;
                 }
-                ensureIndexes(db, creating, c);
+                MongoCollection<?> coll = ensureIndexes(db, creating, c);
+                onCreate.accept(name, coll);
             });
         } else {
             ensureIndexes(db, creating, c);
         }
     }
 
-    private void ensureIndexes(MongoDatabase db, boolean creating, Consumer<Throwable> c) {
+    private MongoCollection<Document> ensureIndexes(MongoDatabase db, boolean creating, Consumer<Throwable> c) {
         MongoCollection<Document> coll = db.getCollection(name).withWriteConcern(WriteConcern.FSYNC_SAFE);
         Iterator<IndexInfo> indexInfo = ImmutableSet.copyOf(indexInfos).iterator();
         Map<String, Document> indexForName = new ConcurrentHashMap<>();
@@ -151,6 +153,7 @@ final class OneCollectionInfo {
             }
             c1.accept(null);
         });
+        return coll;
     }
 
     private void populateDocuments(MongoCollection<Document> coll, Consumer<Throwable> c) {

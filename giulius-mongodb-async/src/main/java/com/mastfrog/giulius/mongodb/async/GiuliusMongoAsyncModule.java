@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import org.bson.Document;
@@ -364,10 +365,26 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         // Bind this as an eager singleton so that the client shutdown hook runs before the
         // MongoHarness shutdown hook shuts down the server - otherwise, can get exceptions thrown
         // during shutdown
-        bind(MongoClient.class).toProvider(AsyncMongoClientProvider.class);
+        bind(MongoClient.class).toProvider(IndirectMongoClientProvider.class);
         bind(MongoDatabase.class).toProvider(MongoDatabaseProvider.class).in(Scopes.SINGLETON);
         for (CollectionBinding<?> binding : bindings) {
             binding.bind(binder());
+        }
+    }
+
+    @Singleton
+    static final class IndirectMongoClientProvider implements Provider<MongoClient> {
+
+        private final Provider<AsyncMongoClientProvider> prov;
+
+        @Inject
+        IndirectMongoClientProvider(Provider<AsyncMongoClientProvider> prov) {
+            this.prov = prov;
+        }
+
+        @Override
+        public MongoClient get() {
+            return prov.get().get();
         }
     }
 
@@ -403,15 +420,16 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
         @SuppressWarnings("unchecked")
         void bind(Binder binder) {
+            Provider<MongoClient> clientProvider = binder.getProvider(MongoClient.class);
             Provider<MongoDatabase> dbProvider = binder.getProvider(MongoDatabase.class);
             Provider<KnownCollections> knownProvider = binder.getProvider(KnownCollections.class);
             Provider<MongoAsyncInitializer.Registry> inits = binder.getProvider(MongoAsyncInitializer.Registry.class);
-            MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(dbProvider, collection, Document.class, knownProvider, opts, inits);
+            MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(dbProvider, collection, Document.class, knownProvider, opts, inits, clientProvider);
             CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
             binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
             if (type != Document.class) {
-                MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<T>(dbProvider, collection, type, knownProvider, opts, inits);
+                MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<T>(dbProvider, collection, type, knownProvider, opts, inits, clientProvider);
                 Type t = new FakeType<>(type);
                 Key<MongoCollection<T>> key = (Key<MongoCollection<T>>) Key.get(t, Names.named(bindingName));
                 binder.bind(key).toProvider(typedProvider);

@@ -23,10 +23,14 @@
  */
 package com.mastfrog.mongodb.migration;
 
-import com.mastfrog.util.function.ThrowingTriFunction;
+import com.mastfrog.util.function.ThrowingConsumer;
+import com.mastfrog.util.function.ThrowingQuadConsumer;
+import com.mastfrog.util.function.ThrowingRunnable;
+import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import org.bson.Document;
 
 /**
@@ -34,6 +38,66 @@ import org.bson.Document;
  *
  * @author Tim Boudreau
  */
-public interface MigrationWorker extends ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void> {
+public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Function<Class<? extends MigrationWorker>, MigrationWorker>> {
 
+    /**
+     * Perform a migration on one collection, completing the passed
+     * CompletableFuture with a summary document of what was done.
+     *
+     * @param a A future to complete
+     * @param b The database
+     * @param s The collection
+     * @param u A function which can convert a migration worker class into a
+     * worker
+     * @throws Exception
+     */
+    @Override
+    void apply(CompletableFuture<Document> a, MongoDatabase b, MongoCollection<Document> s, Function<Class<? extends MigrationWorker>, MigrationWorker> u) throws Exception;
+
+    /**
+     * Convenience method for handling any thrown exceptions via the
+     * CompletableFuture and only needing to code the success handler.
+     *
+     * @param <T> The type of the callback
+     * @param f A future
+     * @param c A consumer
+     * @return A callback
+     */
+    default <T> SingleResultCallback<T> callback(CompletableFuture<?> f, ThrowingConsumer<T> c) {
+        return (t, thrown) -> {
+            if (thrown != null) {
+                f.completeExceptionally(thrown);
+                return;
+            }
+            try {
+                c.apply(t);
+            } catch (Exception e) {
+                f.completeExceptionally(e);
+            }
+        };
+    }
+
+    /**
+     * Convenience method for handling any thrown exceptions via the
+     * CompletableFuture, for the case that the parameter of the callback is
+     * unused.
+     *
+     * @param <T> The type parameter of the callback
+     * @param f A future
+     * @param r A consumer
+     * @return A callback
+     */
+    default <T> SingleResultCallback<T> emptyCallback(CompletableFuture<?> f, ThrowingRunnable r) {
+        return (t, thrown) -> {
+            if (thrown != null) {
+                f.completeExceptionally(thrown);
+                return;
+            }
+            try {
+                r.run();
+            } catch (Exception e) {
+                f.completeExceptionally(e);
+            }
+        };
+    }
 }

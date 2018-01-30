@@ -52,6 +52,9 @@ class KnownCollections implements Iterable<String> {
     public static final String SETTINGS_KEY_MAX_WAIT_SECONDS = "mongo.list.collections.max.wait.seconds";
     private final long maxWaitSeconds;
 
+    // PENDING: AsyncMongoClientProvider should create the set maintained
+    // here, and let initializers augment it, so there is no need for the
+    // blocking / locking done here
     @Inject
     KnownCollections(Provider<MongoDatabase> dbProvider, Settings settings) {
         this.dbProvider = dbProvider;

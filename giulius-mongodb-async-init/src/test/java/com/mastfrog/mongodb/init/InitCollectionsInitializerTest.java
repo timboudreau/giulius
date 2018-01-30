@@ -35,9 +35,11 @@ import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import org.bson.Document;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -64,6 +66,7 @@ public class InitCollectionsInitializerTest {
 
         assertIndex("wubbles", "word", 1, junkIndexes);
 
+        AtomicReference<String> created = new AtomicReference<>();
         // Now try re-running the initialization, which should not throw
         // exceptions and have no side effects
         TestSupport.await((ts) -> {
@@ -73,8 +76,11 @@ public class InitCollectionsInitializerTest {
                 } else {
                     ts.done();
                 }
+            }, (name, coll) -> {
+                created.set(name);
             });
         });
+        assertNull("Re-running initializer should not create any collections", created.get());
 
         List<Document> stuffDocs2 = allDocs(stuff);
         assertEquals(stuffDocs2 + " - documents added twice", 2, stuffDocs2.size());

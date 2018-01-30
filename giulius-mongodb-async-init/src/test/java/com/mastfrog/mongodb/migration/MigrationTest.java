@@ -26,7 +26,9 @@ package com.mastfrog.mongodb.migration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import com.google.inject.name.Named;
+import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule;
 import com.mastfrog.giulius.mongodb.async.MongoHarness;
 import com.mastfrog.giulius.mongodb.async.TestSupport;
@@ -35,7 +37,7 @@ import com.mastfrog.giulius.tests.TestWith;
 import com.mastfrog.jackson.JacksonModule;
 import com.mastfrog.mongodb.init.MongoInitModule;
 import com.mastfrog.mongodb.migration.MigrationTest.Ini;
-import com.mastfrog.util.function.ThrowingTriFunction;
+import com.mastfrog.settings.Settings;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -49,6 +51,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import static org.junit.Assert.assertEquals;
@@ -71,15 +74,16 @@ public class MigrationTest {
     ObjectMapper mapper;
 
     @Test
-    public void test(@Named("stuff") MongoCollection<Document> stuff, @Named("migrations") MongoCollection<Document> migrations, MongoDatabase db, MongoClient client) throws InterruptedException, Throwable {
+    public void test(@Named("stuff") Provider<MongoCollection<Document>> stuff, @Named("migrations") Provider<MongoCollection<Document>> migrations, Provider<MongoDatabase> db, Provider<MongoClient> client, Provider<Dependencies> deps) throws InterruptedException, Throwable {
+        Function<Class<? extends MigrationWorker>, MigrationWorker> convert = deps.get()::getInstance;
         TestSupport.await(ts -> {
-            stuff.find().forEach(d -> {
+            stuff.get().find().forEach(d -> {
                 assertFalse(d.toString(), d.containsKey("author"));
                 assertTrue(d.toString(), d.containsKey("created"));
             }, ts.doneCallback());
         });
         TestSupport.await(ts -> {
-            migrations.find().forEach(d -> {
+            migrations.get().find().forEach(d -> {
                 System.out.println("\nMIGRATION DOC:");
                 System.out.println(d);
             }, ts.doneCallback());
@@ -92,7 +96,7 @@ public class MigrationTest {
                 .migrateCollection("stuff", mig(false)).build();
         assertNotNull(m[0]);
         CompletableFuture<Document> cf = new CompletableFuture<>();
-        CompletableFuture<Document> res = m[0].migrate(cf, client, db);
+        CompletableFuture<Document> res = m[0].migrate(cf, client.get(), db.get(), convert);
         Document[] ds = new Document[1];
         Throwable[] thr = new Throwable[1];
         CountDownLatch latch = new CountDownLatch(1);
@@ -112,7 +116,7 @@ public class MigrationTest {
         TestSupport.await(new Consumer<TestSupport>() {
             @Override
             public void accept(TestSupport ts) {
-                migrations.count(new Document(), (lng, thr) -> {
+                migrations.get().count(new Document(), (lng, thr) -> {
                     ts.run(() -> {
                         try {
                             assertEquals(1, lng.longValue());
@@ -126,16 +130,18 @@ public class MigrationTest {
     }
 
     @Test
-    public void testRollback(@Named("stuff") MongoCollection<Document> stuff, @Named("migrations") MongoCollection<Document> migrations, MongoDatabase db, MongoClient client) throws InterruptedException, Throwable {
+    public void testRollback(@Named("stuff") Provider<MongoCollection<Document>> stuff, @Named("migrations") Provider<MongoCollection<Document>> migrations, Provider<MongoDatabase> db, Provider<MongoClient> client, Provider<Dependencies> deps) throws InterruptedException, Throwable {
+        Function<Class<? extends MigrationWorker>, MigrationWorker> convert = deps.get()::getInstance;
+
         Migration[] m = new Migration[1];
         new MigrationBuilder("stuff-new", 12, (mig) -> {
             m[0] = (Migration) mig;
             return null;
         }).backup("stuff", new Document("index", new Document("$lte", 150)))
-                .migrateCollection("stuff", willFail()).build();
+                .migrateCollection("stuff", Failer.class).build();
         assertNotNull(m[0]);
         CompletableFuture<Document> cf = new CompletableFuture<>();
-        CompletableFuture<Document> res = m[0].migrate(cf, client, db);
+        CompletableFuture<Document> res = m[0].migrate(cf, client.get(), db.get(), convert);
         Document[] ds = new Document[1];
         Throwable[] thr = new Throwable[1];
         CountDownLatch latch = new CountDownLatch(1);
@@ -148,12 +154,14 @@ public class MigrationTest {
         latch.await(20, TimeUnit.SECONDS);
         assertNotNull(thr[0]);
         assertTrue(thr[0] instanceof CompletionException);
-        assertTrue(thr[0].getCause() instanceof FooException);
+        if (!(thr[0].getCause() instanceof FooException)) {
+            throw thr[0];
+        }
         assertEquals("Failed", thr[0].getCause().getMessage());
         assertNull(ds[0]);
         Thread.sleep(750);
         TestSupport.await(ts -> {
-            stuff.find().forEach(d -> {
+            stuff.get().find().forEach(d -> {
                 assertFalse(d.toString(), d.containsKey("author"));
                 assertTrue(d.toString(), d.containsKey("created"));
                 assertFalse(d.toString(), d.containsKey("ix"));
@@ -181,6 +189,10 @@ public class MigrationTest {
             MongoInitModule m = new MongoInitModule();
             m.withCollections().add("stuff").insertDocumentsIfCreating(toInsert).buildCollection()
                     .add("migrations").buildCollection().build();
+            Provider<Dependencies> deps = binder().getProvider(Dependencies.class);
+            Function<Class<? extends MigrationWorker>, MigrationWorker> convert = (c) -> {
+                return deps.get().getInstance(c);
+            };
             m.addMigration("stuff-new", 10).backup("stuff", new Document("index", new Document("$lte", 50)))
                     .migrateCollection("stuff", mig(false)).build();
             install(m);
@@ -190,8 +202,8 @@ public class MigrationTest {
 
     }
 
-    static ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void> mig(boolean fail) {
-        return (CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v) -> {
+    static MigrationWorker mig(boolean fail) {
+        return (CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v, Function<Class<? extends MigrationWorker>, MigrationWorker> f) -> {
             Document results = new Document();
             List<ObjectId> ids = new CopyOnWriteArrayList<>();
             results.append("ids", ids);
@@ -214,6 +226,7 @@ public class MigrationTest {
                 if (!updates.isEmpty()) {
                     v.bulkWrite(updates, (v3, t3) -> {
                         if (t3 != null) {
+                            System.out.println("exceptional complete");
                             t.completeExceptionally(t3);
                             return;
                         }
@@ -221,19 +234,26 @@ public class MigrationTest {
                             t.completeExceptionally(new RuntimeException("Failed"));
                             return;
                         }
+                        System.out.println("complete it");
                         t.complete(results);
                     });
                 } else {
                     t.complete(results);
                 }
             });
-
-            return null;
         };
     }
 
-    static ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void> willFail() {
-        return (CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v) -> {
+    static class Failer implements MigrationWorker {
+
+        @Inject
+        Failer(Settings settings) {
+            assertNotNull(settings);
+            // just proving injections works
+        }
+
+        @Override
+        public void apply(CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v, Function<Class<? extends MigrationWorker>, MigrationWorker> f) throws Exception {
             Document results = new Document();
             List<ObjectId> ids = new CopyOnWriteArrayList<>();
             results.append("ids", ids);
@@ -264,9 +284,8 @@ public class MigrationTest {
                     t.complete(results);
                 }
             });
+        }
 
-            return null;
-        };
     }
 
     static class FooException extends Exception {

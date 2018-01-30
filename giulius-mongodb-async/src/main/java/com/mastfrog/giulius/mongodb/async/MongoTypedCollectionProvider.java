@@ -26,6 +26,7 @@ package com.mastfrog.giulius.mongodb.async;
 import com.mastfrog.util.Exceptions;
 import com.mongodb.MongoCommandException;
 import com.mongodb.async.SingleResultCallback;
+import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
@@ -46,18 +47,23 @@ class MongoTypedCollectionProvider<T> implements Provider<MongoCollection<T>> {
     private final Provider<KnownCollections> knownProvider;
     private final CreateCollectionOptions createOpts;
     private final Provider<MongoAsyncInitializer.Registry> inits;
+    private final Provider<MongoClient> client;
 
-    MongoTypedCollectionProvider(Provider<MongoDatabase> dbProvider, String collectionName, Class<T> collectionType, Provider<KnownCollections> knownProvider, CreateCollectionOptions createOpts, Provider<MongoAsyncInitializer.Registry> inits) {
+    MongoTypedCollectionProvider(Provider<MongoDatabase> dbProvider, String collectionName, Class<T> collectionType, Provider<KnownCollections> knownProvider, CreateCollectionOptions createOpts, Provider<MongoAsyncInitializer.Registry> inits, Provider<MongoClient> client) {
         this.dbProvider = dbProvider;
         this.collectionName = collectionName;
         this.collectionType = collectionType;
         this.knownProvider = knownProvider;
         this.createOpts = createOpts;
         this.inits = inits;
+        this.client = client;
     }
 
     @Override
     public MongoCollection<T> get() {
+        // Ensure we initialize the client outside of a call to
+        // KnownCollections, or we risk deadlock
+        client.get();
         boolean created = false;
         if (initialized.compareAndSet(false, true)) {
             created = ensureCollectionExists();

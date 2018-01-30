@@ -24,8 +24,10 @@
 package com.mastfrog.mongodb.migration;
 
 import com.google.common.collect.Sets;
+import static com.mastfrog.util.Checks.notNull;
 import com.mastfrog.util.Exceptions;
-import com.mastfrog.util.function.ThrowingTriFunction;
+import com.mastfrog.util.function.ThrowingTriConsumer;
+import com.mastfrog.util.multivariate.OneOf;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -44,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -55,21 +58,34 @@ public class Migration {
 
     private final String name;
     private final int newVersion;
-    private final Map<String, ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void>> migrations;
+    private final Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations;
     private final Map<String, Document> backupQueryForCollection;
 
-    public Migration(String name, int newVersion, Map<String, ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void>> migrations, Map<String, Document> backupQueryForCollection) {
+    public Migration(String name, int newVersion, Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations, Map<String, Document> backupQueryForCollection) {
         this.name = name;
         this.newVersion = newVersion;
         this.migrations = new LinkedHashMap<>(migrations);
         this.backupQueryForCollection = new LinkedHashMap<>(backupQueryForCollection);
+        for (Map.Entry<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> e : migrations.entrySet()) {
+            if (e.getValue() == null) {
+                throw new IllegalArgumentException("Null value for " + e.getKey() + " in " + migrations);
+            }
+            if (!e.getValue().isSet()) {
+                throw new IllegalArgumentException("Value not set for " + e.getKey() + ": " + e.getValue());
+            }
+        }
     }
 
     public boolean isEmpty() {
         return this.migrations.isEmpty();
     }
 
-    public CompletableFuture<Document> migrate(CompletableFuture<Document> f, MongoClient client, MongoDatabase db) {
+    public CompletableFuture<Document> migrate(CompletableFuture<Document> f, MongoClient client, MongoDatabase db, Function<Class<? extends MigrationWorker>, MigrationWorker> converter) {
+        notNull("converter", converter);
+        notNull("f", f);
+        notNull("client", client);
+        notNull("db", db);
+        // Pending: Could parallelize these by collection
         return f.thenComposeAsync((dc) -> {
             CompletableFuture<Document> result = new CompletableFuture<>();
             CompletableFuture<Document> resFuture = result;
@@ -95,7 +111,7 @@ public class Migration {
 
             AtomicInteger counter = new AtomicInteger();
             for (Map.Entry<String, Document> e : backupQueryForCollection.entrySet()) {
-                ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void> bu = backup(e.getKey(), e.getValue());
+                ThrowingTriConsumer<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>> bu = backup(e.getKey(), e.getValue());
                 result = result.thenCompose((d) -> {
                     CompletableFuture<Document> res = new CompletableFuture<>();
                     if (completed.get()) {
@@ -113,9 +129,10 @@ public class Migration {
                     return res;
                 });
             }
-            for (Iterator<Map.Entry<String, ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void>>> it = migrations.entrySet().iterator(); it.hasNext();) {
-                Map.Entry<String, ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void>> e = it.next();
-                result = result.thenCompose((d) -> {
+            Iterator<Map.Entry<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>>> it;
+            for (it = migrations.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> e = it.next();
+                result = result.thenCompose((Document d) -> {
                     CompletableFuture<Document> res = new CompletableFuture<>();
                     if (completed.get()) {
                         res.complete(d);
@@ -125,7 +142,10 @@ public class Migration {
                         agg.put(e.getKey() + "_migrate_" + counter.getAndIncrement(), d);
                     }
                     try {
-                        e.getValue().apply(res, db, db.getCollection(e.getKey()));
+                        OneOf<MigrationWorker, Class<? extends MigrationWorker>> mig = e.getValue();
+                        notNull("Null return from " + e, mig);
+                        MigrationWorker curr = mig.get(converter);
+                        curr.apply(res, db, db.getCollection(e.getKey()), converter);
                     } catch (Exception ex) {
                         res.completeExceptionally(ex);
                     }
@@ -191,7 +211,6 @@ public class Migration {
     }
 
     private void rollback(MongoDatabase db, Document agg) {
-        System.out.println("ROLLBACK MIGRATION! " + backupQueryForCollection.keySet());
         CountDownLatch latch = new CountDownLatch(backupQueryForCollection.size() - 1);
         Document rollbacks = new Document();
         agg.append("rollback", rollbacks);
@@ -215,7 +234,7 @@ public class Migration {
                         int ct = batchCount.incrementAndGet();
                         thisCollection.append("batch-" + ct, l.size());
                         for (Document d : l) {
-                            replacements.add(new ReplaceOneModel<Document>(new Document("_id", d.getObjectId("_id")), d));
+                            replacements.add(new ReplaceOneModel<>(new Document("_id", d.getObjectId("_id")), d));
                         }
                         to.bulkWrite(replacements, (bwr, th2) -> {
                             if (th2 != null) {
@@ -240,7 +259,7 @@ public class Migration {
         return collectionName + "_migrated_to_v_" + newVersion;
     }
 
-    private ThrowingTriFunction<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>, Void> backup(String collectionName, Document queryDoc) {
+    private ThrowingTriConsumer<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>> backup(String collectionName, Document queryDoc) {
         return (CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> origs) -> {
             String backupCollectionName = backupCollectionName(collectionName);
             MongoCollection<Document> backups = u.getCollection(backupCollectionName);
@@ -292,7 +311,6 @@ public class Migration {
                     });
                 });
             });
-            return null;
         };
     }
 }

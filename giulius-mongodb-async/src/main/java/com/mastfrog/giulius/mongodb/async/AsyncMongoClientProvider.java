@@ -52,6 +52,7 @@ final class AsyncMongoClientProvider implements Provider<MongoClient>, Runnable 
 
     @Override
     public MongoClient get() {
+        MongoClient client = this.client;
         return client;
     }
 

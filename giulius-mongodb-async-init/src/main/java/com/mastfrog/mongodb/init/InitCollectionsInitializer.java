@@ -31,6 +31,7 @@ import com.mastfrog.util.Exceptions;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -49,7 +50,7 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
     public static final boolean DEFAULT_BLOCKING = true;
     private final boolean blocking;
 
-    static boolean LOG = true;
+    static boolean LOG = false;
 
     @Inject
     InitCollectionsInitializer(Registry reg, CollectionsInfo info, @Named(SETTINGS_KEY_DATABASE_NAME) String dbName, Settings settings) {
@@ -85,7 +86,11 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
         if (LOG) {
             System.err.println("init " + c);
         }
-        info.init(db, c);
+        ForkJoinPool.commonPool().submit(() -> {
+            info.init(db, c, (t, u) -> {
+                super.createdCollection(dbName, u);
+            });
+        });
         if (blocking) {
             try {
                 if (LOG) {

@@ -28,11 +28,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import static com.mastfrog.mongodb.init.InitCollectionsInitializer.LOG;
+import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.async.client.MongoIterable;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.inject.Singleton;
 
@@ -57,7 +59,7 @@ final class CollectionsInfo {
         return this;
     }
 
-    void init(MongoDatabase db, Consumer<Throwable> c) {
+    void init(MongoDatabase db, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
         MongoIterable<String> it = db.listCollectionNames();
         Set<String> all = Sets.newConcurrentHashSet();
         it.forEach((String s) -> {
@@ -84,7 +86,7 @@ final class CollectionsInfo {
                         if (LOG) {
                             System.err.println("Init collection " + info.name);
                         }
-                        info.init(db, all, this);
+                        info.init(db, all, this, onCreate);
                     } else {
                         if (LOG) {
                             System.err.println("Done creating collections");
