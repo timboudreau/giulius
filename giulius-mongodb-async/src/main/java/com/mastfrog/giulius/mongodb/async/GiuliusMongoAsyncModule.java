@@ -437,7 +437,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
             if (type != Document.class) {
-                MongoTypedCollectionProvider<T> typedProvider = new MongoTypedCollectionProvider<>(collection, type, existingProvider, clientProvider);
+                MongoTypedCollectionProvider<T> typedProvider = docProvider.withType(type);
                 Type t = new FakeType<>(type);
                 Key<MongoCollection<T>> key = (Key<MongoCollection<T>>) Key.get(t, Names.named(bindingName));
                 binder.bind(key).toProvider(typedProvider);
