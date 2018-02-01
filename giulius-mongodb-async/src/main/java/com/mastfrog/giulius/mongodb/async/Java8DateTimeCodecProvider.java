@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Singleton;
 import org.bson.BsonReader;
+import org.bson.BsonTimestamp;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
@@ -57,7 +58,7 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
     private static final DurationCodec DURATION = new DurationCodec();
 
     private final List<CodecKey<?>> l = new ArrayList<>(5);
-    private final IntMap<CodecKey<?>> imp = CollectionUtils.intMap();
+    private final IntMap<CodecKey<?>> imp = CollectionUtils.intMap(6);
 
     public Java8DateTimeCodecProvider() {
         l.add(new CodecKey<>(ZonedDateTime.class, ZONED_DATE_TIME));
@@ -144,6 +145,10 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         public ZonedDateTime decode(BsonReader reader, DecoderContext dc) {
             checkNull(reader);
             switch (reader.getCurrentBsonType()) {
+                case TIMESTAMP:
+                    BsonTimestamp ts = reader.readTimestamp();
+                    return TimeUtil.fromUnixTimestamp(ts.getValue() * 1000);
+                case DATE_TIME:
                 case INT64:
                     return TimeUtil.fromUnixTimestamp(reader.readDateTime());
                 case STRING:
@@ -170,6 +175,10 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         public LocalDateTime decode(BsonReader reader, DecoderContext dc) {
             checkNull(reader);
             switch (reader.getCurrentBsonType()) {
+                case TIMESTAMP:
+                    BsonTimestamp ts = reader.readTimestamp();
+                    return TimeUtil.localFromUnixTimestamp(ts.getValue() * 1000);
+                case DATE_TIME:
                 case INT64:
                     return TimeUtil.localFromUnixTimestamp(reader.readDateTime());
                 case STRING:
@@ -195,6 +204,10 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         public OffsetDateTime decode(BsonReader reader, DecoderContext dc) {
             checkNull(reader);
             switch (reader.getCurrentBsonType()) {
+                case TIMESTAMP:
+                    BsonTimestamp ts = reader.readTimestamp();
+                    return TimeUtil.offsetFromUnixTimestamp(ts.getValue() * 1000);
+                case DATE_TIME:
                 case INT64:
                     return TimeUtil.offsetFromUnixTimestamp(reader.readDateTime());
                 case STRING:
@@ -220,6 +233,10 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         public Instant decode(BsonReader reader, DecoderContext dc) {
             checkNull(reader);
             switch (reader.getCurrentBsonType()) {
+                case TIMESTAMP:
+                    BsonTimestamp ts = reader.readTimestamp();
+                    return Instant.ofEpochMilli(ts.getValue() * 1000);
+                case DATE_TIME:
                 case INT64:
                     return Instant.ofEpochMilli(reader.readInt64());
                 case STRING:
@@ -252,6 +269,8 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         public Duration decode(BsonReader reader, DecoderContext dc) {
             checkNull(reader);
             switch (reader.getCurrentBsonType()) {
+                case INT32:
+                    return TimeUtil.millis(reader.readInt32());
                 case INT64:
                     return TimeUtil.millis(reader.readInt64());
                 case STRING:

@@ -79,6 +79,31 @@ public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<
 
     /**
      * Convenience method for handling any thrown exceptions via the
+     * CompletableFuture and only needing to code the success handler.
+     *
+     * @param <T> The type of the callback
+     * @param f A future
+     * @param c A consumer
+     * @return A callback
+     */
+    default <T> SingleResultCallback<T> callback(String context, CompletableFuture<?> f, ThrowingConsumer<T> c) {
+        return (t, thrown) -> {
+            if (thrown != null) {
+                IllegalStateException ex = new IllegalStateException(thrown.getMessage() + " in " + context, thrown);
+                f.completeExceptionally(ex);
+                return;
+            }
+            try {
+                c.apply(t);
+            } catch (Exception e) {
+                IllegalStateException ex = new IllegalStateException(e.getMessage() + " in " + context, e);
+                f.completeExceptionally(ex);
+            }
+        };
+    }
+
+    /**
+     * Convenience method for handling any thrown exceptions via the
      * CompletableFuture, for the case that the parameter of the callback is
      * unused.
      *
@@ -100,4 +125,31 @@ public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<
             }
         };
     }
+
+    /**
+     * Convenience method for handling any thrown exceptions via the
+     * CompletableFuture, for the case that the parameter of the callback is
+     * unused.
+     *
+     * @param <T> The type parameter of the callback
+     * @param f A future
+     * @param r A consumer
+     * @return A callback
+     */
+    default <T> SingleResultCallback<T> emptyCallback(String context, CompletableFuture<?> f, ThrowingRunnable r) {
+        return (t, thrown) -> {
+            if (thrown != null) {
+                IllegalStateException ex = new IllegalStateException(thrown.getMessage() + " in " + context, thrown);
+                f.completeExceptionally(ex);
+                return;
+            }
+            try {
+                r.run();
+            } catch (Exception e) {
+                IllegalStateException ex = new IllegalStateException(e.getMessage() + " in " + context, e);
+                f.completeExceptionally(ex);
+            }
+        };
+    }
+
 }
