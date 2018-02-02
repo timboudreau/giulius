@@ -51,7 +51,8 @@
     </dependencies>
     <build>
                 <!-- to enable console logging in real time -->
-<!--        <plugins>
+                <!--
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -66,12 +67,14 @@
                     <trimStackTrace>false</trimStackTrace>
                     <useFile>false</useFile>
                     <systemPropertyVariables>
+                        <migration.log>true</migration.log>
                         <unit.test>true</unit.test>
-                        <acteur.debug>true</acteur.debug>
+                        <acteur.debug>false</acteur.debug>
                         <forkNumber>${surefire.forkNumber}</forkNumber>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>            
-        </plugins>-->
+        </plugins>
+                -->
     </build>
 </project>
