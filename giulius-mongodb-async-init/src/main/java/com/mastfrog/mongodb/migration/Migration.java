@@ -26,6 +26,7 @@ package com.mastfrog.mongodb.migration;
 import com.google.common.collect.Sets;
 import static com.mastfrog.util.Checks.notNull;
 import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.function.NamedCompletableFuture;
 import com.mastfrog.util.function.ThrowingTriConsumer;
 import com.mastfrog.util.multivariate.OneOf;
 import com.mongodb.async.client.MongoClient;
@@ -60,6 +61,7 @@ public class Migration {
     private final int newVersion;
     private final Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations;
     private final Map<String, Document> backupQueryForCollection;
+    private static final boolean LOG = Boolean.getBoolean("migration.log");
 
     public Migration(String name, int newVersion, Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations, Map<String, Document> backupQueryForCollection) {
         this.name = name;
@@ -80,6 +82,10 @@ public class Migration {
         return this.migrations.isEmpty();
     }
 
+    public static <T> CompletableFuture<T> future(String name) {
+        return NamedCompletableFuture.<T>loggingFuture(name, LOG);
+    }
+
     public CompletableFuture<Document> migrate(CompletableFuture<Document> f, MongoClient client, MongoDatabase db, Function<Class<? extends MigrationWorker>, MigrationWorker> converter) {
         notNull("converter", converter);
         notNull("f", f);
@@ -87,7 +93,7 @@ public class Migration {
         notNull("db", db);
         // Pending: Could parallelize these by collection
         return f.thenComposeAsync((dc) -> {
-            CompletableFuture<Document> result = new CompletableFuture<>();
+            CompletableFuture<Document> result = future("migration-initial-" + name);
             CompletableFuture<Document> resFuture = result;
             MongoCollection<Document> migrationsCollection = db.getCollection("migrations");
             AtomicBoolean completed = new AtomicBoolean();
@@ -113,7 +119,7 @@ public class Migration {
             for (Map.Entry<String, Document> e : backupQueryForCollection.entrySet()) {
                 ThrowingTriConsumer<CompletableFuture<Document>, MongoDatabase, MongoCollection<Document>> bu = backup(e.getKey(), e.getValue());
                 result = result.thenCompose((d) -> {
-                    CompletableFuture<Document> res = new CompletableFuture<>();
+                    CompletableFuture<Document> res = future("post-backup-" + name);
                     if (completed.get()) {
                         res.complete(d);
                         return res;
@@ -133,7 +139,7 @@ public class Migration {
             for (it = migrations.entrySet().iterator(); it.hasNext();) {
                 Map.Entry<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> e = it.next();
                 result = result.thenCompose((Document d) -> {
-                    CompletableFuture<Document> res = new CompletableFuture<>();
+                    CompletableFuture<Document> res = future("run-migration-" + name + "-" + e.getKey());
                     if (completed.get()) {
                         res.complete(d);
                         return res;
@@ -152,7 +158,7 @@ public class Migration {
                     return res;
                 });
                 if (!it.hasNext()) {
-                    CompletableFuture<Document> end = new CompletableFuture<>();
+                    CompletableFuture<Document> end = future("finish-migration-" + name + "-" + e.getKey());
                     result = result.thenCompose((doc) -> {
                         if (completed.get()) {
                             end.complete(doc);
@@ -166,7 +172,7 @@ public class Migration {
                     });
                 }
             }
-            CompletableFuture<Document> endResult = new CompletableFuture<>();
+            CompletableFuture<Document> endResult = future("finish-all-" + name);
             result.whenComplete((doc, thrown) -> {
                 if (completed.get()) {
                     endResult.complete(doc);

@@ -73,7 +73,7 @@ final class InitMigrationsInitializer extends MongoAsyncInitializer implements F
         CountDownLatch latch = new CountDownLatch(1);
 
         Iterator<Migration> iter = migrations.iterator();
-        CompletableFuture<Document> first = new CompletableFuture<>();
+        CompletableFuture<Document> first = Migration.future("init-migrations-" + dbName);
 
         CompletableFuture<Document> last = first;
         for (Migration m : migrations) {
