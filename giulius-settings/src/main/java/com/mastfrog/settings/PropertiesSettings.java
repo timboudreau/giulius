@@ -33,17 +33,18 @@ import java.util.Set;
  * @author Tim Boudreau
  */
 final class PropertiesSettings extends DelegatingProperties implements Settings, PropertiesContainer {
+
     private final String origin;
-    
+
     PropertiesSettings(String origin) {
         this.origin = origin;
     }
-    
+
     @Override
     public String toString() {
         return origin == null ? "[unknown] " + asString() : origin + " " + asString();
     }
-    
+
     @Override
     public Iterator<String> iterator() {
         return allKeys().iterator();
@@ -70,56 +71,8 @@ final class PropertiesSettings extends DelegatingProperties implements Settings,
     }
 
     @Override
-    public Integer getInt(String name) {
-        String prop = prop(name);
-        return prop == null ? null : Integer.parseInt(prop);
-    }
-
-    @Override
-    public int getInt(String name, int defaultValue) {
-        String prop = prop(name);
-        return prop == null ? defaultValue : Integer.parseInt(prop);
-    }
-
-    @Override
-    public Long getLong(String name) {
-        String prop = prop(name);
-        return prop == null ? null : Long.parseLong(prop);
-    }
-
-    @Override
-    public long getLong(String name, long defaultValue) {
-        String prop = prop(name);
-        return prop == null ? defaultValue : Long.parseLong(prop);
-    }
-
-    @Override
     public String getString(String name) {
         return prop(name);
-    }
-
-    @Override
-    public Boolean getBoolean(String name) {
-        String prop = prop(name);
-        return prop == null ? null : Boolean.parseBoolean(prop);
-    }
-
-    @Override
-    public boolean getBoolean(String name, boolean defaultValue) {
-        String prop = prop(name);
-        return prop == null ? defaultValue : Boolean.parseBoolean(prop);
-    }
-
-    @Override
-    public Double getDouble(String name) {
-        String prop = prop(name);
-        return prop == null ? null : Double.parseDouble(prop);
-    }
-
-    @Override
-    public double getDouble(String name, double defaultValue) {
-        String prop = prop(name);
-        return prop == null ? defaultValue : Double.parseDouble(prop);
     }
 
     String asString() {
