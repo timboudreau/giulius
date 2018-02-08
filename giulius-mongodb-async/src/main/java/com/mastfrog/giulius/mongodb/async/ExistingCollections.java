@@ -173,10 +173,10 @@ public class ExistingCollections {
     private boolean isAlreadyExists(Throwable thbl) {
         if (thbl instanceof MongoCommandException) {
             MongoCommandException ex = (MongoCommandException) thbl;
-            boolean result = ex.getCode() == 48;
+            boolean result = ex.getCode() == 48; // older mongodb
             if (!result) {
-                result = "collection already exists".equals(ex.getMessage())
-                        && ex.getCode() == -1;
+                result = (ex.getCode() == -1 && "collection already exists".equals(ex.getErrorMessage()))
+                        || (ex.getMessage() != null && ex.getMessage().contains("colletion already exists"));
             }
             return result;
         }
