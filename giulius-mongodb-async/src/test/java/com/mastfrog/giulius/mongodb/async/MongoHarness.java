@@ -10,7 +10,9 @@ import com.mastfrog.giulius.ShutdownHookRegistry;
 import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.SETTINGS_KEY_DATABASE_NAME;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.Strings;
 import com.mongodb.ServerAddress;
+import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterConnectionMode;
 import com.mongodb.connection.ClusterSettings;
@@ -23,6 +25,7 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import org.bson.Document;
 
 /**
  * Starts a local mongodb over java.io.tmpdir and cleans it up on shutdown; uses
@@ -59,6 +62,7 @@ public class MongoHarness {
         private final File mongoDir;
         private Process mongo;
         private int port;
+        private volatile boolean mongodbGreaterThan36 = false;
 
         @SuppressWarnings("LeakingThisInConstructor")
         @Inject
@@ -69,8 +73,28 @@ public class MongoHarness {
         }
 
         @Override
+        public MongoClient onAfterCreateMongoClient(MongoClient client) {
+            // Check the version - post 3.6, mongod --shutdown just errors, so
+            // we cannot gracefully shut down that way
+            client.getDatabase("admin").runCommand(new Document("buildInfo", 1), (v, t) -> {
+                if (v != null) {
+                    String ver = v.getString("version");
+                    if (ver != null) {
+                        String[] s = Strings.split('.', ver);
+                        if (s.length >= 2) {
+                            int major = Integer.parseInt(s[0]);
+                            int minor = Integer.parseInt(s[1]);
+                            mongodbGreaterThan36 = major > 3
+                                    || major == 3 && minor >= 6;
+                        }
+                    }
+                }
+            });
+            return client;
+        }
+
+        @Override
         public MongoClientSettings onBeforeCreateMongoClient(MongoClientSettings settings) {
-            System.out.println("Init.onBeforeCreateMongoClient");
             ClusterSettings origClusterSettings = settings.getClusterSettings();
             List<ServerAddress> hosts = origClusterSettings.getHosts();
             ServerAddress addr = hosts.iterator().next();
@@ -124,22 +148,25 @@ public class MongoHarness {
                 ProcessBuilder pb = new ProcessBuilder().command(cmd);
                 handleOutput(pb, "mongodb-shutdown");
                 try {
-                    Process shutdown = pb.start();
-                    System.err.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
                     boolean exited = false;
-                    for (int i = 0; i < 19000; i++) {
-                        try {
-                            int exit = shutdown.exitValue();
-                            System.err.println("Shutdown mongodb call exited with " + exit);
-                            break;
-                        } catch (IllegalThreadStateException ex) {
-//                            System.out.println("no exit code yet, sleeping");
+                    if (!mongodbGreaterThan36) {
+                        Process shutdown = pb.start();
+                        System.err.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
+                        for (int i = 0; i < 19000; i++) {
                             try {
-                                Thread.sleep(10);
-                            } catch (InterruptedException ex1) {
-                                Exceptions.printStackTrace(ex1);
+                                int exit = shutdown.exitValue();
+                                System.err.println("Shutdown mongodb call exited with " + exit);
+                                break;
+                            } catch (IllegalThreadStateException ex) {
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException ex1) {
+                                    Exceptions.printStackTrace(ex1);
+                                }
                             }
                         }
+                    } else {
+                        mongo.destroy();
                     }
                     System.err.println("Wait for mongodb exit");
                     for (int i = 0; i < 10000; i++) {
@@ -161,6 +188,9 @@ public class MongoHarness {
                         if (!exited && i > 30) {
 //                            System.err.println("Mongodb has not exited; kill it");
                             mongo.destroy();
+                        }
+                        if (!exited && i > 100) {
+                            mongo.destroyForcibly();
                         }
                     }
                 } catch (IOException ex) {
