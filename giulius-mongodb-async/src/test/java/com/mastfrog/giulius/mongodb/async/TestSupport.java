@@ -83,7 +83,13 @@ public class TestSupport implements Function<Throwable, Boolean> {
         try {
             latch.await(timeout, unit);
         } catch (InterruptedException ex) {
-            Exceptions.chuck(ex);
+            Throwable t = thrown.get();
+            if (t != null) {
+                t.addSuppressed(ex);
+                Exceptions.chuck(t);
+            } else {
+                Exceptions.chuck(ex);
+            }
         }
         Throwable t = thrown.get();
         if (t != null) {
@@ -206,18 +212,18 @@ public class TestSupport implements Function<Throwable, Boolean> {
             });
         };
     }
-    
+
     public <T> SingleResultCallback<T> vcallback(Runnable receiver) {
         return (T t, Throwable thrwbl) -> {
-            if ( apply( thrwbl ) ) {
+            if (apply(thrwbl)) {
                 return;
             }
-            run( () -> {
+            run(() -> {
                 receiver.run();
-            } );
+            });
         };
     }
-    
+
     public <T> SingleResultCallback<T> doneCallback() {
         return vcallback(this::done);
     }
