@@ -244,10 +244,19 @@ public class MongoHarness {
             Checks.nonZero("port", port);
             Checks.nonNegative("port", port);
             System.err.println("Starting mongodb on port " + port + " with data dir " + mongoDir);
-            ProcessBuilder pb = new ProcessBuilder().command("mongod", "--dbpath",
-                    mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
+            boolean useInMemoryEngine = Boolean.getBoolean("mongo.harness.memory");
+            String mongodExe = System.getProperty("mongo.binary", "mongod");
+            ProcessBuilder pb;
+            if (useInMemoryEngine) {
+                pb = new ProcessBuilder().command(mongodExe, "--storageEngine", "inMemory",
+                        "--nounixsocket", "--maxConns", "50", "--port", "" + port);
+            } else {
+                pb = new ProcessBuilder().command(mongodExe, "--dbpath",
+                        mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
                     "--noprealloc", "--slowms", "5", "--port", "" + port,
-                    "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1");
+                    "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1",
+                        "--nounixsocket");
+            }
             System.err.println(pb.command());
             handleOutput(pb, "mongodb");
 
