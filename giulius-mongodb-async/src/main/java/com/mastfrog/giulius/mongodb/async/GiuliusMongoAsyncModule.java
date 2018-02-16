@@ -229,7 +229,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             for (CodecProvider prov : codecProviders) {
                 sb.append("prov: ").append(prov).append(',');
             }
-            for(Codec codec : codecs) {
+            for (Codec codec : codecs) {
                 sb.append("codec: " + codec).append(",");
             }
             return sb.toString();
@@ -244,7 +244,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             }
         }
     }
-    
+
     // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
     private static final CodecRegistry DEFAULT_CODEC_REGISTRY
             = MongoClients.getDefaultCodecRegistry();
@@ -357,7 +357,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider, settingsProvider);
         bind(ExistingCollections.class).toInstance(existing);
         for (Class<? extends MongoAsyncInitializer> itype : this.initializers) {
-            bind(itype).asEagerSingleton();;
+            bind(itype).asEagerSingleton();
         }
         if (settings != null) {
             bind(MongoClientSettings.class).toInstance(settings);
@@ -428,14 +428,13 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         @SuppressWarnings("unchecked")
         void bind(Binder binder) {
             Provider<MongoClient> clientProvider = binder.getProvider(MongoClient.class);
-            Provider<MongoDatabase> dbProvider = binder.getProvider(MongoDatabase.class);
-            Provider<MongoAsyncInitializer.Registry> inits = binder.getProvider(MongoAsyncInitializer.Registry.class);
             Provider<ExistingCollections> existingProvider = binder.getProvider(ExistingCollections.class);
-
             MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(collection, Document.class, existingProvider, clientProvider);
+            Provider<MongoFutureCollection<Document>> futProvider = new FutureCollectionProvider(docProvider);
             CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
             binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
+            binder.bind(FUTURE_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(futProvider);
             if (type != Document.class) {
                 MongoTypedCollectionProvider<T> typedProvider = docProvider.withType(type);
                 Type t = new FakeType<>(type);
@@ -445,7 +444,40 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 Type ct = new FakeType2<>(type);
                 Key<CollectionPromises<T>> promiseKey = (Key<CollectionPromises<T>>) Key.get(ct, Names.named(bindingName));
                 binder.bind(promiseKey).toProvider(promises);
+                Type ft = new FakeType3(type);
+                Key<MongoFutureCollection<T>> futureKey = (Key<MongoFutureCollection<T>>) Key.get(ft, Names.named(bindingName));
+                binder.bind(futureKey).toProvider(new TypedFutureCollectionProvider<>(futProvider, type));
             }
+        }
+    }
+
+    static final class TypedFutureCollectionProvider<T> implements Provider<MongoFutureCollection<T>> {
+
+        private final Provider<MongoFutureCollection<Document>> delegate;
+        private final Class<T> type;
+
+        public TypedFutureCollectionProvider(Provider<MongoFutureCollection<Document>> delegate, Class<T> type) {
+            this.delegate = delegate;
+            this.type = type;
+        }
+
+        @Override
+        public MongoFutureCollection<T> get() {
+            return delegate.get().withDocumentClass(type);
+        }
+    }
+
+    static final class FutureCollectionProvider implements Provider<MongoFutureCollection<Document>> {
+
+        private final Provider<MongoCollection<Document>> provider;
+
+        public FutureCollectionProvider(Provider<MongoCollection<Document>> provider) {
+            this.provider = provider;
+        }
+
+        @Override
+        public MongoFutureCollection<Document> get() {
+            return new MongoFutureCollection<>(provider);
         }
     }
 
@@ -454,6 +486,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      */
     public static final TypeLiteral<MongoCollection<Document>> MONGO_DOCUMENT_COLLECTION = new TL();
     public static final TypeLiteral<CollectionPromises<Document>> COLLECTION_PROMISES = new CPL();
+    public static final TypeLiteral<MongoFutureCollection<Document>> FUTURE_COLLECTION = new MFCD();
 
     static class TL extends TypeLiteral<MongoCollection<Document>> {
 
@@ -462,6 +495,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
     static class CPL extends TypeLiteral<CollectionPromises<Document>> {
 
     }
+
+    static class MFCD extends TypeLiteral<MongoFutureCollection<Document>> {
+
+    }
+
 
     static class FakeType<T> implements ParameterizedType {
 
@@ -512,6 +550,32 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             return null;
         }
     }
+
+    static class FakeType3<T> implements ParameterizedType {
+
+        private final Class<T> genericType;
+
+        public FakeType3(Class<T> genericType) {
+            this.genericType = genericType;
+        }
+
+        public String getTypeName() {
+            return MongoFutureCollection.class.getName();
+        }
+
+        public Type[] getActualTypeArguments() {
+            return new Type[]{genericType};
+        }
+
+        public Type getRawType() {
+            return MongoFutureCollection.class;
+        }
+
+        public Type getOwnerType() {
+            return null;
+        }
+    }
+
 
     static class CollectionPromisesProvider<T> implements Provider<CollectionPromises<T>> {
 
