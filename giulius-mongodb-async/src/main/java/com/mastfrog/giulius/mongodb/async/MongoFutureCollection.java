@@ -23,6 +23,7 @@
  */
 package com.mastfrog.giulius.mongodb.async;
 
+import com.google.inject.util.Providers;
 import com.mastfrog.util.function.EnhCompletableFuture;
 import com.mongodb.Function;
 import com.mongodb.ReadConcern;
@@ -62,6 +63,14 @@ public final class MongoFutureCollection<T> {
 
     MongoFutureCollection(Provider<MongoCollection<T>> coll) {
         this.coll = coll;
+    }
+
+    public static <T> MongoFutureCollection<T> forProvider(Provider<MongoCollection<T>> prov) {
+        return new MongoFutureCollection<>(prov);
+    }
+
+    public static <T> MongoFutureCollection<T> forCollection(MongoCollection<T> prov) {
+        return new MongoFutureCollection<>(Providers.of(prov));
     }
 
     public MongoCollection<T> collection() {
