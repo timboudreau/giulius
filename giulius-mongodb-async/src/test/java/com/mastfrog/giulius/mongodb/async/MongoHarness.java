@@ -22,6 +22,7 @@ import java.net.ConnectException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -86,6 +87,11 @@ public class MongoHarness {
                             int minor = Integer.parseInt(s[1]);
                             mongodbGreaterThan36 = major > 3
                                     || major == 3 && minor >= 6;
+                            if (major >= 3) {
+                                // Subsequent runs in the same JVM will use less
+                                // memory with this set:
+                                System.setProperty("mongodb.set.cache.size", "true");
+                            }
                         }
                     }
                 }
@@ -247,15 +253,23 @@ public class MongoHarness {
             boolean useInMemoryEngine = Boolean.getBoolean("mongo.harness.memory");
             String mongodExe = System.getProperty("mongo.binary", "mongod");
             ProcessBuilder pb;
+            boolean setCacheSize = Boolean.getBoolean("mongodb.set.cache.size");
             if (useInMemoryEngine) {
                 pb = new ProcessBuilder().command(mongodExe, "--storageEngine", "inMemory",
                         "--nounixsocket", "--maxConns", "50", "--port", "" + port);
             } else {
-                pb = new ProcessBuilder().command(mongodExe, "--dbpath",
+                List<String> cmd = new ArrayList<>(Arrays.asList(
+                        mongodExe, "--dbpath",
                         mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
-                    "--noprealloc", "--slowms", "5", "--port", "" + port,
-                    "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1",
-                        "--nounixsocket");
+                        "--noprealloc", "--slowms", "5", "--port", "" + port,
+                        "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1",
+                        "--nounixsocket"
+                ));
+                if (setCacheSize) {
+                    cmd.add("--wiredTigerCacheSizeGB");
+                    cmd.add("1");
+                }
+                pb = new ProcessBuilder().command(cmd);
             }
             System.err.println(pb.command());
             handleOutput(pb, "mongodb");
