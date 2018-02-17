@@ -53,6 +53,7 @@ final class MongoClientSettingsProvider implements Provider<MongoClientSettings>
     private final MongoClientSettings clientSettings;
 
     @Inject
+    @SuppressWarnings("deprecation")
     MongoClientSettingsProvider(Settings settings, CodecRegistry registry, @Named(SETTINGS_KEY_DATABASE_NAME) String db, @Named(SETTINGS_KEY_MONGO_PORT) int mongoPort) {
         ReadPreference pref = ReadPreferences.find(settings.getString(SETTINGS_KEY_MONGO_READ_PREFERENCE)).get();
 

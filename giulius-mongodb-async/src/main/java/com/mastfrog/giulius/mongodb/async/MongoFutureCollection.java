@@ -81,8 +81,16 @@ public final class MongoFutureCollection<T> {
         return iterFuture(collection().aggregate(list), null);
     }
 
+    public EnhCompletableFuture<List<T>> aggregate(ClientSession cs, List<? extends Bson> list) {
+        return iterFuture(collection().aggregate(cs, list), null);
+    }
+
     public <TResult> EnhCompletableFuture<List<TResult>> aggregate(List<? extends Bson> list, Class<TResult> type) {
         return iterFuture(collection().aggregate(list, type), null);
+    }
+
+    public <TResult> EnhCompletableFuture<List<TResult>> aggregate(ClientSession sess, List<? extends Bson> list, Class<TResult> type) {
+        return iterFuture(collection().aggregate(sess, list, type), null);
     }
 
     public EnhCompletableFuture<BulkWriteResult> bulkWrite(List<? extends WriteModel<? extends T>> list) {
@@ -203,9 +211,9 @@ public final class MongoFutureCollection<T> {
         return result;
     }
 
-    public EnhCompletableFuture<UpdateResult> updateOne(Bson bson, Bson bson1) {
+    public EnhCompletableFuture<UpdateResult> updateOne(Bson query, Bson update) {
         EnhCompletableFuture<UpdateResult> result = new EnhCompletableFuture<>();
-        collection().updateOne(bson, bson1, new SRC<>(result));
+        collection().updateOne(query, update, new SRC<>(result));
         return result;
     }
 
@@ -294,7 +302,7 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<T> findOne(Bson query, Bson projection) {
         EnhCompletableFuture<T> result = new EnhCompletableFuture<>();
-        collection().find(query).filter(projection).first(new SRC<>(result));
+        collection().find(query).projection(projection).first(new SRC<>(result));
         return result;
     }
 
@@ -306,7 +314,7 @@ public final class MongoFutureCollection<T> {
 
     public <R> EnhCompletableFuture<R> findOne(Bson query, Bson projection, Class<R> type) {
         EnhCompletableFuture<R> result = new EnhCompletableFuture<>();
-        collection().find(query, type).filter(projection).first(new SRC<>(result));
+        collection().find(query, type).projection(projection).first(new SRC<>(result));
         return result;
     }
 
@@ -318,7 +326,7 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<T> findOne(ClientSession cs, Bson query, Bson projection) {
         EnhCompletableFuture<T> result = new EnhCompletableFuture<>();
-        collection().find(cs, query).filter(projection).first(new SRC<>(result));
+        collection().find(cs, query).projection(projection).first(new SRC<>(result));
         return result;
     }
 
@@ -330,7 +338,7 @@ public final class MongoFutureCollection<T> {
 
     public <R> EnhCompletableFuture<R> findOne(ClientSession cs, Bson query, Bson projection, Class<R> type) {
         EnhCompletableFuture<R> result = new EnhCompletableFuture<>();
-        collection().find(cs, query, type).filter(projection).first(new SRC<>(result));
+        collection().find(cs, query, type).projection(projection).first(new SRC<>(result));
         return result;
     }
 
@@ -342,8 +350,16 @@ public final class MongoFutureCollection<T> {
         return iterFuture(collection().find(bson), null);
     }
 
+    public EnhCompletableFuture<List<T>> find(Bson bson, Bson projection) {
+        return iterFuture(collection().find(bson).projection(projection), null);
+    }
+
     public <TResult> EnhCompletableFuture<List<TResult>> find(Bson bson, Class<TResult> type) {
         return iterFuture(collection().find(bson, type), null);
+    }
+
+    public <TResult> EnhCompletableFuture<List<TResult>> find(Bson bson, Bson projection, Class<TResult> type) {
+        return iterFuture(collection().find(bson, type).projection(projection), null);
     }
 
     public EnhCompletableFuture<List<T>> find(ClientSession cs) {
@@ -356,6 +372,14 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<List<T>> find(ClientSession cs, Bson bson) {
         return iterFuture(collection().find(cs, bson), null);
+    }
+
+    public EnhCompletableFuture<List<T>> find(ClientSession cs, Bson bson, Bson projection) {
+        return iterFuture(collection().find(cs, bson).projection(projection), null);
+    }
+
+    public <R> EnhCompletableFuture<List<R>> find(ClientSession cs, Bson bson, Bson projection, Class<R> type) {
+        return iterFuture(collection().find(cs, bson, type).projection(projection), null);
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> distinct(String string, Class<TResult> type) {

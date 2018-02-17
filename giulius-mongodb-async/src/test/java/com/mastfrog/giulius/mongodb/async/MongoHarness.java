@@ -155,6 +155,7 @@ public class MongoHarness {
                 handleOutput(pb, "mongodb-shutdown");
                 try {
                     boolean exited = false;
+                    boolean destroyCalled = false;
                     if (!mongodbGreaterThan36) {
                         Process shutdown = pb.start();
                         System.err.println("Try graceful mongodb shutdown " + Arrays.toString(cmd));
@@ -172,6 +173,7 @@ public class MongoHarness {
                             }
                         }
                     } else {
+                        destroyCalled = true;
                         mongo.destroy();
                     }
                     System.err.println("Wait for mongodb exit");
@@ -180,7 +182,8 @@ public class MongoHarness {
                             int code = mongo.exitValue();
                             System.err.println("Mongo server exit code " + code);
                             exited = true;
-                            break;
+                            mongo = null;
+                            return;
                         } catch (IllegalThreadStateException ex) {
 //                            System.out.println("Not exited yet; sleep 100ms");
                             try {
@@ -193,7 +196,12 @@ public class MongoHarness {
                         }
                         if (!exited && i > 30) {
 //                            System.err.println("Mongodb has not exited; kill it");
-                            mongo.destroy();
+                            if (destroyCalled) {
+                                mongo.destroyForcibly();
+                            } else {
+                                destroyCalled = true;
+                                mongo.destroy();
+                            }
                         }
                         if (!exited && i > 100) {
                             mongo.destroyForcibly();
