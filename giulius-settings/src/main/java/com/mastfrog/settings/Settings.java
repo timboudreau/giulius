@@ -76,6 +76,10 @@ public interface Settings extends Iterable<String> {
 
     public Set<String> allKeys();
 
+    static SettingsBuilder builder() {
+        return new SettingsBuilder();
+    }
+
     default Integer getInt(String name) {
         String prop = getString(name);
         return prop == null ? null : Integer.parseInt(prop);
