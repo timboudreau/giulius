@@ -36,6 +36,7 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.InsertOneOptions;
 import com.mongodb.client.model.UpdateOptions;
@@ -121,19 +122,19 @@ public final class MongoFutureCollection<T> {
         return iterFuture(collection().listIndexes(), null);
     }
 
-    public EnhCompletableFuture<Long> count(SingleResultCallback<Long> src) {
+    public EnhCompletableFuture<Long> count() {
         EnhCompletableFuture<Long> result = new EnhCompletableFuture<>();
         collection().count(new SRC<>(result));
         return result;
     }
 
-    public EnhCompletableFuture<Long> count(Bson bson, SingleResultCallback<Long> src) {
+    public EnhCompletableFuture<Long> count(Bson bson) {
         EnhCompletableFuture<Long> result = new EnhCompletableFuture<>();
         collection().count(bson, new SRC<>(result));
         return result;
     }
 
-    public EnhCompletableFuture<Long> count(Bson bson, CountOptions co, SingleResultCallback<Long> src) {
+    public EnhCompletableFuture<Long> count(Bson bson, CountOptions co) {
         EnhCompletableFuture<Long> result = new EnhCompletableFuture<>();
         collection().count(bson, co, new SRC<>(result));
         return result;
@@ -282,6 +283,20 @@ public final class MongoFutureCollection<T> {
             }
         });
         return result;
+    }
+
+    public EnhCompletableFuture<T> findOneAndUpdate(Bson query, Bson update, FindOneAndUpdateOptions foauo) {
+        EnhCompletableFuture<T> result = new EnhCompletableFuture<>();
+        collection().findOneAndUpdate(query, update, foauo, new SRC<>(result));
+        return result;
+    }
+
+    public EnhCompletableFuture<T> findOneAndUpdate(Bson query, Bson update) {
+        return findOneAndUpdate(query, update, new FindOneAndUpdateOptions());
+    }
+
+    public EnhCompletableFuture<T> findOneAndUpdate(ObjectId id, Bson update) {
+        return findOneAndUpdate(new Document("_id", id), update, new FindOneAndUpdateOptions());
     }
 
     public EnhCompletableFuture<T> findOne() {
