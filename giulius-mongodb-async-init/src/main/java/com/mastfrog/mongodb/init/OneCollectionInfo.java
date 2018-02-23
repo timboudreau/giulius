@@ -30,6 +30,7 @@ import static com.mastfrog.mongodb.init.InitCollectionsInitializer.LOG;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Strings;
 import com.mastfrog.util.collections.CollectionUtils;
+import com.mongodb.MongoCommandException;
 import com.mongodb.WriteConcern;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -83,8 +84,18 @@ final class OneCollectionInfo {
             if (LOG) {
                 System.err.println("creating collection " + name);
             }
+            Exception stack = new Exception("Creating collection " + name);
             db.createCollection(name, opts, (v, thrown) -> {
                 if (thrown != null) {
+                    thrown.addSuppressed(stack);
+                    if (thrown instanceof MongoCommandException) {
+                        MongoCommandException e = (MongoCommandException) thrown;
+                        if ("collection already exists".equals(e.getErrorMessage()) || e.getErrorCode() == -1) {
+                            thrown.printStackTrace();
+                            ensureIndexes(db, false, c);
+                            return;
+                        }
+                    }
                     c.accept(thrown);
                     return;
                 }

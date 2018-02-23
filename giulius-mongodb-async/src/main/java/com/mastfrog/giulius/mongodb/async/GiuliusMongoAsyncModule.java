@@ -383,6 +383,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
     static final class IndirectMongoClientProvider implements Provider<MongoClient> {
 
         private final Provider<AsyncMongoClientProvider> prov;
+        private AsyncMongoClientProvider mongoprovider;
 
         @Inject
         IndirectMongoClientProvider(Provider<AsyncMongoClientProvider> prov) {
@@ -391,7 +392,14 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
         @Override
         public MongoClient get() {
-            return prov.get().get();
+            if (mongoprovider == null) {
+                synchronized (this) {
+                    if (mongoprovider == null) {
+                        mongoprovider = prov.get();
+                    }
+                }
+            }
+            return mongoprovider.get();
         }
     }
 
@@ -500,7 +508,6 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
     }
 
-
     static class FakeType<T> implements ParameterizedType {
 
         private final Class<T> genericType;
@@ -575,7 +582,6 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             return null;
         }
     }
-
 
     static class CollectionPromisesProvider<T> implements Provider<CollectionPromises<T>> {
 
