@@ -23,9 +23,11 @@
  */
 package com.mastfrog.giulius.annotations.processors;
 
+import com.mastfrog.util.service.IndexGeneratingProcessor;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
+import com.mastfrog.util.service.ServiceProvider;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;
@@ -42,13 +44,12 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
  * @author Tim Boudreau
  */
-@ServiceProvider(service = Processor.class)
+@ServiceProvider(Processor.class)
 @SupportedAnnotationTypes({"com.mastfrog.guicy.annotations.Namespace", "com.mastfrog.guicy.annotations.Value",
 "com.mastfrog.giulius.annotations.Namespace", "com.mastfrog.giulius.annotations.Value"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)

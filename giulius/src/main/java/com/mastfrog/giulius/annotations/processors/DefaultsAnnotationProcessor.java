@@ -23,9 +23,11 @@
  */
 package com.mastfrog.giulius.annotations.processors;
 
+import com.mastfrog.util.service.IndexGeneratingProcessor;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.SettingsBuilder;
+import com.mastfrog.util.service.ServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -56,7 +58,6 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Processes the &#064;Defaults annotation, generating properties files in the
@@ -67,7 +68,7 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Tim Boudreau
  */
-@ServiceProvider(service = Processor.class)
+@ServiceProvider(Processor.class)
 @SupportedAnnotationTypes({"com.mastfrog.giulius.annotations.Defaults", "com.mastfrog.guicy.annotations.Defaults"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
