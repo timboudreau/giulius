@@ -8,6 +8,7 @@ import com.google.inject.name.Names;
 import com.mastfrog.giulius.Ordered;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.SETTINGS_KEY_DATABASE_NAME;
+import com.mastfrog.settings.Settings;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Exceptions;
 import com.mastfrog.util.Strings;
@@ -18,6 +19,7 @@ import com.mongodb.connection.ClusterConnectionMode;
 import com.mongodb.connection.ClusterSettings;
 import java.io.File;
 import java.io.IOException;
+import static java.lang.System.currentTimeMillis;
 import java.net.ConnectException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
@@ -64,17 +66,30 @@ public class MongoHarness {
         private Process mongo;
         private int port;
         private volatile boolean mongodbGreaterThan36 = false;
+        private final String replSetId = "rs" + Long.toString(currentTimeMillis(), 36);
+        private final boolean replicaSet;
 
         @SuppressWarnings("LeakingThisInConstructor")
         @Inject
-        public Init(MongoAsyncInitializer.Registry registry, ShutdownHookRegistry shutdownHooks) {
+        public Init(MongoAsyncInitializer.Registry registry, ShutdownHookRegistry shutdownHooks, Settings settings) {
             super(registry);
+            replicaSet = settings.getBoolean("mongo.replica.set", false);
             shutdownHooks.add(this);
             mongoDir = createMongoDir();
         }
 
         @Override
         public MongoClient onAfterCreateMongoClient(MongoClient client) {
+            if (replicaSet) {
+                client.getDatabase("admin").runCommand(new Document("replSetInitiate", new Document("_id", replSetId)
+                        .append("members", Arrays.asList(new Document("host", "localhost:" + port)
+                                .append("_id", 1)))), (v, t) -> {
+                    if (t != null) {
+                        t.printStackTrace();
+                    }
+                });
+            }
+
             // Check the version - post 3.6, mongod --shutdown just errors, so
             // we cannot gracefully shut down that way
             client.getDatabase("admin").runCommand(new Document("buildInfo", 1), (v, t) -> {
@@ -270,13 +285,18 @@ public class MongoHarness {
                         mongodExe, "--dbpath",
                         mongoDir.getAbsolutePath(), "--nojournal", "--smallfiles", "-nssize", "1",
                         "--noprealloc", "--slowms", "5", "--port", "" + port,
-                        "--maxConns", "50", /*"--nohttpinterface",*/ "--syncdelay", "0", "--oplogSize", "1",
+                        "--maxConns", "50", "--syncdelay", "0", "--oplogSize", "1",
                         "--nounixsocket"
                 ));
+                if (replicaSet) {
+                    cmd.add("--replSet");
+                    cmd.add(replSetId);
+                }
                 if (setCacheSize) {
                     cmd.add("--wiredTigerCacheSizeGB");
                     cmd.add("1");
                 }
+                System.out.println(Strings.join(' ', cmd));
                 pb = new ProcessBuilder().command(cmd);
             }
             System.err.println(pb.command());
