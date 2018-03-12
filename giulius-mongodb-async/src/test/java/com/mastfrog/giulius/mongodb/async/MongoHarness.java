@@ -8,6 +8,7 @@ import com.google.inject.name.Names;
 import com.mastfrog.giulius.Ordered;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.SETTINGS_KEY_DATABASE_NAME;
+import static com.mastfrog.giulius.tests.GuiceRunner.currentMethodName;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Exceptions;
@@ -391,7 +392,7 @@ public class MongoHarness {
         protected void configure() {
             bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_PORT)).toInstance("" + findPort());
             bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_HOST)).toInstance("localhost");
-            bind(String.class).annotatedWith(Names.named(SETTINGS_KEY_DATABASE_NAME)).toInstance("_testDb");
+            bind(String.class).annotatedWith(Names.named(SETTINGS_KEY_DATABASE_NAME)).toInstance("_testDb" + currentMethodName().replace('.', '_').replace(' ', '_'));
             bind(Init.class).asEagerSingleton();
         }
 

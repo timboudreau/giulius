@@ -33,6 +33,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -114,7 +115,7 @@ public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
                         props.load(in);
                     }
                 }
-            } catch (FileNotFoundException ex) {
+            } catch (FileNotFoundException | NoSuchFileException ex) {
                 //OK
             }
             propertiesForPath.put(path, props);
