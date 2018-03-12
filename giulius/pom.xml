@@ -9,6 +9,18 @@
     </parent>
     <artifactId>giulius</artifactId>
     <name>Giulius</name>
+    <build>
+        <plugins>
+            <!-- target Java 9 -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <fork>true</fork>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

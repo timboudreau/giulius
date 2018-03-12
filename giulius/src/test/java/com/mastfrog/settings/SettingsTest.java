@@ -35,7 +35,7 @@ public class SettingsTest {
     public void test() throws IOException {
         Settings config = new SettingsBuilder().addDefaultsFromClasspath().addGeneratedDefaultsFromClasspath().build();
         assertNotNull(config);
-        assertTrue(config.getBoolean("auto"));
+        assertTrue(config.getBoolean("auto", false));
 
         assertEquals("bar", config.getString("foo"));
 
