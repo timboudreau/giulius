@@ -31,6 +31,7 @@ import static com.mastfrog.giulius.jdbc.JdbcModule.DEFAULT_JDBC_USER;
 import static com.mastfrog.giulius.jdbc.JdbcModule.DEFAULT_MIN_CONNECTIONS_PER_PARTITION;
 import static com.mastfrog.giulius.jdbc.JdbcModule.DEFAULT_READ_ONLY;
 import static com.mastfrog.giulius.jdbc.JdbcModule.IDLE_MAX_AGE_SECONDS;
+import static com.mastfrog.giulius.jdbc.JdbcModule.JDBC_CONNECTION_TEST_QUERY;
 import static com.mastfrog.giulius.jdbc.JdbcModule.JDBC_PASSWORD;
 import static com.mastfrog.giulius.jdbc.JdbcModule.JDBC_URL;
 import static com.mastfrog.giulius.jdbc.JdbcModule.JDBC_USER;
@@ -65,7 +66,6 @@ class ConnectionPoolConfigProvider implements Provider<HikariConfig> {
         config.setJdbcUrl(settings.getString(JDBC_URL, DEFAULT_JDBC_URL));
         config.setMinimumIdle(settings.getInt(MIN_CONNECTIONS_PER_PARTITION, DEFAULT_MIN_CONNECTIONS_PER_PARTITION));
         config.setMaximumPoolSize(settings.getInt(MAX_CONNECTIONS_PER_PARTITION, defaultMaxConnectionsPerPartition()));
-
         config.setReadOnly(settings.getBoolean(READ_ONLY, DEFAULT_READ_ONLY));
         Long timeout = settings.getLong(CONNECTION_TIMEOUT_MINUTES);
         if (timeout != null) {
@@ -86,6 +86,10 @@ class ConnectionPoolConfigProvider implements Provider<HikariConfig> {
         }
         if (p != null && !p.trim().isEmpty()) {
             config.setPassword(p);
+        }
+        String c = settings.getString(JDBC_CONNECTION_TEST_QUERY);
+        if (c != null) {
+            config.setConnectionTestQuery(c);
         }
         return postConfig.onConfigure(config);
     }

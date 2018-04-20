@@ -40,6 +40,7 @@ public class JdbcModule extends AbstractModule {
     public static final String JDBC_URL = "jdbc.url";
     public static final String JDBC_USER = "jdbc.user";
     public static final String JDBC_PASSWORD = "jdbc.password";
+    public static final String JDBC_CONNECTION_TEST_QUERY = "jdbc.connection.test.query";
     @Deprecated
     /**
      * @deprecated Unused with HikariCP
@@ -69,6 +70,7 @@ public class JdbcModule extends AbstractModule {
     public static final String POSTGRES_SEND_BUFFER_SIZE = "jdbc.postgres.send.buffer.size";
     public static final String POSTGRES_RECEIVE_BUFFER_SIZE = "jdbc.postgres.receive.buffer.size";
     public static final String POSTGRES_KEEP_ALIVE = "jdbc.postgres.keep.alive";
+    public static final String POSTGRES_STREAMING_CURSORS = "jdbc.postgress.streaming.cursors";
 
     @Deprecated
     /**
