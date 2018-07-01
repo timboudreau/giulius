@@ -16,3 +16,5 @@ nb-configuration.xml
 /giulius-settings/nbproject/
 /giulius-threadpool/nbproject/
 /giulius-mongodb-async-init/nbproject/
+/giulius/injection-reflection-indexer/nbproject/
+/injection-reflection-indexer/nbproject/

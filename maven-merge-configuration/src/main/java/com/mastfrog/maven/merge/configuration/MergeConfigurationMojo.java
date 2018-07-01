@@ -23,6 +23,9 @@
  */
 package com.mastfrog.maven.merge.configuration;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Objects;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -195,7 +198,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
         for (String s : excludes) {
             if (!s.isEmpty() && name.startsWith(s)) {
-                getLog().debug("EXCLUDE " + name + " " + exclude);
+                getLog().debug("EXCLUDE " + name);
                 return true;
             }
         }
@@ -240,6 +243,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         JarOutputStream jarOut = null;
         Set<String> seen = new HashSet<>();
 
+        List<List<Map<String,Object>>> reflectionInfo = new LinkedList<>();
         Map<String, List<String>> originsOf = new HashMap<>();
         try {
             if (buildMergedJar) {
@@ -286,6 +290,11 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 case "META-INF/INDEX.LIST":
                                 case "META-INF/":
                                     break;
+                                case "META-INF/injection/reflective.json" :
+                                    try (InputStream in = jf.getInputStream(e)) {
+                                        reflectionInfo.add(readJsonList(in));
+                                    }
+                                    continue;
                                 default:
                                     if ("META-INF/LICENSE".equals(name)
                                             || "META-INF/LICENSE.txt".equals(name)
@@ -442,6 +451,13 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 case "META-INF/MANIFEST.MF":
                                 case "META-INF/":
                                     break;
+                                case "META-INF/injection/reflective.json" :
+                                    try (InputStream in = jar.getInputStream(entry)) {
+                                        log.info("Will merge META-INF reflection info from " + f.getName());
+                                        reflectionInfo.add(readJsonList(in));
+                                    }
+                                    continue;
+
                                 default:
                                     if ("META-INF/LICENSE".equals(name)
                                             || "META-INF/LICENSE.txt".equals(name)
@@ -506,6 +522,27 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
             String outDir = project.getBuild().getOutputDirectory();
             File dir = new File(outDir);
+            if (!reflectionInfo.isEmpty()) {
+                File dest = new File(dir, "META-INF/injection");
+                if (!dest.exists()) {
+                    dest.mkdirs();
+                }
+                log.info("Writing merged META-INF/injection/reflective.json from " + reflectionInfo.size());
+                File rinfo = new File(dest, "reflective.json");
+                try {
+                    try (OutputStream rout = new BufferedOutputStream(new FileOutputStream(rinfo))) {
+                        this.saveJsonLists(rout, reflectionInfo);
+                    }
+                    if (jarOut != null) {
+                        JarEntry je = new JarEntry("META-INF/injection/reflective.json");
+                        jarOut.putNextEntry(je);
+                        saveJsonLists(jarOut, reflectionInfo);
+                        jarOut.closeEntry();
+                    }
+                } catch (IOException ioe) {
+                    throw new MojoFailureException("Exception writing reflection info", ioe);
+                }
+            }
             for (Map.Entry<String, Set<String>> e : linesForName.entrySet()) {
                 if (shouldSkip(e.getKey())) {
                     continue;
@@ -638,6 +675,29 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 }
             }
         }
+    }
+
+    private List<Map<String,Object>> readJsonList(InputStream in) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(in, new TypeReference<List<Map<String,Object>>>(){});
+    }
+    
+    private void saveJsonLists(OutputStream dest, List<List<Map<String,Object>>> all) throws IOException {
+        Set<Map<String,Object>> info = mergedMaps(all);
+        if (!info.isEmpty()) {
+            ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).disable(SerializationFeature.CLOSE_CLOSEABLE);
+//            mapper.writeValue(dest, info);
+            byte[] b = mapper.writeValueAsBytes(info);
+            dest.write(b);
+        }
+    }
+
+    private Set<Map<String,Object>> mergedMaps(List<List<Map<String,Object>>> all) {
+        Set<Map<String,Object>> result = new LinkedHashSet<>();
+        for (List<Map<String,Object>> l : all) {
+            result.addAll(l);
+        }
+        return result;
     }
 
     private static String sortedToString(List<String> all) {

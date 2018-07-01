@@ -27,6 +27,8 @@ import com.mastfrog.util.service.IndexGeneratingProcessor;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
+import com.mastfrog.util.service.AnnotationIndexFactory;
+import com.mastfrog.util.service.Line;
 import com.mastfrog.util.service.ServiceProvider;
 import java.io.IOException;
 import java.io.LineNumberReader;
@@ -53,15 +55,25 @@ import javax.tools.Diagnostic;
 @SupportedAnnotationTypes({"com.mastfrog.guicy.annotations.Namespace", "com.mastfrog.guicy.annotations.Value",
 "com.mastfrog.giulius.annotations.Namespace", "com.mastfrog.giulius.annotations.Value"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-public class NamespaceAnnotationProcessor extends IndexGeneratingProcessor {
+public class NamespaceAnnotationProcessor extends IndexGeneratingProcessor<Line> {
 
     private static final char[] illegalChars = "/\\/:[],'\"<>?%+".toCharArray();
+
+    public NamespaceAnnotationProcessor() {
+        super(AnnotationIndexFactory.lines());
+    }
 
     private void addNamespaceForElement(String ns, Element e) {
         if (Namespace.DEFAULT.equals(ns)) {
             return;
         }
         addLine(Defaults.DEFAULT_PATH + "namespaces.list", ns, e);
+    }
+
+    int lineCount = 0;
+    protected int addLine(String path, String line, Element... el) {
+        Line l = new Line(lineCount++, el, line);
+        return addIndexElement(path, l, el);
     }
 
     @Override

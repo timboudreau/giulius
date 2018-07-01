@@ -27,6 +27,8 @@ import com.mastfrog.util.service.IndexGeneratingProcessor;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.SettingsBuilder;
+import com.mastfrog.util.service.AnnotationIndexFactory;
+import com.mastfrog.util.service.Line;
 import com.mastfrog.util.service.ServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -72,7 +74,11 @@ import javax.tools.StandardLocation;
 @ServiceProvider(Processor.class)
 @SupportedAnnotationTypes({"com.mastfrog.giulius.annotations.Defaults", "com.mastfrog.guicy.annotations.Defaults"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
+public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor<Line> {
+
+    public DefaultsAnnotationProcessor() {
+        super(true, AnnotationIndexFactory.lines());
+    }
 
     private String findPath(Defaults anno, Element e) {
         boolean specifiesNamespace;
@@ -216,6 +222,12 @@ public class DefaultsAnnotationProcessor extends IndexGeneratingProcessor {
             return false;
         }
         return result;
+    }
+
+    int lineCount = 0;
+    protected int addLine(String path, String line, Element... el) {
+        Line l = new Line(lineCount++, el, line);
+        return addIndexElement(path, l, el);
     }
 
     @Override

@@ -52,14 +52,39 @@ public enum SettingsRefreshInterval implements RefreshInterval {
         this(0);
     }
 
+
+    static Timer timer;
+    static List<Reference<TimerTask>> tasks;
+
+    private static synchronized Timer timer(boolean create) {
+        if (timer == null) {
+            if (create) {
+                timer = new Timer("Settings refresh", true);
+            }
+        }
+        if (tasks == null) {
+            if (create) {
+                tasks = new ArrayList<>();
+            }
+        }
+        return timer;
+    }
+
     @Override
     public int getMilliseconds() {
-        timer.purge();
+        Timer t = timer(false);
+        if (t != null) {
+            t.purge();
+        }
         return interval;
     }
     
     public static void refreshNow() {
-        for (Iterator<Reference<TimerTask>> it=tasks.iterator(); it.hasNext();) {
+        List<Reference<TimerTask>> l;
+        synchronized(SettingsRefreshInterval.class) {
+            l = tasks;
+        }
+        for (Iterator<Reference<TimerTask>> it=l.iterator(); it.hasNext();) {
             Reference<TimerTask> r = it.next();
             TimerTask task = r.get();
             if (task == null) {
@@ -73,9 +98,10 @@ public enum SettingsRefreshInterval implements RefreshInterval {
     @Override
     public synchronized void add(TimerTask task) {
         long interval = getMilliseconds();
-        timer.scheduleAtFixedRate(task, interval, interval);
+        Timer t = timer(true);
+        t.scheduleAtFixedRate(task, interval, interval);
         tasks.add(new WeakReference<TimerTask>(task));
-        timer.purge();
+        t.purge();
     }
 
     @Override
@@ -88,7 +114,4 @@ public enum SettingsRefreshInterval implements RefreshInterval {
     }
 
     private static volatile int modCount;
-
-    static final Timer timer = new Timer("Settings refresh", true);
-    static List<Reference<TimerTask>> tasks = new ArrayList<>();
 }

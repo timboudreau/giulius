@@ -47,8 +47,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimerTask;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Builder for Settings. Allows multiple sources of settings to be layered
@@ -729,7 +727,7 @@ public final class SettingsBuilder {
                 }
                 go();
             } catch (IOException ex) {
-                Logger.getLogger(SettingsBuilder.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace(System.err);
             }
         }
     }
