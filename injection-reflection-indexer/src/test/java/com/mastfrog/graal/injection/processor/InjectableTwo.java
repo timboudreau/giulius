@@ -26,16 +26,22 @@ package com.mastfrog.graal.injection.processor;
 
 import com.google.inject.Inject;
 import java.util.Properties;
+import com.mastfrog.graal.annotation.Expose;
+import com.mastfrog.graal.annotation.ExposeAllMethods;
+import com.mastfrog.graal.annotation.ExposeMany;
 
 /**
  *
  * @author Tim Boudreau
  */
-@ReflectionInfo(type = "java.lang.String", members = {@ReflectionInfo.MemberInfo(name = "hash")})
+@Expose(type = "java.lang.Integer", methods = {@Expose.MethodInfo(name="parseInt", parameterTypes = {"java.lang.String"})},
+        fields={"hash"}
+)
+@ExposeAllMethods({Integer.class, Byte.class})
+@ExposeMany({@Expose(type="java.lang.String", fields="*")})
 public class InjectableTwo {
 
     @Inject
     public InjectableTwo(Properties props, InjectableOne one) {
-
     }
 }

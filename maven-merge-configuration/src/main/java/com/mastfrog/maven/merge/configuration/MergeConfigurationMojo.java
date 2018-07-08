@@ -27,6 +27,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Objects;
+import static com.mastfrog.maven.merge.configuration.PropertiesFileUtils.printLines;
+import static com.mastfrog.maven.merge.configuration.PropertiesFileUtils.savePropertiesFile;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -106,6 +107,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private String jarName;
     @Parameter(property = "exclude", defaultValue = "")
     private String exclude = "";
+    @Parameter(property = "excludePaths", defaultValue = "")
+    private String excludePaths = "";
+
     private static final Pattern PAT = Pattern.compile("META-INF\\/settings\\/[^\\/]*\\.properties");
     private static final Pattern SERVICES = Pattern.compile("META-INF\\/services\\/\\S[^\\/]*\\.*");
     private static final Pattern REGISTRATIONS = Pattern.compile("META-INF\\/.*?\\/.*\\.registrations$");
@@ -130,7 +134,10 @@ public class MergeConfigurationMojo extends AbstractMojo {
     }
 
     private final boolean shouldSkip(String name) {
-        boolean result = "META-INF/MANIFEST.MF".equals(name) || "META-INF/".equals(name) || "META-INF/INDEX.LIST".equals(name)
+        boolean result = "META-INF/MANIFEST.MF".equals(name)
+                || "META-INF/".equals(name)
+                || "META-INF/INDEX.LIST".equals(name)
+                || "META-INF/DEPENDENCIES".equals(name)
                 || (skipMavenMetadata && name.startsWith("META-INF/maven"));
 
         if (!result && skipLicenseFiles && name.startsWith("META-INF")) {
@@ -195,12 +202,24 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     excludes.add(ex);
                 }
             }
+            for (String ex : this.excludePaths.split("[,\\s]")) {
+                ex = ex.trim();
+                if (!ex.isEmpty()) {
+                    excludes.add(ex);
+                }
+            }
         }
         for (String s : excludes) {
             if (!s.isEmpty() && name.startsWith(s)) {
                 getLog().debug("EXCLUDE " + name);
                 return true;
             }
+        }
+        // Special handling for Graal - native-image goes insane if it finds itself
+        // among its classes to compile - there's no use-case I can see for allowing
+        // bundling anything but its annotations
+        if (name.startsWith("com/oracle/svm") && !name.startsWith("com/oracle/svm/core/annotate")) {
+            return true;
         }
         return false;
     }
@@ -209,7 +228,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         // XXX a LOT of duplicate code here
         Log log = super.getLog();
-        log.info("Merging properties files");
+        log.info("Merging JAR contents");
         if (repoSession == null) {
             throw new MojoFailureException("RepositorySystemSession is null");
         }
@@ -219,11 +238,17 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     = resolver.resolve(new DefaultDependencyResolutionRequest(project, repoSession));
             log.info("FOUND " + result.getDependencies().size() + " dependencies");
             for (Dependency d : result.getDependencies()) {
+                if (d.isOptional()) {
+                    continue;
+                }
                 switch (d.getScope()) {
                     case "test":
                     case "provided":
                         break;
                     default:
+                        log.debug("Include " + d.getArtifact().getGroupId()
+                                + ":" + d.getArtifact().getArtifactId()
+                                + ":" + d.getArtifact().getVersion());
                         File f = d.getArtifact().getFile();
                         if (f.getName().endsWith(".jar") && f.isFile() && f.canRead()) {
                             jars.add(f);
@@ -243,7 +268,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         JarOutputStream jarOut = null;
         Set<String> seen = new HashSet<>();
 
-        List<List<Map<String,Object>>> reflectionInfo = new LinkedList<>();
+        List<List<Map<String, Object>>> reflectionInfo = new LinkedList<>();
         Map<String, List<String>> originsOf = new HashMap<>();
         try {
             if (buildMergedJar) {
@@ -290,8 +315,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 case "META-INF/INDEX.LIST":
                                 case "META-INF/":
                                     break;
-                                case "META-INF/injection/reflective.json" :
+                                case "META-INF/injection/reflective.json":
                                     try (InputStream in = jf.getInputStream(e)) {
+                                        log.info("Will merge META-INF/injection/reflective.json info from " + jar);
                                         reflectionInfo.add(readJsonList(in));
                                     }
                                     continue;
@@ -391,7 +417,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
 
             for (File f : jars) {
-                log.info("Merge JAR " + f);
+                log.info("Include contents of " + f);
                 try (JarFile jar = new JarFile(f)) {
                     Enumeration<JarEntry> en = jar.entries();
                     while (en.hasMoreElements()) {
@@ -429,7 +455,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 all.putAll(p);
                             }
                         } else if (REGISTRATIONS.matcher(name).matches() || SERVICES.matcher(name).matches() || "META-INF/settings/namespaces.list".equals(name) || "META-INF/http/pages.list".equals(name) || "META-INF/http/modules.list".equals(name) || "META-INF/http/numble.list".equals(name)) {
-                            log.info("Include " + name + " in " + f);
+                            log.info("Concatenate " + name + " from " + f);
                             try (InputStream in = jar.getInputStream(entry)) {
                                 List<String> lines = readLines(in);
                                 Set<String> all = linesForName.get(name);
@@ -451,9 +477,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 case "META-INF/MANIFEST.MF":
                                 case "META-INF/":
                                     break;
-                                case "META-INF/injection/reflective.json" :
+                                case "META-INF/injection/reflective.json":
                                     try (InputStream in = jar.getInputStream(entry)) {
-                                        log.info("Will merge META-INF reflection info from " + f.getName());
+                                        log.info("Will merge META-INF/injection/reflective.json info from " + f.getName());
                                         reflectionInfo.add(readJsonList(in));
                                     }
                                     continue;
@@ -518,7 +544,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
             if (!propertiesForFileName.isEmpty()) {
                 log.warn("Writing merged files: " + propertiesForFileName.keySet());
             } else {
-                return;
+//                return;
             }
             String outDir = project.getBuild().getOutputDirectory();
             File dir = new File(outDir);
@@ -527,8 +553,14 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 if (!dest.exists()) {
                     dest.mkdirs();
                 }
-                log.info("Writing merged META-INF/injection/reflective.json from " + reflectionInfo.size());
                 File rinfo = new File(dest, "reflective.json");
+                int sz = 0;
+                for (List<Map<String, Object>> l : reflectionInfo) {
+                    for (Map<String, Object> m : l) {
+                        sz += m.size();
+                    }
+                }
+                log.warn("Writing merged META_INF/injection/reflective.json with " + sz + " entries");
                 try {
                     try (OutputStream rout = new BufferedOutputStream(new FileOutputStream(rinfo))) {
                         this.saveJsonLists(rout, reflectionInfo);
@@ -542,6 +574,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 } catch (IOException ioe) {
                     throw new MojoFailureException("Exception writing reflection info", ioe);
                 }
+            } else {
+                log.warn("No META_INF/injection/reflective.json data to write");
             }
             for (Map.Entry<String, Set<String>> e : linesForName.entrySet()) {
                 if (shouldSkip(e.getKey())) {
@@ -643,7 +677,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
                     JarEntry props = new JarEntry(e.getKey());
                     try {
                         jarOut.putNextEntry(props);
-//                        merged.store(jarOut, comment);
                         savePropertiesFile(merged, jarOut, comment, false);
                     } catch (IOException ex) {
                         throw new MojoExecutionException("Failed to write jar entry " + e.getKey(), ex);
@@ -677,24 +710,26 @@ public class MergeConfigurationMojo extends AbstractMojo {
         }
     }
 
-    private List<Map<String,Object>> readJsonList(InputStream in) throws IOException {
+    private List<Map<String, Object>> readJsonList(InputStream in) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(in, new TypeReference<List<Map<String,Object>>>(){});
+        return mapper.readValue(in, new TypeReference<List<Map<String, Object>>>() {
+        });
     }
-    
-    private void saveJsonLists(OutputStream dest, List<List<Map<String,Object>>> all) throws IOException {
-        Set<Map<String,Object>> info = mergedMaps(all);
+
+    private void saveJsonLists(OutputStream dest, List<List<Map<String, Object>>> all) throws IOException {
+        Set<Map<String, Object>> info = mergedMaps(all);
         if (!info.isEmpty()) {
             ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).disable(SerializationFeature.CLOSE_CLOSEABLE);
 //            mapper.writeValue(dest, info);
             byte[] b = mapper.writeValueAsBytes(info);
             dest.write(b);
+            dest.flush();
         }
     }
 
-    private Set<Map<String,Object>> mergedMaps(List<List<Map<String,Object>>> all) {
-        Set<Map<String,Object>> result = new LinkedHashSet<>();
-        for (List<Map<String,Object>> l : all) {
+    private Set<Map<String, Object>> mergedMaps(List<List<Map<String, Object>>> all) {
+        Set<Map<String, Object>> result = new LinkedHashSet<>();
+        for (List<Map<String, Object>> l : all) {
             result.addAll(l);
         }
         return result;
@@ -710,115 +745,5 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
         }
         return sb.toString();
-    }
-
-    private static final void savePropertiesFile(Properties props, OutputStream out, String comment, boolean close) throws IOException {
-        // Stores properties file without date comments, with consistent key ordering and line terminators, for
-        // repeatable builds
-        List<String> keys = new ArrayList<>(props.stringPropertyNames());
-        Collections.sort(keys);
-        List<String> lines = new ArrayList<>();
-        if (comment != null) {
-            lines.add("# " + comment);
-        }
-        for (String key : keys) {
-            String val = props.getProperty(key);
-            key = convert(key, true);
-            /* No need to escape embedded and trailing spaces for value, hence
-                 * pass false to flag.
-             */
-            val = convert(val, false);
-            lines.add(key + "=" + val);
-
-        }
-        printLines(lines, out, ISO_8859_1, close);
-    }
-
-    private static String convert(String keyVal, boolean escapeSpace) {
-        int len = keyVal.length();
-        StringBuilder sb = new StringBuilder(len * 2 < 0 ? Integer.MAX_VALUE : len * 2);
-
-        for (int i = 0; i < len; i++) {
-            char ch = keyVal.charAt(i);
-            if ((ch > 61) && (ch < 127)) {
-                if (ch == '\\') {
-                    sb.append("\\\\");
-                } else {
-                    sb.append(ch);
-                }
-                continue;
-            }
-            switch (ch) {
-                case ' ':
-                    sb.append(escapeSpace ? ESCAPED_SPACE : ' ');
-                    break;
-                case '\n':
-                    appendEscaped('n', sb);
-                    break;
-                case '\r':
-                    appendEscaped('r', sb);
-                    break;
-                case '\t':
-                    appendEscaped('t', sb);
-                    break;
-                case '\f':
-                    appendEscaped('f', sb);
-                    break;
-                case '#':
-                case '=':
-                case '!':
-                case ':':
-                    sb.append('\\').append(ch);
-                    sb.append(ch);
-                    break;
-                default:
-                    if (((ch < 0x0020) || (ch > 0x007e))) {
-                        appendEscapedHex(ch, sb);
-                    } else {
-                        sb.append(ch);
-                    }
-            }
-        }
-        return sb.toString();
-    }
-
-    private static void appendEscaped(char c, StringBuilder sb) {
-        sb.append('\\').append(c);
-    }
-
-    private static void appendEscapedHex(char c, StringBuilder sb) {
-        sb.append('\\').append('u');
-        for (int i : NIBBLES) {
-            char hex = HEX[(c >> i) & 0xF];
-            sb.append(hex);
-        }
-    }
-
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
-    private static final Charset ISO_8859_1 = Charset.forName("8859_1");
-    private static final char[] ESCAPED_SPACE = "\\ ".toCharArray();
-    private static final int[] NIBBLES = new int[]{12, 8, 4, 0};
-    private static final char[] HEX = {
-        '0', '1', '2', '3', '4', '5', '6', '7',
-        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-    };
-
-    private static int printLines(Iterable<String> lines, OutputStream out, boolean close) throws IOException {
-        return printLines(lines, out, UTF_8, close);
-    }
-
-    private static int printLines(Iterable<String> lines, OutputStream out, Charset encoding, boolean close) throws IOException {
-        // Ensures UTF-8 encoding and avoids non-repeatable builds due to Windows line endings
-        int count = 0;
-        for (String line : lines) {
-            byte[] bytes = line.getBytes(encoding);
-            out.write(bytes);
-            out.write('\n');
-            count++;
-        }
-        if (close) {
-            out.close();
-        }
-        return count;
     }
 }

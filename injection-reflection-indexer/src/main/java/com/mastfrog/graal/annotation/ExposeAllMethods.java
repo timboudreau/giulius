@@ -1,7 +1,7 @@
-/* 
+/*
  * The MIT License
  *
- * Copyright 2013 Tim Boudreau.
+ * Copyright 2018 Tim Boudreau.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,39 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.annotations;
 
-import com.google.inject.BindingAnnotation;
-import static java.lang.annotation.ElementType.*;
+package com.mastfrog.graal.annotation;
+
+import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.TYPE;
 import java.lang.annotation.Retention;
-import static java.lang.annotation.RetentionPolicy.*;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation similar to Guice's &#064;Named annotation, to indicate
- * the name of what to inject, but allows a namespace to be specified on
- * a per-property basis.
- * <p/>
- * Note that this annotation does nothing in particular unless you are using
- * a framework such as Guicy which feeds those values to Guice.  It is 
- * defined here so that code can declare these annotations without dragging
- * in a dependency on Guice and all its libraries.
+ * Generates Graal metadata instructing that all declared and public
+ * methods of the class in question should be exposed.  Note that this
+ * does not expose <i>fields</i> - if you want that, use &#064;Expose.
  *
  * @author Tim Boudreau
  */
-@Retention(RUNTIME)
-@Target({FIELD, PARAMETER})
-@BindingAnnotation
-public @interface Value {
-    /**
-     * The name of the property to inject
-     * 
-     * @return 
-     */
-    String value();
-    /**
-     * The namespace can be used by frameworks to decide where Guice should
-     * get the values.
-     */
-    Namespace namespace() default @Namespace(Namespace.DEFAULT);
+@Retention(RetentionPolicy.SOURCE)
+@Target({METHOD, FIELD, TYPE, ANNOTATION_TYPE, CONSTRUCTOR})
+public @interface ExposeAllMethods {
+    Class<?>[] value();
 }

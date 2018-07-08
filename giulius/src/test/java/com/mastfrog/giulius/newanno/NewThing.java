@@ -1,7 +1,7 @@
-/* 
+/*
  * The MIT License
  *
- * Copyright 2013 Tim Boudreau.
+ * Copyright 2018 Tim Boudreau.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,30 +21,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.annotations;
 
-import com.google.inject.BindingAnnotation;
-import com.mastfrog.settings.SettingsBuilder;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package com.mastfrog.giulius.newanno;
+
+import com.google.inject.Inject;
+import com.mastfrog.giulius.annotations.Namespace;
+import com.mastfrog.giulius.annotations.SettingsDefaults;
+import com.mastfrog.giulius.annotations.SettingsDefaults.KV;
+import com.mastfrog.giulius.annotations.Value;
+import com.mastfrog.settings.Settings;
 
 /**
- * Annotation which can be applied as a parameter in a &#064;Value annotation,
- * or to a class or package (in a package-info.java file in that class) to
- * specify that the system should look in a different place for its value.
- * <p/>
- * In particular, applying &#064;Namespace to a package affects where values
- * for &#064;Named properties are looked up for all classes in that package
- * (unless they specify per-class namespace annotations).
  *
  * @author Tim Boudreau
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PACKAGE, ElementType.TYPE, ElementType.PARAMETER})
-@BindingAnnotation
-public @interface Namespace {
-    public static final String DEFAULT = SettingsBuilder.DEFAULT_NAMESPACE;
-    String value() default DEFAULT;
+@SettingsDefaults(namespace="noobie", value={
+    @KV(name="whupty", value="woo"),
+    @KV(name="snacks", value="23"),
+    @KV(name="glorst", value="wagglum's large\tantelope")
+})
+@Namespace("noobie")
+public class NewThing {
+
+    public final String whupty;
+
+    public final String glorst;
+
+    @Inject
+    public NewThing(@Value(value="whupty", namespace=@Namespace("noobie")) String whupty, Settings settings) {
+        this.whupty = whupty;
+        this.glorst = settings.getString("glorst");
+    }
 }

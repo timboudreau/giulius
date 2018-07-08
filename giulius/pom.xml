@@ -12,12 +12,11 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>annotation-processors</artifactId>
-            <scope>compile</scope>
+            <artifactId>giulius-settings</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>giulius-settings</artifactId>
+            <artifactId>giulius-annotations</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>

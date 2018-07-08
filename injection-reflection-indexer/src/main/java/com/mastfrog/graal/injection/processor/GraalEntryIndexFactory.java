@@ -23,13 +23,14 @@
  */
 package com.mastfrog.graal.injection.processor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
 import com.mastfrog.util.service.AnnotationIndexFactory;
+import com.mastfrog.util.service.AnnotationUtils;
 import com.mastfrog.util.service.IndexEntry;
+import com.mastfrog.util.service.SimpleJSON;
 import java.io.IOException;
 import java.io.OutputStream;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +60,12 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
         @Override
         public void write(OutputStream out, ProcessingEnvironment processingEnv) throws IOException {
             Map<String, List<GraalEntry>> m1 = new TreeMap<>();
+            Set<String> alls = new HashSet<>();
+            // Group by class name
             for (GraalEntry g : this) {
+                if (g.isAll()) {
+                    alls.add(g.className);
+                }
                 List<GraalEntry> l = m1.get(g.className);
                 if (l == null) {
                     l = new ArrayList<>(2);
@@ -67,32 +73,68 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
                 }
                 l.add(g);
             }
+            // Build entries for all items where we are exposing all
+            // methods and constructors;  consolidate any fields
+            // into such records, since there is no allDeclaredFields
+            // option
             List<Map<String, Object>> all = new ArrayList<>(this.size());
-            Set<String> alls = new HashSet<>();
+            for (String a : alls) {
+                List<GraalEntry> listFor = m1.get(a);
+                Map<String, Object> curr = new LinkedHashMap<>();
+                curr.put("name", a);
+                curr.put("allDeclaredConstructors", true);
+                curr.put("allDeclaredMethods", true);
+                curr.put("allPublicConstructors", true);
+                curr.put("allPublicMethods", true);
+                List<Map<String, Object>> fields = new ArrayList<>();
+                Set<String> seenFieldNames = new HashSet<>();
+                // Find any records that expose fields and merge those
+                // in here
+                for (GraalEntry e : listFor) {
+                    if (e.isField()) {
+                        // Ensure no duplicates
+                        if (seenFieldNames.contains(e.memberName)) {
+                            continue;
+                        }
+                        Map<String, Object> fieldInfo = new LinkedHashMap<>();
+                        seenFieldNames.add(e.memberName);
+                        fieldInfo.put("name", e.memberName);
+                        fields.add(fieldInfo);
+                    }
+                }
+                if (!fields.isEmpty()) {
+                    curr.put("fields", fields);
+                }
+            }
+
             for (Map.Entry<String, List<GraalEntry>> e : m1.entrySet()) {
+                if (alls.contains(e.getKey())) {
+                    // already added
+                    continue;
+                }
+                // New record
                 Map<String, Object> curr = new LinkedHashMap<>();
                 curr.put("name", e.getKey());
-                List<Map<String, Object>> methods = new ArrayList<>(2);
-                List<Map<String, Object>> fields = new ArrayList<>(2);
+                List<Map<String, Object>> methods = new ArrayList<>(5);
+                List<Map<String, Object>> fields = new ArrayList<>(5);
+                // Duplicate checking
+                Set<String> seenMethodSignatures = new HashSet<>(10);
+                Set<String> seenFieldNames = new HashSet<>(10);
                 for (GraalEntry en : e.getValue()) {
-                    if (alls.contains(en.className)) {
-                        continue;
-                    }
-                    if (en.isAll()) {
-                        alls.add(en.className);
-                        curr.put("allDeclaredConstructors", "true");
-                        curr.put("allDeclaredMethods", "true");
-                        curr.put("allPublicConstructors", "true");
-                        curr.put("allPublicMethods", "true");
-                        continue;
-                    }
                     Map<String, Object> currMember = new LinkedHashMap<>();
                     currMember.put("name", en.memberName);
                     if (en.isField()) {
-                        fields.add(currMember);
+                        if (!seenFieldNames.contains(en.memberName)) {
+                            fields.add(currMember);
+                            seenFieldNames.add(en.memberName);
+                        }
                     } else {
-                        currMember.put("parameterTypes", en.parameterTypes);
-                        methods.add(currMember);
+                        String signature = en.memberName + en.parameterTypes;
+                        if (!seenMethodSignatures.contains(signature)) {
+                            currMember.put("parameterTypes", en.parameterTypes);
+                            methods.add(currMember);
+                            seenMethodSignatures.add(signature);
+                        }
                     }
                 }
                 if (!methods.isEmpty()) {
@@ -101,10 +143,15 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
                 if (!fields.isEmpty()) {
                     curr.put("fields", fields);
                 }
-                all.add(curr);
+                if (!methods.isEmpty() || !fields.isEmpty()) {
+                    all.add(curr);
+                }
             }
-            ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-            mapper.writeValue(out, all);
+            // Sort for human readability and repeatable builds
+            Collections.sort(all, (a, b) -> {
+                return ((String) a.get("name")).compareTo((String) b.get("name"));
+            });
+            out.write(SimpleJSON.stringify(all, SimpleJSON.Style.MINIFIED).getBytes(UTF_8));
         }
     }
 
@@ -132,12 +179,14 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
         GraalEntry(String className, String methodName, List<String> parameterTypes, Element... els) {
             this.className = className;
             this.memberName = methodName == null ? "<init>" : methodName;
-            this.parameterTypes = parameterTypes == null || parameterTypes.isEmpty() ? Collections.emptyList() : new ArrayList<>(parameterTypes);
+            this.parameterTypes = parameterTypes == null
+                    || parameterTypes.isEmpty() ? Collections.emptyList() : new ArrayList<>(parameterTypes);
             this.els = els == null ? new Element[0] : els;
         }
 
         public String toString() {
-            return className + "." + memberName + (parameterTypes == null ? "" : " (" + parameterTypes + ")");
+            return className + "." + (memberName != null ? memberName : "")
+                    + (parameterTypes == null ? "" : " (" + AnnotationUtils.join(',', parameterTypes) + ")");
         }
 
         public boolean isField() {
@@ -168,8 +217,18 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
             } else if (this.parameterTypes != null && other.parameterTypes == null) {
                 return -1;
             }
+            if (this.memberName == null && other.memberName != null) {
+                return -1;
+            } else if (this.memberName != null && other.memberName == null) {
+                return 1;
+            }
+            if (this.className == null && other.className != null) {
+                return -1;
+            } else if (this.className != null && other.className == null) {
+                return 1;
+            }
             int result = className.compareTo(other.className);
-            if (result == 0) {
+            if (result == 0 && this.memberName != null) {
                 result = memberName.compareTo(other.memberName);
             }
             if (result == 0 && parameterTypes != null) {
@@ -201,9 +260,19 @@ final class GraalEntryIndexFactory extends AnnotationIndexFactory<GraalEntry> {
                 return false;
             }
             final GraalEntry other = (GraalEntry) obj;
-            return className.equals(other.className)
-                    && memberName.equals(other.memberName)
-                    && Objects.equals(parameterTypes, other.parameterTypes);
+            if (className.equals(other.className)) {
+                if ((memberName == null) != (other.memberName == null)) {
+                    return false;
+                }
+                if (memberName != null && !memberName.equals(other.memberName)) {
+                    return false;
+                }
+                if (!Objects.equals(parameterTypes, other.parameterTypes)) {
+                    return false;
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

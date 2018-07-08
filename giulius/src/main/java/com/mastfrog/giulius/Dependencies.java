@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License
  *
  * Copyright 2013 Tim Boudreau.
@@ -26,7 +26,6 @@ package com.mastfrog.giulius;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Guice;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
@@ -44,19 +43,23 @@ import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
-import com.mastfrog.giulius.annotations.processors.NamespaceAnnotationProcessor;
 import com.mastfrog.util.ConfigurationError;
 import com.mastfrog.settings.MutableSettings;
+import static com.mastfrog.settings.SettingsBuilder.DEFAULT_NAMESPACE;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.Exceptions;
 import com.mastfrog.util.Streams;
+import static com.mastfrog.util.collections.CollectionUtils.setOf;
 import com.mastfrog.util.thread.ProtectedThreadLocal;
 import com.mastfrog.util.thread.QuietAutoCloseable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -71,6 +74,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -146,15 +151,15 @@ public final class Dependencies {
      * @param modules A set of modules
      */
     public Dependencies(Settings configuration, Module... modules) {
-        this(Collections.singletonMap(Namespace.DEFAULT, configuration), EnumSet.allOf(SettingsBindings.class), modules);
+        this(Collections.singletonMap(DEFAULT_NAMESPACE, configuration), EnumSet.allOf(SettingsBindings.class), modules);
     }
 
     Dependencies(Map<String, Settings> settings, Set<SettingsBindings> settingsBindings, Module... modules) {
         this.settings.putAll(settings);
-        if (!this.settings.containsKey(Namespace.DEFAULT)) {
+        if (!this.settings.containsKey(DEFAULT_NAMESPACE)) {
             try {
                 //need at least an empty one for defaults
-                this.settings.put(Namespace.DEFAULT, new SettingsBuilder().build());
+                this.settings.put(DEFAULT_NAMESPACE, new SettingsBuilder().build());
             } catch (IOException ex) {
                 throw new ConfigurationError(ex);
             }
@@ -519,8 +524,15 @@ public final class Dependencies {
                     }
                     allKeys.addAll(s.allKeys());
                 }
-
-                Provider<Settings> namespacedSettings = new NamespacedSettingsProvider(Dependencies.this);
+                Provider<Settings> namespacedSettings;
+                if (knownNamespaces.isEmpty() || setOf(DEFAULT_NAMESPACE).equals(knownNamespaces)) {
+                    // 3.5.0 - for Graal, avoid package lookups which are problematic
+                    // with reflection - should also improve settings lookups in general
+                    String ns = knownNamespaces.isEmpty() ? SettingsBuilder.DEFAULT_NAMESPACE : knownNamespaces.iterator().next();
+                    namespacedSettings = Providers.of(settings.get(ns));
+                } else {
+                    namespacedSettings = new NamespacedSettingsProvider(Dependencies.this);
+                }
                 for (String k : allKeys) {
                     Named n = Names.named(k);
                     PropertyProvider p = new PropertyProvider(k, namespacedSettings);
@@ -608,7 +620,7 @@ public final class Dependencies {
                     }
                 }
                 bind(Settings.class).toProvider(namespacedSettings);
-                //Provide a binding to 
+                //Provide a binding to
                 bind(MutableSettings.class).toProvider(new MutableSettingsProvider(namespacedSettings, currentType));
                 //A hack, but it works
 
@@ -673,8 +685,8 @@ public final class Dependencies {
                             WARNED.add(toWarn);
                             System.out.println(injectingInto.get() + " is requesting MutableSettings, "
                                     + "but none was bound.  Creating ephemeral settings, "
-                                    + "but probably nothing but this object will see "
-                                    + "the contents.");
+                                    + "but probably nothing but the object it is injected into will see "
+                                    + "changes in it.");
                         }
                     }
                     return new SettingsBuilder().add(result).buildMutableSettings();
@@ -684,18 +696,63 @@ public final class Dependencies {
             }
         }
     }
-    private static final Pattern pat = Pattern.compile("(.*)\\..*?");
+    private static final Pattern PARENT_PACKAGE_PATTERN = Pattern.compile("(.*)\\..*?");
 
     private static class NamespacedSettingsProvider implements Provider<Settings> {
 
         private final Dependencies deps;
 
-        @Inject
         NamespacedSettingsProvider(Dependencies deps) {
             this.deps = deps;
         }
 
+        static volatile Method getDefinedPackageMethod;
+        static boolean checkedGetDefinedPackageMethod;
+
+        static Method lookupGetDefinedPackageMethod() {
+            if (getDefinedPackageMethod != null) {
+                return getDefinedPackageMethod;
+            }
+            if (checkedGetDefinedPackageMethod) {
+                return null;
+            }
+            Method result = null;
+            try {
+                result = ClassLoader.class.getDeclaredMethod("getDefinedPackage", String.class);
+                synchronized (NamespacedSettingsProvider.class) {
+                    getDefinedPackageMethod = result;
+                }
+            } catch (Exception ex) {
+                Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
+                        "Check availability of JDK 9's ClassLoader.getDefinedPackage()", ex);
+            } finally {
+                checkedGetDefinedPackageMethod = true;
+            }
+            return result;
+        }
+
+        private Package jdk9getPackage(String pkg) {
+            Method mth = lookupGetDefinedPackageMethod();
+            if (mth != null) {
+                ClassLoader ldr = Thread.currentThread().getContextClassLoader();
+                try {
+                    return (Package) mth.invoke(ldr, pkg);
+                } catch (IllegalAccessException ex) {
+                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
+                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
+                } catch (IllegalArgumentException ex) {
+                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
+                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
+                } catch (InvocationTargetException ex) {
+                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
+                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
+                }
+            }
+            return null;
+        }
+
         @Override
+        @SuppressWarnings("deprecation")
         public Settings get() {
             TypeLiteral<?> t = deps.prevType.get();
             String namespace = Namespace.DEFAULT;
@@ -709,11 +766,14 @@ public final class Dependencies {
                             ns = pkg.getAnnotation(Namespace.class);
                             if (ns == null) {
                                 String nm = pkg.getName();
-                                java.util.regex.Matcher m = pat.matcher(nm);
+                                java.util.regex.Matcher m = PARENT_PACKAGE_PATTERN.matcher(nm);
                                 if (!m.find()) {
                                     break;
                                 } else {
-                                    pkg = Package.getPackage(m.group(1));
+                                    pkg = jdk9getPackage(m.group(1));
+                                    if (pkg == null) {
+                                        pkg = Package.getPackage(m.group(1));
+                                    }
                                     if (pkg == null || pkg.getName().isEmpty()) {
                                         break;
                                     }
@@ -740,7 +800,7 @@ public final class Dependencies {
             for (InputStream in : streams) {
                 try {
                     Reader reader = new InputStreamReader(in);
-                    NamespaceAnnotationProcessor.readNamepaces(reader, all);
+                    readNamepaces(reader, all);
                 } finally {
                     in.close();
                 }
@@ -750,6 +810,17 @@ public final class Dependencies {
             log("No input streams for namespaces " + all + " - no classpath files " + listPathOnClasspath);
         }
         return all;
+    }
+
+    private static void readNamepaces(Reader reader, Set<? super String> into) throws IOException {
+        //XXX preserve comments
+        String line = "";
+        for (LineNumberReader r = new LineNumberReader(reader); line != null; line = r.readLine()) {
+            line = line.trim();
+            if (line.length() > 0 && line.charAt(0) != '#') {
+                into.add(line);
+            }
+        }
     }
 
     private static class ByteProvider implements Provider<Byte> {

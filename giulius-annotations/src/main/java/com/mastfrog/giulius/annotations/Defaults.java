@@ -23,7 +23,6 @@
  */
 package com.mastfrog.giulius.annotations;
 
-import com.mastfrog.settings.SettingsBuilder;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -43,12 +42,30 @@ import java.lang.annotation.Target;
  * @author Tim Boudreau
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.PACKAGE, ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR})
+@Target({ElementType.PACKAGE, ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 public @interface Defaults {
 
-    public static final String DEFAULT_PATH = SettingsBuilder.DEFAULT_PATH;
-    public static final String DEFAULT_FILE = SettingsBuilder.GENERATED_PREFIX + Namespace.DEFAULT + SettingsBuilder.DEFAULT_EXTENSION;
-    public static final String DEFAULT_LOCATION = DEFAULT_PATH + '/' + DEFAULT_FILE;
+    /**
+     * Path within JAR files to look for settings information
+     */
+    public static final String DEFAULT_PATH = "META-INF/settings/";
+    /**
+     * The default namespace, "defaults", which is used for settings which do
+     * not explicitly have a namespace
+     */
+    public static final String DEFAULT_NAMESPACE = "defaults";
+    /**
+     * File extension for settings files <code>.properties</code>
+     */
+    public static final String DEFAULT_EXTENSION = ".properties";
+    /**
+     * Prefix used for settings files generated from annotations,
+     * <code>generated-</code>
+     */
+    public static final String GENERATED_PREFIX = "generated-";
+
+    public static final String DEFAULT_FILE = GENERATED_PREFIX + Namespace.DEFAULT + DEFAULT_EXTENSION;
+    public static final String DEFAULT_LOCATION = DEFAULT_PATH + DEFAULT_FILE;
 
     /**
      * Each string element should be parseable as a Properties file (or one line

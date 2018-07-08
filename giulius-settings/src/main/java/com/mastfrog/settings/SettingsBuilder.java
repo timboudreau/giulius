@@ -24,6 +24,7 @@
 package com.mastfrog.settings;
 
 import com.mastfrog.util.Checks;
+import static com.mastfrog.util.Checks.notNull;
 import com.mastfrog.util.ConfigurationError;
 import com.mastfrog.util.Streams;
 import java.io.File;
@@ -39,6 +40,7 @@ import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -579,6 +581,38 @@ public final class SettingsBuilder {
         return result;
     }
 
+    private Map<Character,String> shortcuts = new HashMap<>();
+    /**
+     * Add a single-character shortcut command-line argument for use when
+     * parsing command-line arguments.  Note that this method must be called
+     * <i>before</i> any call to <code>parseCommandLineArguments()</code>..
+     * Example: <pre>commandLineShortcut('f', "file")</pre> will result in
+     * being able to run <code>java -jar myapp.jar -f /path/to/file</code>
+     * in place of <code>java -jar myapp.jar --file /path/to/file</code>.
+     *
+     * @param character
+     * @param key
+     * @return
+     */
+    public SettingsBuilder commandLineShortcut(char character, String key) {
+        if (shortcuts.containsKey(character) && !key.equals(shortcuts.get(character))) {
+            throw new IllegalArgumentException("Redefining shortcut for " + character + " from " + shortcuts.get(character) + " to " + key);
+        }
+        shortcuts.put(character, notNull("key", key));
+        return this;
+    }
+
+    private static Map<Character,String> combineShortcuts(Map<Character,String> a, Map<Character,String> b) {
+        if (a.isEmpty()) {
+            return b;
+        } else if (b.isEmpty()) {
+            return a;
+        }
+        Map<Character,String> result = new HashMap<>(a);
+        result.putAll(b);
+        return result;
+    }
+
     /**
      * Parse command line arguments ala <code>--foo</code> translating to a
      * setting of foo=true or <code>--foo 23</code> translating to a setting of
@@ -603,6 +637,7 @@ public final class SettingsBuilder {
      * @return this
      */
     public SettingsBuilder parseCommandLineArguments(Map<Character, String> mapping, String... args) {
+        mapping = combineShortcuts(mapping, shortcuts);
         if (args == null || args.length == 0) {
             return this;
         }

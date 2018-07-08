@@ -24,20 +24,17 @@
 package com.mastfrog.graal.injection.processor;
 
 import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
-import com.mastfrog.graal.injection.processor.ReflectionInfo.MemberInfo;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_MANY_ANNOTATION;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_TYPES_ANNOTATION;
 import com.mastfrog.util.service.AbstractRegistrationAnnotationProcessor;
 import com.mastfrog.util.service.ServiceProvider;
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import javax.annotation.processing.Processor;
-import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -45,67 +42,36 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.REFLECTION_INFO_ANNOTATION;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.JAVAX_INJECT_ANNOTATION;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.GUICE_INJECT_ANNOTATION;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.JSON_CREATOR_ANNOTATION;
+import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.JSON_PROPERTY_ANNOTATION;
+import java.util.Arrays;
 
 /**
  *
  * @author Tim Boudreau
  */
-@SupportedAnnotationTypes({"com.google.inject.Inject", "javax.inject.Inject", "com.mastfrog.graal.injection.processor.ReflectionInfo",
-    "com.fasterxml.jackson.annotation.JsonCreator", "com.fasterxml.jackson.annotation.JsonProperty"})
+@SupportedAnnotationTypes({GUICE_INJECT_ANNOTATION, JAVAX_INJECT_ANNOTATION, REFLECTION_INFO_ANNOTATION,
+    JSON_CREATOR_ANNOTATION, JSON_PROPERTY_ANNOTATION, EXPOSE_TYPES_ANNOTATION, EXPOSE_MANY_ANNOTATION})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @ServiceProvider(Processor.class)
 public final class GraalInjectionProcessor extends AbstractRegistrationAnnotationProcessor<GraalEntryIndexFactory.GraalEntry> {
+
+    static final String GUICE_INJECT_ANNOTATION = "com.google.inject.Inject";
+    static final String JAVAX_INJECT_ANNOTATION = "javax.inject.Inject";
+    static final String REFLECTION_INFO_ANNOTATION = "com.mastfrog.graal.annotation.Expose";
+    static final String EXPOSE_MANY_ANNOTATION = "com.mastfrog.graal.annotation.ExposeMany";
+    static final String EXPOSE_TYPES_ANNOTATION = "com.mastfrog.graal.annotation.ExposeAllMethods";
+    static final String JSON_CREATOR_ANNOTATION = "com.fasterxml.jackson.annotation.JsonCreator";
+    static final String JSON_PROPERTY_ANNOTATION = "com.fasterxml.jackson.annotation.JsonProperty";
+    static final String GUICE_MODULE_ANNOTATION = "com.mastfrog.acteur.annotations.GuiceModule";
 
     public static final String JAR_PATH_JSON_FILE = "META-INF/injection/reflective.json";
 
     public GraalInjectionProcessor() {
         super(new GraalEntryIndexFactory());
-        System.out.println("Created a " + GraalInjectionProcessor.class.getSimpleName());
-    }
-
-    protected Set<Element> findAnnotatedElements(RoundEnvironment roundEnv) {
-        Set<Element> result = new HashSet<>();
-
-        result.addAll(roundEnv.getElementsAnnotatedWith(com.google.inject.Inject.class));
-        result.addAll(roundEnv.getElementsAnnotatedWith(javax.inject.Inject.class));
-        result.addAll(roundEnv.getElementsAnnotatedWith(ReflectionInfo.class));
-        result.addAll(roundEnv.getElementsAnnotatedWith(com.fasterxml.jackson.annotation.JsonCreator.class));
-        result.addAll(roundEnv.getElementsAnnotatedWith(com.fasterxml.jackson.annotation.JsonProperty.class));
-
-//        TypeElement te = processingEnv.getElementUtils().getTypeElement("com.google.inject.Inject");
-//        if (te != null) {
-//            result.add(te);
-//        }
-//        te = processingEnv.getElementUtils().getTypeElement("javax.inject.Inject");
-//        if (te != null) {
-//            result.add(te);
-//        }
-//        te = processingEnv.getElementUtils().getTypeElement(ReflectionInfo.class.getName());
-//        if (te != null) {
-//            result.add(te);
-//        }
-//
-        System.out.println("Have elements: " + result);
-
-        // JDK 9
-
-//        for (TypeElement type : processingEnv.getElementUtils().getAllTypeElements("com.google.inject.Inject")) {
-//            result.addAll(roundEnv.getElementsAnnotatedWith(type));
-//        }
-//
-//        for (TypeElement type : processingEnv.getElementUtils().getAllTypeElements("javax.inject.Inject")) {
-//            result.addAll(roundEnv.getElementsAnnotatedWith(type));
-//        }
-//
-//        for (TypeElement type : processingEnv.getElementUtils().getAllTypeElements(ReflectionInfo.class.getName())) {
-//            result.addAll(roundEnv.getElementsAnnotatedWith(type));
-//        }
-        return result;
-    }
-
-    @Override
-    protected int getOrder(Annotation anno) {
-        return 0;
     }
 
     private TypeMirror enclosingType(Element el) {
@@ -122,99 +88,168 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
         return el instanceof ExecutableElement ? ((ExecutableElement) el) : null;
     }
 
-
     private void note(String msg, Element e) {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, msg, e);
     }
 
+    private void note(String msg, Element e, AnnotationMirror me) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, msg, e);
+    }
+
+    private void handleReflectionInfo(Element e, String typeName, AnnotationMirror anno) {
+        String name = utils.annotationValue(anno, "type", String.class);
+        name = name == null || name.isEmpty() ? typeName : name;
+        int memberCount = 0;
+        for (AnnotationMirror me : utils.annotationValues(anno, "methods", AnnotationMirror.class)) {
+            List<String> params = utils.annotationValues(me, "parameterTypes", String.class);
+            String methodName = utils.annotationValue(me, "name", String.class);
+            GraalEntry infoEntry = new GraalEntry(name, methodName, params, e);
+
+            if (indexer.add(JAR_PATH_JSON_FILE, infoEntry, processingEnv, e)) {
+                note("[reflective-method-access] " + infoEntry, e, me);
+                memberCount++;
+            }
+        }
+
+        List<String> fieldDefs = utils.annotationValues(anno, "fields", String.class);
+        if (fieldDefs.size() == 1 && Arrays.asList("*").equals(fieldDefs)) {
+            TypeElement el = processingEnv.getElementUtils().getTypeElement(name);
+            if (el == null) {
+                fail("Cannot resolve " + name + " on compiler classpath to fill in all fields to expose '*'", e, anno);
+            } else {
+                for (Element member : el.getEnclosedElements()) {
+                    switch (member.getKind()) {
+                        case FIELD:
+                            String nm = member.getSimpleName().toString();
+                            GraalEntry fieldEntry = new GraalEntry(name, nm, e);
+                            if (indexer.add(JAR_PATH_JSON_FILE, fieldEntry, processingEnv, e)) {
+                                memberCount++;
+                                note("[reflective-field-access] " + fieldEntry, e, anno);
+                            }
+                    }
+                }
+            }
+        } else {
+            for (String fieldName : fieldDefs) {
+                GraalEntry infoEntry = new GraalEntry(name, fieldName, e);
+
+                if (indexer.add(JAR_PATH_JSON_FILE, infoEntry, processingEnv, e)) {
+                    note("[reflective-field-access] " + infoEntry, e, anno);
+                    memberCount++;
+                }
+            }
+        }
+
+        if (memberCount == 0) {
+            GraalEntry allEntry = new GraalEntry(name, e);
+            if (indexer.add(JAR_PATH_JSON_FILE, allEntry, processingEnv, e)) {
+                note("[reflective-all-access] " + allEntry, e, anno);
+                memberCount++;
+            }
+        }
+    }
+
+    private void handleExposeTypesAnnotation(Element e, AnnotationMirror anno) {
+        List<String> typesToExpose = utils.typeList(anno, "value");
+        utils.warn("Handle expose types: " + anno);
+        if (typesToExpose != null) {
+            for (String type : typesToExpose) {
+                utils.warn("Expose type " + type, e, anno);
+                GraalEntry allEntry = new GraalEntry(type, e);
+                indexer.add(JAR_PATH_JSON_FILE, allEntry, processingEnv, e);
+            }
+        }
+
+    }
+
     @Override
-    protected void handleOne(Element e, Annotation anno, int order) {
+    protected void handleOne(Element e, AnnotationMirror anno, int order) {
         try {
+            if (EXPOSE_TYPES_ANNOTATION.equals(anno.getAnnotationType().toString())) {
+                handleExposeTypesAnnotation(e, anno);
+                return;
+            }
+
+            if (EXPOSE_MANY_ANNOTATION.equals(anno.getAnnotationType().toString())) {
+                List<AnnotationMirror> exposeAnnotations = utils.annotationValues(anno, "value", AnnotationMirror.class);
+                for (AnnotationMirror expose : exposeAnnotations) {
+                    handleOne(e, expose, order);
+                }
+                return;
+            }
+
             if (e.getKind() == ElementKind.PARAMETER) {
                 Element orig = e;
                 e = enclosingMethod(e);
                 if (e == null) {
-                    super.fail("Could not find an enclosing method for " + orig);
+                    super.fail("Could not find an enclosing method for " + orig, e, anno);
                     return;
                 }
             }
             TypeMirror type = enclosingType(e);
             if (type == null) {
-                super.fail("Could not find enclosing type for " + e);
+                super.fail("Could not find enclosing type for " + e, e, anno);
                 return;
             }
-            String typeName = canonicalize(type, processingEnv.getTypeUtils());
-            if (anno instanceof ReflectionInfo) {
-                ReflectionInfo refInfo = (ReflectionInfo) anno;
-                String name = refInfo.type().isEmpty() ? typeName : refInfo.type();
-                for (MemberInfo me : refInfo.members()) {
-                    boolean isField = me.parameters().length == 1 && ".+.".equals(me.parameters()[0]);
-                    if (isField && "<init>".equals(me.name())) {
-                        fail("Specify the field name, or specify just the parameters if you are referencing a constructor.");
-                        return;
-                    }
-                    GraalEntry infoEntry;
-                    if (isField) {
-                        infoEntry = new GraalEntry(name, me.name(), e);
-                    } else {
-                        infoEntry = new GraalEntry(name, me.name(), Arrays.asList(me.parameters()), e);
-                    }
-                    note("[reflective-access] " + infoEntry, e);
-                    indexer.add(JAR_PATH_JSON_FILE, infoEntry, processingEnv, e);
-                }
+            String typeName = utils.canonicalize(type);
+
+            if (anno.getAnnotationType().toString().equals(REFLECTION_INFO_ANNOTATION)) {
+                handleReflectionInfo(e, typeName, anno);
+                return;
+            }
+            if (GUICE_MODULE_ANNOTATION.equals(anno.getAnnotationType().toString())) {
+                GraalEntry allEntry = new GraalEntry(utils.canonicalize(e.asType()), e);
+                indexer.add(JAR_PATH_JSON_FILE, allEntry, processingEnv, e);
                 return;
             }
             if (e.getKind() != ElementKind.FIELD && !(e instanceof ExecutableElement)) {
-                super.fail("Not a field or ExecutableElement (method, constructor): " + e, e);
+                utils.fail("Not a field or ExecutableElement (method, constructor): " + e, e, anno);
                 return;
             }
             switch (e.getKind()) {
                 case CONSTRUCTOR:
                 case METHOD:
                     if (!(e instanceof ExecutableElement)) { // broken sources can do strange things
-                        fail("Not an executable element (method, constructor): " + e, e);
+                        fail("Not an executable element (method, constructor): " + e, e, anno);
                         return;
                     }
                     ExecutableElement ex = (ExecutableElement) e;
                     List<String> params = new ArrayList<>();
                     for (VariableElement v : ex.getParameters()) {
                         TypeMirror ptype = v.asType();
-                        String paramTypeName = canonicalize(ptype, processingEnv.getTypeUtils());
+                        String paramTypeName = utils.canonicalize(ptype);
+                        if (paramTypeName == null) {
+                            fail("Could not canonicalize " + v, v);
+                            break;
+                        }
                         params.add(paramTypeName);
                     }
                     GraalEntry methodOrConstructorEntry = new GraalEntry(typeName, ex.getSimpleName().toString(), params, e);
                     indexer.add(JAR_PATH_JSON_FILE, methodOrConstructorEntry, processingEnv, e);
-                    note("[reflective-access] " + methodOrConstructorEntry, e);
-                    System.out.println("GRAAL-ENTRY: " + methodOrConstructorEntry);
+                    String noteKey = e.getKind() == ElementKind.CONSTRUCTOR
+                            ? "[reflective-constructor-access] " : "[reflective-method-access] ";
+                    note(noteKey + methodOrConstructorEntry, e, anno);
                     break;
                 case FIELD:
                     if (!(e instanceof VariableElement)) {
-                        fail("Not a variable element (field): " + e, e);
+                        fail("Not a variable element (field): " + e, e, anno);
                         return;
                     }
+//                    if (e.getModifiers().contains(Modifier.PUBLIC)) {
+//                        // No need to record reflection access for a field which is already
+//                        // public
+//                        return;
+//                    }
                     VariableElement ve = (VariableElement) e;
                     GraalEntry fieldEntry = new GraalEntry(typeName, ve.getSimpleName().toString(), e);
-                    note("[reflective-access] " + fieldEntry, e);
-                    System.out.println("FIELD ENTRY: " + fieldEntry);
+                    note("[reflective-field-access] " + fieldEntry, e, anno);
                     indexer.add(JAR_PATH_JSON_FILE, fieldEntry, processingEnv, ve);
                     break;
                 default:
                     throw new IllegalArgumentException("Unprocessable element kind " + e.getKind() + " on " + type);
             }
         } catch (java.lang.annotation.IncompleteAnnotationException inc) {
-            fail(inc.getMessage(), e);
+            fail(inc.getMessage(), e, anno);
         }
-    }
-
-    @Override
-    protected Annotation findAnnotation(Element e) {
-        Annotation result = e.getAnnotation(com.google.inject.Inject.class);
-        if (result == null) {
-            result = e.getAnnotation(javax.inject.Inject.class);
-        }
-        if (result == null) {
-            result = e.getAnnotation(ReflectionInfo.class);
-        }
-        return result;
     }
 }

@@ -21,28 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.graal.injection.processor;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+package com.mastfrog.giulius.newanno;
+
+import com.mastfrog.giulius.Dependencies;
+import com.mastfrog.giulius.DependenciesBuilder;
+import com.mastfrog.settings.Settings;
+import com.mastfrog.settings.SettingsBuilder;
+import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 /**
- * Allows additional information about reflectively accessed members in
- * foreign JARs to be included.
  *
  * @author Tim Boudreau
  */
-@Retention(RetentionPolicy.SOURCE)
-public @interface ReflectionInfo {
+public class SettingsDefaultsTest {
 
-    String type() default "";
+    @Test
+    public void test() throws Throwable {
+        Settings settings = new SettingsBuilder("noobie").addDefaultsFromClasspath().addGeneratedDefaultsFromClasspath().build();
+        System.out.println("SETTINGS: " + settings);
+        assertEquals("whuddle", settings.getString("gog"));
+        assertEquals("woo", settings.getString("whupty"));
+        assertEquals("23", settings.getString("snacks"));
+        assertEquals("wagglum's large\tantelope", settings.getString("glorst"));
+        assertEquals("guppy", settings.getString("gubble"));
 
-    MemberInfo[] members();
+        Dependencies deps = new DependenciesBuilder().add(settings, "noobie").build();
 
-    @interface MemberInfo {
-
-        String name() default "<init>";
-
-        String[] parameters() default ".+.";
+        NewThing nt = deps.getInstance(NewThing.class);
+        assertEquals("wagglum's large\tantelope", nt.glorst);
+        assertEquals("woo", nt.whupty);
     }
 }

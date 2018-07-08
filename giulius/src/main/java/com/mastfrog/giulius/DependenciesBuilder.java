@@ -25,9 +25,9 @@ package com.mastfrog.giulius;
 
 import com.google.common.collect.Maps;
 import com.google.inject.Module;
-import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
+import static com.mastfrog.settings.SettingsBuilder.DEFAULT_NAMESPACE;
 import com.mastfrog.util.Checks;
 import com.mastfrog.util.ConfigurationError;
 import java.io.File;
@@ -167,10 +167,10 @@ public final class DependenciesBuilder {
     public DependenciesBuilder addDefaultSettings() throws IOException {
         Set<String> namespaces = new HashSet<>(settingsForNamespace.keySet());
         namespaces.addAll(Dependencies.loadNamespaceListsFromClasspath());
-        namespaces.add(Namespace.DEFAULT);
+        namespaces.add(DEFAULT_NAMESPACE);
         for (String ns : namespaces) {
             Settings s;
-            if (Namespace.DEFAULT.equals(ns)) {
+            if (DEFAULT_NAMESPACE.equals(ns)) {
                 SettingsBuilder sb = new SettingsBuilder().addDefaultLocations();
                 addLocations(sb);
                 s = sb.build();
@@ -199,7 +199,7 @@ public final class DependenciesBuilder {
      * @return this
      */
     public DependenciesBuilder add(Settings settings) {
-        return add(settings, Namespace.DEFAULT);
+        return add(settings, DEFAULT_NAMESPACE);
     }
 
     /**

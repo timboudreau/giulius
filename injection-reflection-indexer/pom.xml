@@ -17,7 +17,7 @@
                     <fork>true</fork>
                 </configuration>
                 <executions>
-<!--                    <execution>
+                    <!--                    <execution>
                         <id>process-annotations</id>
                         <phase>generate-sources</phase>
                         <goals>
@@ -69,27 +69,35 @@
                             </compilerArgs>
                         </configuration>
                     </execution>
-                    
+
                 </executions>
-            </plugin>            
+            </plugin>
         </plugins>
-    </build>    
+    </build>
     <dependencies>
         <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>annotation-processors</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.mastfrog</groupId>
+            <artifactId>util</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <url>https://github.com/timboudreau/util</url>
