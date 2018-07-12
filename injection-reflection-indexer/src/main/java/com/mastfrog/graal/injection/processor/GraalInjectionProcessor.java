@@ -89,11 +89,11 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
     }
 
     private void note(String msg, Element e) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, msg, e);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, msg, e);
     }
 
     private void note(String msg, Element e, AnnotationMirror me) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, msg, e);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, msg, e, me);
     }
 
     private void handleReflectionInfo(Element e, String typeName, AnnotationMirror anno) {
