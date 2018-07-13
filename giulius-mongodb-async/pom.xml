@@ -3,8 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.mastfrog</groupId>
-        <artifactId>giulius-parent</artifactId>
+        <artifactId>mastfrog-parent-indexed</artifactId>
         <version>2.5.0-dev</version>
+        <relativePath/>
     </parent>
     <artifactId>giulius-mongodb-async</artifactId>
     <dependencies>
