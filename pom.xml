@@ -24,8 +24,8 @@
         <module>giulius-threadpool</module>
         <module>giulius-mongodb-async-init</module>
         <module>giulius-annotations</module>
-<!--        <module>injection-reflection-indexer</module>
-        <module>giulius-annotation-processors</module> -->
+        <module>injection-reflection-indexer</module>
+        <module>giulius-annotation-processors</module>
     </modules>
     <url>https://github.com/timboudreau/giulius</url>
     <scm>
