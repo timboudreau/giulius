@@ -23,8 +23,8 @@
  */
 package com.mastfrog.settings;
 
-import com.mastfrog.util.Checks;
-import com.mastfrog.util.Strings;
+import com.mastfrog.util.preconditions.Checks;
+import com.mastfrog.util.strings.Strings;
 import java.math.BigInteger;
 import java.util.Base64;
 import java.util.Collections;

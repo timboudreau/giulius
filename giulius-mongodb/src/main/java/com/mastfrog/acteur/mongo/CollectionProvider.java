@@ -1,7 +1,7 @@
 package com.mastfrog.acteur.mongo;
 
 import com.google.inject.Provider;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;

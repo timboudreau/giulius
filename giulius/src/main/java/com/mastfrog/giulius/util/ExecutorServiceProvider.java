@@ -26,7 +26,7 @@ package com.mastfrog.giulius.util;
 import com.google.inject.Binder;
 import com.google.inject.Provider;
 import com.mastfrog.giulius.ShutdownHookRegistry;
-import com.mastfrog.util.Checks;
+import com.mastfrog.util.preconditions.Checks;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;

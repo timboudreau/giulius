@@ -23,7 +23,7 @@
  */
 package com.mastfrog.settings;
 
-import com.mastfrog.util.Checks;
+import com.mastfrog.util.preconditions.Checks;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;

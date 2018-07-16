@@ -30,7 +30,7 @@ import com.mastfrog.giulius.DependenciesBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
-import com.mastfrog.util.Streams;
+import com.mastfrog.util.streams.Streams;
 import java.io.InputStream;
 import java.util.Properties;
 import static org.junit.Assert.*;

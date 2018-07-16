@@ -15,7 +15,7 @@ import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SS
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_USER;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.settings.Settings;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;

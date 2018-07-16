@@ -43,15 +43,14 @@ import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
-import com.mastfrog.util.ConfigurationError;
+import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mastfrog.settings.MutableSettings;
 import static com.mastfrog.settings.SettingsBuilder.DEFAULT_NAMESPACE;
-import com.mastfrog.util.Checks;
-import com.mastfrog.util.Exceptions;
-import com.mastfrog.util.Streams;
+import com.mastfrog.util.preconditions.Checks;
+import com.mastfrog.util.preconditions.Exceptions;
+import com.mastfrog.util.streams.Streams;
 import static com.mastfrog.util.collections.CollectionUtils.setOf;
-import com.mastfrog.util.thread.ProtectedThreadLocal;
-import com.mastfrog.util.thread.QuietAutoCloseable;
+import com.mastfrog.util.thread.AutoCloseThreadLocal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -77,6 +76,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import com.mastfrog.util.thread.QuietAutoCloseable;
 
 /**
  * A wrapper around Guice's injector which enforces a few things such as how
@@ -212,7 +212,7 @@ public final class Dependencies {
 
     private final ThreadLocalCounter ctr = new ThreadLocalCounter();
 
-    private static final class ThreadLocalCounter extends QuietAutoCloseable {
+    private static final class ThreadLocalCounter implements QuietAutoCloseable {
 
         private final ThreadLocal<Integer> local = new ThreadLocal<>();
 
@@ -477,8 +477,8 @@ public final class Dependencies {
             return Objects.equals(this.key, other.key);
         }
     }
-    static final ProtectedThreadLocal<TypeLiteral<?>> currentType = new ProtectedThreadLocal<>();
-    static final ProtectedThreadLocal<TypeLiteral<?>> prevType = new ProtectedThreadLocal<>();
+    static final AutoCloseThreadLocal<TypeLiteral<?>> currentType = new AutoCloseThreadLocal<>();
+    static final AutoCloseThreadLocal<TypeLiteral<?>> prevType = new AutoCloseThreadLocal<>();
 
     private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
 
@@ -663,10 +663,10 @@ public final class Dependencies {
     private static class MutableSettingsProvider implements Provider<MutableSettings> {
 
         private final Provider<Settings> namespaced;
-        private final ProtectedThreadLocal<?> injectingInto;
+        private final AutoCloseThreadLocal<?> injectingInto;
         private static Set<String> WARNED = new HashSet<>();
 
-        MutableSettingsProvider(Provider<Settings> namespaced, ProtectedThreadLocal<?> injectingInto) {
+        MutableSettingsProvider(Provider<Settings> namespaced, AutoCloseThreadLocal<?> injectingInto) {
             this.namespaced = namespaced;
             this.injectingInto = injectingInto;
         }

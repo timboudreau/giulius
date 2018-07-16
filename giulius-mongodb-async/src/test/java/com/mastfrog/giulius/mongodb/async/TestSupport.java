@@ -23,7 +23,7 @@
  */
 package com.mastfrog.giulius.mongodb.async;
 
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.function.ThrowingConsumer;
 import com.mastfrog.util.function.ThrowingRunnable;
 import com.mastfrog.util.thread.Callback;

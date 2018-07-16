@@ -9,7 +9,7 @@ import com.google.inject.Provider;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.DependenciesBuilder;
 import com.mastfrog.settings.SettingsRefreshInterval;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;

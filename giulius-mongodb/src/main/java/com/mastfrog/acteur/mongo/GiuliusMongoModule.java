@@ -2,7 +2,7 @@ package com.mastfrog.acteur.mongo;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
-import com.mastfrog.util.ConfigurationError;
+import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;

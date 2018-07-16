@@ -26,7 +26,7 @@ package com.mastfrog.giulius.jdbc;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.sql.Connection;

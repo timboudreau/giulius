@@ -23,8 +23,8 @@
  */
 package com.mastfrog.giulius.jdbc;
 
-import com.mastfrog.util.Checks;
-import com.mastfrog.util.Streams;
+import com.mastfrog.util.preconditions.Checks;
+import com.mastfrog.util.streams.Streams;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

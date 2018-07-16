@@ -25,7 +25,7 @@ package com.mastfrog.giulius.mongodb.async;
 
 import com.google.common.collect.Maps;
 import com.mastfrog.settings.Settings;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.MongoCommandException;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;

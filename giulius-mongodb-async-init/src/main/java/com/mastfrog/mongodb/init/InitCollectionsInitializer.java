@@ -27,7 +27,7 @@ import com.mastfrog.giulius.Ordered;
 import static com.mastfrog.giulius.mongodb.async.MongoAsyncConfig.SETTINGS_KEY_DATABASE_NAME;
 import com.mastfrog.giulius.mongodb.async.MongoAsyncInitializer;
 import com.mastfrog.settings.Settings;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.concurrent.CountDownLatch;

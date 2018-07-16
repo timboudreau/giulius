@@ -24,8 +24,8 @@
 package com.mastfrog.mongodb.migration;
 
 import com.google.common.collect.Sets;
-import static com.mastfrog.util.Checks.notNull;
-import com.mastfrog.util.Exceptions;
+import static com.mastfrog.util.preconditions.Checks.notNull;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.function.NamedCompletableFuture;
 import com.mastfrog.util.function.ThrowingTriConsumer;
 import com.mastfrog.util.multivariate.OneOf;

@@ -23,7 +23,7 @@
  */
 package com.mastfrog.mongodb.init;
 
-import com.mastfrog.util.Checks;
+import com.mastfrog.util.preconditions.Checks;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;

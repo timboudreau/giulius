@@ -25,7 +25,7 @@ package com.mastfrog.giulius.thread;
 
 import com.google.inject.Provider;
 import com.google.inject.util.Providers;
-import com.mastfrog.util.Checks;
+import com.mastfrog.util.preconditions.Checks;
 
 /**
  * Builder for ExecutorService / Executor / ScheduledExecutorService bindings

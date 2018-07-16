@@ -24,7 +24,7 @@
 package com.mastfrog.giulius.mongodb.async;
 
 import com.mastfrog.settings.Settings;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.async.AsyncBatchCursor;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoDatabase;

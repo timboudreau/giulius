@@ -30,7 +30,7 @@ import static com.mastfrog.giulius.mongodb.async.MongoAsyncConfig.SETTINGS_KEY_D
 import com.mastfrog.giulius.mongodb.async.MongoAsyncInitializer;
 import com.mastfrog.mongodb.migration.Migration;
 import com.mastfrog.mongodb.migration.MigrationWorker;
-import com.mastfrog.util.Exceptions;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoDatabase;
 import java.util.Iterator;

@@ -81,7 +81,12 @@
         </dependency>
         <dependency>
             <groupId>com.mastfrog</groupId>
-            <artifactId>util</artifactId>
+            <artifactId>util-strings</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mastfrog</groupId>
+            <artifactId>util-collections</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

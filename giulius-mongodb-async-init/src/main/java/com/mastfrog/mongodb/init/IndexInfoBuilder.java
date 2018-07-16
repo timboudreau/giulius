@@ -23,7 +23,7 @@
  */
 package com.mastfrog.mongodb.init;
 
-import com.mastfrog.util.Checks;
+import com.mastfrog.util.preconditions.Checks;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.IndexOptions;
 import java.util.concurrent.TimeUnit;

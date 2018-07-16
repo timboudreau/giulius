@@ -19,6 +19,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>util-time</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>giulius-tests</artifactId>
             <scope>test</scope>
         </dependency>

@@ -23,7 +23,7 @@
  */
 package com.mastfrog.mongodb.migration;
 
-import static com.mastfrog.util.Checks.notNull;
+import static com.mastfrog.util.preconditions.Checks.notNull;
 import com.mastfrog.util.multivariate.OneOf;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;

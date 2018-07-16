@@ -25,7 +25,7 @@ package com.mastfrog.giulius.mongodb.async;
 
 import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.*;
 import com.mastfrog.settings.Settings;
-import com.mastfrog.util.ConfigurationError;
+import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;

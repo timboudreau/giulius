@@ -23,10 +23,10 @@
  */
 package com.mastfrog.settings;
 
-import com.mastfrog.util.Checks;
-import static com.mastfrog.util.Checks.notNull;
-import com.mastfrog.util.ConfigurationError;
-import com.mastfrog.util.Streams;
+import com.mastfrog.util.preconditions.Checks;
+import static com.mastfrog.util.preconditions.Checks.notNull;
+import com.mastfrog.util.preconditions.ConfigurationError;
+import com.mastfrog.util.streams.Streams;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

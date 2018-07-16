@@ -24,10 +24,10 @@
 package com.mastfrog.cluster;
 
 import com.google.inject.Singleton;
-import com.mastfrog.util.Exceptions;
-import com.mastfrog.util.Streams;
-import com.mastfrog.util.Strings;
-import com.mastfrog.util.UniqueIDs;
+import com.mastfrog.util.preconditions.Exceptions;
+import com.mastfrog.util.streams.Streams;
+import com.mastfrog.util.strings.Strings;
+import com.mastfrog.util.strings.UniqueIDs;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
