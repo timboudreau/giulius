@@ -27,7 +27,7 @@ import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
 import com.mastfrog.util.service.AnnotationIndexFactory;
 import com.mastfrog.util.service.AnnotationUtils;
 import com.mastfrog.util.service.IndexEntry;
-import com.mastfrog.util.service.SimpleJSON;
+import com.mastfrog.util.fileformat.SimpleJSON;
 import java.io.IOException;
 import java.io.OutputStream;
 import static java.nio.charset.StandardCharsets.UTF_8;

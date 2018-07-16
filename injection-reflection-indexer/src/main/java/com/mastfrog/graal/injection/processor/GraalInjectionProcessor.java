@@ -74,6 +74,22 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
         super(new GraalEntryIndexFactory());
     }
 
+    private Boolean verbose;
+
+    boolean verbose() {
+        if (verbose == null) {
+            String val = processingEnv.getOptions().get("verbose");
+            if (val == null) {
+                val = System.getenv("GRAAL_PROCESSOR_VERBOSE");
+            }
+            if (val == null) {
+                val = System.getProperty("graal.processor.verbose");
+            }
+            verbose = "1".equals(val) || "true".equals(val);
+        }
+        return verbose;
+    }
+
     private TypeMirror enclosingType(Element el) {
         while (!(el instanceof TypeElement) && el != null) {
             el = el.getEnclosingElement();
@@ -88,11 +104,10 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
         return el instanceof ExecutableElement ? ((ExecutableElement) el) : null;
     }
 
-    private void note(String msg, Element e) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, msg, e);
-    }
-
     private void note(String msg, Element e, AnnotationMirror me) {
+        if (!verbose()) {
+            return;
+        }
         processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, msg, e, me);
     }
 

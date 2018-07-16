@@ -20,6 +20,10 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.mastfrog</groupId>
+            <artifactId>util-fileformat</artifactId>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

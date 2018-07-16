@@ -80,6 +80,10 @@
             <artifactId>annotation-processors</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-fileformat</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.mastfrog</groupId>
             <artifactId>util-strings</artifactId>
             <scope>test</scope>
