@@ -720,8 +720,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
         Set<Map<String, Object>> info = mergedMaps(all);
         if (!info.isEmpty()) {
             ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).disable(SerializationFeature.CLOSE_CLOSEABLE);
-            mapper.writeValue(dest, info);
             byte[] b = mapper.writeValueAsBytes(info);
+            dest.write(b);
             dest.flush();
         }
     }
