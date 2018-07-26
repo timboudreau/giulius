@@ -26,7 +26,6 @@ package com.mastfrog.maven.merge.configuration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Objects;
 import static com.mastfrog.util.fileformat.PropertiesFileUtils.printLines;
 import static com.mastfrog.util.fileformat.PropertiesFileUtils.savePropertiesFile;
 import java.io.BufferedOutputStream;
@@ -52,6 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -382,7 +382,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                                 if (all.containsKey(key)) {
                                                     Object old = all.get(key);
                                                     Object nue = p.get(key);
-                                                    if (!Objects.equal(old, nue)) {
+                                                    if (!Objects.equals(old, nue)) {
                                                         log.warn(key + '=' + nue + " in " + jar + '!' + name + " overrides " + key + '=' + old);
                                                     }
                                                 }
@@ -447,7 +447,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     if (all.containsKey(key)) {
                                         Object old = all.get(key);
                                         Object nue = p.get(key);
-                                        if (!Objects.equal(old, nue)) {
+                                        if (!Objects.equals(old, nue)) {
                                             log.warn(key + '=' + nue + " in " + f + '!' + name + " overrides " + key + '=' + old);
                                         }
                                     }
@@ -650,7 +650,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 }
                 Properties merged = e.getValue();
                 for (String key : local.stringPropertyNames()) {
-                    if (merged.containsKey(key) && !Objects.equal(local.get(key), merged.get(key))) {
+                    if (merged.containsKey(key) && !Objects.equals(local.get(key), merged.get(key))) {
                         log.warn("Overriding key=" + merged.get(key) + " with locally defined key=" + local.get(key));
                     }
                 }
@@ -720,9 +720,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
         Set<Map<String, Object>> info = mergedMaps(all);
         if (!info.isEmpty()) {
             ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).disable(SerializationFeature.CLOSE_CLOSEABLE);
-//            mapper.writeValue(dest, info);
+            mapper.writeValue(dest, info);
             byte[] b = mapper.writeValueAsBytes(info);
-            dest.write(b);
             dest.flush();
         }
     }
