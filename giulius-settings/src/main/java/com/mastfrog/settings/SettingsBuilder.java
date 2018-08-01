@@ -844,7 +844,7 @@ public final class SettingsBuilder {
         private final File file;
 
         FileSource(File file) {
-            this(file, SettingsRefreshInterval.FILES);
+            this(file, SettingsRefreshInterval.NO_REFRESH);
         }
 
         FileSource(File file, RefreshInterval interval) {
@@ -891,7 +891,7 @@ public final class SettingsBuilder {
     private static final class SystemPropertiesSource extends PropertiesSource {
 
         SystemPropertiesSource() {
-            super(SettingsRefreshInterval.SYSTEM_PROPERTIES);
+            super(SettingsRefreshInterval.NO_REFRESH);
         }
 
         @Override
@@ -913,7 +913,7 @@ public final class SettingsBuilder {
         private final Properties lastProperties = new Properties();
 
         UrlPropertiesSource(URL url) {
-            this(url, SettingsRefreshInterval.URLS);
+            this(url, SettingsRefreshInterval.NO_REFRESH);
         }
 
         UrlPropertiesSource(URL url, RefreshInterval timeout) {

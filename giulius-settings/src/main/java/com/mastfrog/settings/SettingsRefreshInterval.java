@@ -41,7 +41,8 @@ public enum SettingsRefreshInterval implements RefreshInterval {
     CLASSPATH(60 * 60 * 1000),
     SYSTEM_PROPERTIES(10 * 60 * 1000),
     FILES(10 * 60 * 1000),
-    URLS(5 * 60 * 1000);
+    URLS(5 * 60 * 1000),
+    NO_REFRESH(Integer.MAX_VALUE);
     private volatile int interval;
 
     SettingsRefreshInterval(int initialValue) {
@@ -51,7 +52,6 @@ public enum SettingsRefreshInterval implements RefreshInterval {
     SettingsRefreshInterval() {
         this(0);
     }
-
 
     static Timer timer;
     static List<Reference<TimerTask>> tasks;
@@ -72,19 +72,24 @@ public enum SettingsRefreshInterval implements RefreshInterval {
 
     @Override
     public int getMilliseconds() {
-        Timer t = timer(false);
-        if (t != null) {
-            t.purge();
+        if (this != NO_REFRESH) {
+            Timer t = timer(false);
+            if (t != null) {
+                t.purge();
+            }
         }
         return interval;
     }
-    
+
     public static void refreshNow() {
         List<Reference<TimerTask>> l;
-        synchronized(SettingsRefreshInterval.class) {
+        synchronized (SettingsRefreshInterval.class) {
             l = tasks;
         }
-        for (Iterator<Reference<TimerTask>> it=l.iterator(); it.hasNext();) {
+        if (l == null) {
+            return;
+        }
+        for (Iterator<Reference<TimerTask>> it = l.iterator(); it.hasNext();) {
             Reference<TimerTask> r = it.next();
             TimerTask task = r.get();
             if (task == null) {
@@ -97,6 +102,9 @@ public enum SettingsRefreshInterval implements RefreshInterval {
 
     @Override
     public synchronized void add(TimerTask task) {
+        if (this == NO_REFRESH) {
+            return;
+        }
         long interval = getMilliseconds();
         Timer t = timer(true);
         t.scheduleAtFixedRate(task, interval, interval);
