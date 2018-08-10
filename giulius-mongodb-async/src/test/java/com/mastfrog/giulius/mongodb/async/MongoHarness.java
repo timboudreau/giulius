@@ -69,6 +69,8 @@ public class MongoHarness {
         private volatile boolean mongodbGreaterThan36 = false;
         private final String replSetId = "rs" + Long.toString(currentTimeMillis(), 36);
         private final boolean replicaSet;
+        private final List<String> additionalArgs = new ArrayList<>();
+        private final String explicitName;
 
         @SuppressWarnings("LeakingThisInConstructor")
         @Inject
@@ -76,6 +78,13 @@ public class MongoHarness {
             super(registry);
             replicaSet = settings.getBoolean("mongo.replica.set", false);
             shutdownHooks.add(this);
+            explicitName = settings.getString("testname");
+            String addtl = settings.getString("mongod.additional.args");
+            if (addtl != null) {
+                for (CharSequence seq : Strings.splitUniqueNoEmpty(' ', addtl)) {
+                    additionalArgs.add(seq.toString());
+                }
+            }
             mongoDir = createMongoDir();
         }
 
@@ -253,7 +262,10 @@ public class MongoHarness {
             File tmp = new File(System.getProperty("java.io.tmpdir"));
             String fname = System.getProperty("testMethodQname");
             if (fname == null) {
-                fname = "mongo-" + System.currentTimeMillis() + "-" + count++;
+                fname = explicitName;
+                if (fname == null) {
+                    fname = "mongo-" + System.currentTimeMillis() + "-" + count++;
+                }
             } else {
                 fname += "-" + System.currentTimeMillis() + "-" + count++;
             }
@@ -297,6 +309,7 @@ public class MongoHarness {
                     cmd.add("--wiredTigerCacheSizeGB");
                     cmd.add("1");
                 }
+                cmd.addAll(additionalArgs);
                 System.out.println(Strings.join(' ', cmd));
                 pb = new ProcessBuilder().command(cmd);
             }
@@ -388,9 +401,23 @@ public class MongoHarness {
      */
     public static class Module extends AbstractModule {
 
+        private final int port;
+
+        public Module() {
+            this(-1);
+        }
+
+        public Module(int port) {
+            this.port = port;
+        }
+
         @Override
         protected void configure() {
-            bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_PORT)).toInstance("" + findPort());
+            int usePort = this.port;
+            if (usePort == -1) {
+                usePort = findPort();
+            }
+            bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_PORT)).toInstance("" + usePort);
             bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_HOST)).toInstance("localhost");
             bind(String.class).annotatedWith(Names.named(SETTINGS_KEY_DATABASE_NAME)).toInstance("_testDb" + currentMethodName().replace('.', '_').replace(' ', '_'));
             bind(Init.class).asEagerSingleton();

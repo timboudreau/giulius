@@ -188,9 +188,7 @@ public final class Dependencies {
     public Injector getInjector() {
         if (injector == null) {
             if (getStage() == Stage.PRODUCTION) {
-                if (injector == null) {
-                    injector = Guice.createInjector(getStage(), modules);
-                }
+                injector = Guice.createInjector(getStage(), modules);
             } else {
                 synchronized (this) {
                     try (ThreadLocalCounter c = ctr.enter()) {
