@@ -83,7 +83,7 @@ public final class MongoFutureCollection<T> {
     }
 
     public EnhCompletableFuture<List<T>> aggregate(ClientSession cs, List<? extends Bson> list) {
-        return iterFuture(collection().aggregate(cs, list), null);
+        return iterFuture(collection().aggregate(list), null);
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> aggregate(List<? extends Bson> list, Class<TResult> type) {
@@ -91,7 +91,7 @@ public final class MongoFutureCollection<T> {
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> aggregate(ClientSession sess, List<? extends Bson> list, Class<TResult> type) {
-        return iterFuture(collection().aggregate(sess, list, type), null);
+        return iterFuture(collection().aggregate(list, type), null);
     }
 
     public EnhCompletableFuture<BulkWriteResult> bulkWrite(List<? extends WriteModel<? extends T>> list) {
@@ -178,13 +178,13 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<DeleteResult> deleteOne(ClientSession cs, Bson bson) {
         EnhCompletableFuture<DeleteResult> result = new EnhCompletableFuture<>();
-        collection().deleteOne(cs, bson, new SRC<>(result));
+        collection().deleteOne(bson, new SRC<>(result));
         return result;
     }
 
     public EnhCompletableFuture<DeleteResult> deleteOne(ClientSession cs, Bson bson, DeleteOptions d) {
         EnhCompletableFuture<DeleteResult> result = new EnhCompletableFuture<>();
-        collection().deleteOne(cs, bson, d, new SRC<>(result));
+        collection().deleteOne(bson, d, new SRC<>(result));
         return result;
     }
 
@@ -202,13 +202,13 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<DeleteResult> deleteMany(ClientSession cs, Bson bson) {
         EnhCompletableFuture<DeleteResult> result = new EnhCompletableFuture<>();
-        collection().deleteMany(cs, bson, new SRC<>(result));
+        collection().deleteMany(bson, new SRC<>(result));
         return result;
     }
 
     public EnhCompletableFuture<DeleteResult> deleteMany(ClientSession cs, Bson bson, DeleteOptions d) {
         EnhCompletableFuture<DeleteResult> result = new EnhCompletableFuture<>();
-        collection().deleteMany(cs, bson, d, new SRC<>(result));
+        collection().deleteMany(bson, d, new SRC<>(result));
         return result;
     }
 
@@ -335,25 +335,25 @@ public final class MongoFutureCollection<T> {
 
     public EnhCompletableFuture<T> findOne(ClientSession cs, Bson query) {
         EnhCompletableFuture<T> result = new EnhCompletableFuture<>();
-        collection().find(cs, query).first(new SRC<>(result));
+        collection().find(query).first(new SRC<>(result));
         return result;
     }
 
     public EnhCompletableFuture<T> findOne(ClientSession cs, Bson query, Bson projection) {
         EnhCompletableFuture<T> result = new EnhCompletableFuture<>();
-        collection().find(cs, query).projection(projection).first(new SRC<>(result));
+        collection().find(query).projection(projection).first(new SRC<>(result));
         return result;
     }
 
     public <R> EnhCompletableFuture<R> findOne(ClientSession cs, Bson query, Class<R> type) {
         EnhCompletableFuture<R> result = new EnhCompletableFuture<>();
-        collection().find(cs, query, type).first(new SRC<>(result));
+        collection().find(query, type).first(new SRC<>(result));
         return result;
     }
 
     public <R> EnhCompletableFuture<R> findOne(ClientSession cs, Bson query, Bson projection, Class<R> type) {
         EnhCompletableFuture<R> result = new EnhCompletableFuture<>();
-        collection().find(cs, query, type).projection(projection).first(new SRC<>(result));
+        collection().find(query, type).projection(projection).first(new SRC<>(result));
         return result;
     }
 
@@ -378,23 +378,23 @@ public final class MongoFutureCollection<T> {
     }
 
     public EnhCompletableFuture<List<T>> find(ClientSession cs) {
-        return iterFuture(collection().find(cs), null);
+        return iterFuture(collection().find(), null);
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> find(ClientSession cs, Class<TResult> type) {
-        return iterFuture(collection().find(cs, type), null);
+        return iterFuture(collection().find(type), null);
     }
 
     public EnhCompletableFuture<List<T>> find(ClientSession cs, Bson bson) {
-        return iterFuture(collection().find(cs, bson), null);
+        return iterFuture(collection().find(bson), null);
     }
 
     public EnhCompletableFuture<List<T>> find(ClientSession cs, Bson bson, Bson projection) {
-        return iterFuture(collection().find(cs, bson).projection(projection), null);
+        return iterFuture(collection().find(bson).projection(projection), null);
     }
 
     public <R> EnhCompletableFuture<List<R>> find(ClientSession cs, Bson bson, Bson projection, Class<R> type) {
-        return iterFuture(collection().find(cs, bson, type).projection(projection), null);
+        return iterFuture(collection().find(bson, type).projection(projection), null);
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> distinct(String string, Class<TResult> type) {
@@ -406,11 +406,11 @@ public final class MongoFutureCollection<T> {
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> distinct(ClientSession cs, String string, Class<TResult> type) {
-        return iterFuture(collection().distinct(cs, string, type), null);
+        return iterFuture(collection().distinct(string, type), null);
     }
 
     public <TResult> EnhCompletableFuture<List<TResult>> distinct(ClientSession cs, String string, Bson bson, Class<TResult> type) {
-        return iterFuture(collection().distinct(cs, string, bson, type), null);
+        return iterFuture(collection().distinct(string, bson, type), null);
     }
 
     public <NewTDocument> MongoFutureCollection<NewTDocument> withDocumentClass(Class<NewTDocument> type) {

@@ -27,7 +27,7 @@ import com.google.common.collect.Sets;
 import static com.mastfrog.util.preconditions.Checks.notNull;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.function.NamedCompletableFuture;
-import com.mastfrog.util.function.ThrowingTriConsumer;
+import com.mastfrog.function.throwing.ThrowingTriConsumer;
 import com.mastfrog.util.multivariate.OneOf;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;

@@ -23,9 +23,9 @@
  */
 package com.mastfrog.mongodb.migration;
 
-import com.mastfrog.util.function.ThrowingConsumer;
-import com.mastfrog.util.function.ThrowingQuadConsumer;
-import com.mastfrog.util.function.ThrowingRunnable;
+import com.mastfrog.function.throwing.ThrowingConsumer;
+import com.mastfrog.function.throwing.ThrowingQuadConsumer;
+import com.mastfrog.function.throwing.ThrowingRunnable;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -70,7 +70,7 @@ public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<
                 return;
             }
             try {
-                c.apply(t);
+                c.accept(t);
             } catch (Exception e) {
                 f.completeExceptionally(e);
             }
@@ -94,7 +94,7 @@ public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<
                 return;
             }
             try {
-                c.apply(t);
+                c.accept(t);
             } catch (Exception e) {
                 IllegalStateException ex = new IllegalStateException(e.getMessage() + " in " + context, e);
                 f.completeExceptionally(ex);

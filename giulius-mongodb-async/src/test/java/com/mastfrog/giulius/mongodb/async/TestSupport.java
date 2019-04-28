@@ -24,8 +24,8 @@
 package com.mastfrog.giulius.mongodb.async;
 
 import com.mastfrog.util.preconditions.Exceptions;
-import com.mastfrog.util.function.ThrowingConsumer;
-import com.mastfrog.util.function.ThrowingRunnable;
+import com.mastfrog.function.throwing.ThrowingConsumer;
+import com.mastfrog.function.throwing.ThrowingRunnable;
 import com.mastfrog.util.thread.Callback;
 import com.mongodb.async.SingleResultCallback;
 import java.util.concurrent.CompletableFuture;
@@ -116,7 +116,7 @@ public class TestSupport implements Function<Throwable, Boolean> {
             if (thrown == null) {
                 try {
                     if (cons != null) {
-                        cons.apply(t);
+                        cons.accept(t);
                     }
                 } catch (Exception ex) {
                     apply(thrown);
@@ -193,7 +193,7 @@ public class TestSupport implements Function<Throwable, Boolean> {
                 return;
             }
             run(() -> {
-                receiver.apply(t);
+                receiver.accept(t);
             });
         };
     }
@@ -208,7 +208,7 @@ public class TestSupport implements Function<Throwable, Boolean> {
                 return;
             }
             run(() -> {
-                receiver.apply(t);
+                receiver.accept(t);
             });
         };
     }
