@@ -24,8 +24,8 @@
 package com.mastfrog.giulius.annotation.processors;
 
 import com.mastfrog.giulius.annotation.processors.PropertiesIndexFactory.PropertiesIndexEntry;
-import com.mastfrog.util.service.AnnotationIndexFactory;
-import com.mastfrog.util.service.IndexEntry;
+import com.mastfrog.annotation.registries.AnnotationIndexFactory;
+import com.mastfrog.annotation.registries.IndexEntry;
 import com.mastfrog.util.fileformat.PropertiesFileUtils;
 import java.io.IOException;
 import java.io.OutputStream;

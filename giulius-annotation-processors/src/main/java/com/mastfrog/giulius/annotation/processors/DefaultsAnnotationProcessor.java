@@ -27,7 +27,7 @@ import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProce
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.OLD_DEFAULTS_ANNOTATION_TYPE;
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.REPLACEMENT_DEFAULTS_ANNOTATION_TYPE;
 import com.mastfrog.giulius.annotation.processors.PropertiesIndexFactory.PropertiesIndexEntry;
-import com.mastfrog.util.service.AbstractRegistrationAnnotationProcessor;
+import com.mastfrog.annotation.registries.AbstractRegistrationAnnotationProcessor;
 import com.mastfrog.util.service.ServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

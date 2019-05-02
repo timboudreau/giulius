@@ -26,7 +26,7 @@ package com.mastfrog.graal.injection.processor;
 import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
 import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_MANY_ANNOTATION;
 import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_TYPES_ANNOTATION;
-import com.mastfrog.util.service.AbstractRegistrationAnnotationProcessor;
+import com.mastfrog.annotation.registries.AbstractRegistrationAnnotationProcessor;
 import com.mastfrog.util.service.ServiceProvider;
 import java.util.ArrayList;
 import java.util.List;

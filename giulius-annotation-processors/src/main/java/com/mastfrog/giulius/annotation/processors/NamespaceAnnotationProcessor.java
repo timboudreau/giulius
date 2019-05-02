@@ -25,7 +25,7 @@ package com.mastfrog.giulius.annotation.processors;
 
 import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProcessor.NEW_NAMESPACE_ANNOTATION_TYPE;
 import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProcessor.OLD_NAMESPACE_ANNOTATION_TYPE;
-import com.mastfrog.util.service.AbstractLineOrientedRegistrationAnnotationProcessor;
+import com.mastfrog.annotation.registries.AbstractLineOrientedRegistrationAnnotationProcessor;
 import com.mastfrog.util.service.ServiceProvider;
 import java.util.Arrays;
 import javax.annotation.processing.Processor;

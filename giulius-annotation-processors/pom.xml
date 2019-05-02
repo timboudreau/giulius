@@ -17,6 +17,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>util-fileformat</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>annotation-tools</artifactId>
+        </dependency>        
     </dependencies>
     <build>
         <plugins>

@@ -23,10 +23,10 @@
  */
 package com.mastfrog.graal.injection.processor;
 
+import com.mastfrog.annotation.AnnotationUtils;
 import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
-import com.mastfrog.util.service.AnnotationIndexFactory;
-import com.mastfrog.util.service.AnnotationUtils;
-import com.mastfrog.util.service.IndexEntry;
+import com.mastfrog.annotation.registries.AnnotationIndexFactory;
+import com.mastfrog.annotation.registries.IndexEntry;
 import com.mastfrog.util.fileformat.SimpleJSON;
 import java.io.IOException;
 import java.io.OutputStream;
