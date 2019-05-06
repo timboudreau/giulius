@@ -131,6 +131,10 @@
         <connection>scm:git:https://github.com/timboudreau/giulius</connection>
         <developerConnection>git@github.com/timboudreau/giulius</developerConnection>
     </scm>
+    <organization>
+        <name>Mastfrog Technologies</name>
+        <url>https://mastfrog.com</url>
+    </organization>
     <licenses>
         <license>
             <name>MIT</name>
