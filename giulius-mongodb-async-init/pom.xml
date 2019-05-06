@@ -1,5 +1,6 @@
-<?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.mastfrog</groupId>
@@ -24,7 +25,8 @@
             <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
-    </licenses><organization>
+    </licenses>
+    <organization>
         <name>Mastfrog Technologies</name>
         <url>https://mastfrog.com</url>
     </organization>
@@ -64,9 +66,8 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>acteur-mongo-async</artifactId>
-            <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius-tests</artifactId>
@@ -74,8 +75,8 @@
         </dependency>
     </dependencies>
     <build>
-                <!-- to enable console logging in real time -->
-                <!--
+        <!-- to enable console logging in real time -->
+        <!--
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
