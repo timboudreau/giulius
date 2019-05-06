@@ -27,6 +27,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.name.Named;
 import com.mastfrog.giulius.mongodb.async.MongoAsyncClientTest.TestModule;
 import com.mastfrog.giulius.tests.GuiceRunner;
+import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.giulius.tests.TestWith;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
@@ -45,6 +46,7 @@ import org.junit.runner.RunWith;
  */
 @RunWith(GuiceRunner.class)
 @TestWith({TestModule.class, MongoHarness.Module.class})
+@IfBinaryAvailable("mongod")
 public class MongoAsyncClientTest {
 
     @Test

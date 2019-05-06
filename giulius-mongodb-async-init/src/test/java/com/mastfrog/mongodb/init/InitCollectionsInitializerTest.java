@@ -29,6 +29,7 @@ import com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule;
 import com.mastfrog.giulius.mongodb.async.MongoHarness;
 import com.mastfrog.giulius.mongodb.async.TestSupport;
 import com.mastfrog.giulius.tests.GuiceRunner;
+import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.giulius.tests.TestWith;
 import com.mastfrog.mongodb.init.InitCollectionsInitializerTest.Ini;
 import com.mongodb.async.client.MongoCollection;
@@ -45,6 +46,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(GuiceRunner.class)
 @TestWith({MongoHarness.Module.class, Ini.class})
+@IfBinaryAvailable("mongod")
 public class InitCollectionsInitializerTest {
 
     @Test

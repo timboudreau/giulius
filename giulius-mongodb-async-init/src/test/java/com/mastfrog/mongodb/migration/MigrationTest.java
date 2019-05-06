@@ -33,6 +33,7 @@ import com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule;
 import com.mastfrog.giulius.mongodb.async.MongoHarness;
 import com.mastfrog.giulius.mongodb.async.TestSupport;
 import com.mastfrog.giulius.tests.GuiceRunner;
+import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.giulius.tests.TestWith;
 import com.mastfrog.jackson.JacksonModule;
 import com.mastfrog.mongodb.init.MongoInitModule;
@@ -68,6 +69,7 @@ import org.junit.runner.RunWith;
  */
 @RunWith(GuiceRunner.class)
 @TestWith({MongoHarness.Module.class, Ini.class, JacksonModule.class})
+@IfBinaryAvailable("mongod")
 public class MigrationTest {
 
     @Inject
