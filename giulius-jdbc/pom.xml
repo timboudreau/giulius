@@ -27,7 +27,10 @@
             <artifactId>giulius</artifactId>
         </dependency>
     </dependencies>
-    <url>https://github.com/timboudreau/giulius</url>
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/timboudreau/giulius/issues</url>
+    </issueManagement>
     <scm>
         <url>https://github.com/timboudreau/giulius</url>
         <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
