@@ -8,6 +8,7 @@
         <relativePath/>
     </parent>
     <artifactId>maven-merge-configuration</artifactId>
+    <url>https://github.com/timboudreau/giulius</url>
     <name>maven-merge-configuration</name>
     <packaging>maven-plugin</packaging>
     <properties>
@@ -20,7 +21,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.mastfrog</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>util-fileformat</artifactId>
         </dependency>
         <dependency>
@@ -145,10 +146,11 @@
         <url>https://github.com/timboudreau/giulius/issues</url>
     </issueManagement>
     <scm>
-        <url>https://github.com/timboudreau/giulius</url>
+        <url>https://github.com/timboudreau/giulius.git</url>
         <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
         <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
     </scm>
+    
     <organization>
         <name>Mastfrog Technologies</name>
         <url>https://mastfrog.com</url>
@@ -156,7 +158,8 @@
     <licenses>
         <license>
             <name>MIT</name>
-            <url>http://opensource.org/licenses/MIT</url>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
     <developers>
