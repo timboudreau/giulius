@@ -23,6 +23,7 @@
  */
 package com.mastfrog.giulius.annotation.processors;
 
+import com.mastfrog.annotation.AnnotationUtils;
 import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProcessor.NEW_NAMESPACE_ANNOTATION_TYPE;
 import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProcessor.OLD_NAMESPACE_ANNOTATION_TYPE;
 import com.mastfrog.annotation.registries.AbstractLineOrientedRegistrationAnnotationProcessor;
@@ -74,7 +75,7 @@ public class NamespaceAnnotationProcessor extends AbstractLineOrientedRegistrati
         return mir.getAnnotationType().toString().endsWith(".Namespace");
     }
 
-    private String namespaceFor(AnnotationMirror anno) {
+    private String namespaceFor(AnnotationMirror anno, AnnotationUtils utils) {
         String result = DEFAULT_NAMESPACE;
         if (isNamespace(anno)) {
             result = utils.annotationValue(anno, "value", String.class);
@@ -88,8 +89,8 @@ public class NamespaceAnnotationProcessor extends AbstractLineOrientedRegistrati
     }
 
     @Override
-    protected void handleOne(Element e, AnnotationMirror anno, int order) {
-        String ns = namespaceFor(anno);
+    protected void handleOne(Element e, AnnotationMirror anno, int order, AnnotationUtils utils) {
+        String ns = namespaceFor(anno, utils);
         if (!DEFAULT_NAMESPACE.equals(ns)) {
             if (testNamespace(ns, e, anno)) {
                 addNamespaceForElement(ns, e);

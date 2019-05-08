@@ -39,6 +39,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>injection-reflection-indexer</artifactId>
             <scope>compile</scope>
+            <version>${mastfrog.version}</version>
         </dependency>
     </dependencies>
     <build>

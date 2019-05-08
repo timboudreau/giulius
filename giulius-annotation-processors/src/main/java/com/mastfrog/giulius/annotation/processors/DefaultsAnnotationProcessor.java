@@ -23,6 +23,7 @@
  */
 package com.mastfrog.giulius.annotation.processors;
 
+import com.mastfrog.annotation.AnnotationUtils;
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.NEW_DEFAULTS_ANNOTATION_TYPE;
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.OLD_DEFAULTS_ANNOTATION_TYPE;
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.REPLACEMENT_DEFAULTS_ANNOTATION_TYPE;
@@ -106,7 +107,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         return true;
     }
 
-    private AnnotationMirror findNamespaceAnnotationOn(Element el) {
+    private AnnotationMirror findNamespaceAnnotationOn(Element el, AnnotationUtils utils) {
         AnnotationMirror result = utils.findMirror(el, NamespaceAnnotationProcessor.NEW_NAMESPACE_ANNOTATION_TYPE);
         if (result == null) {
             result = utils.findMirror(el, NamespaceAnnotationProcessor.OLD_NAMESPACE_ANNOTATION_TYPE);
@@ -114,21 +115,21 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         return result;
     }
 
-    private String findNamespaceOn(Element el) {
-        AnnotationMirror mirror = findNamespaceAnnotationOn(el);
+    private String findNamespaceOn(Element el, AnnotationUtils utils) {
+        AnnotationMirror mirror = findNamespaceAnnotationOn(el, utils);
         if (mirror != null) {
             return utils.annotationValue(mirror, "value", String.class);
         }
         return null;
     }
 
-    private String findNamespace(Element element) {
+    private String findNamespace(Element element, AnnotationUtils utils) {
         String result;
         //get the package before we change the value of element
         PackageElement pe = processingEnv.getElementUtils().getPackageOf(element);
         do {
             //search up enclosing class/method/whatever
-            result = findNamespaceOn(element);
+            result = findNamespaceOn(element, utils);
             element = element.getEnclosingElement();
             if (result != null) {
                 break;
@@ -139,7 +140,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         //(javac doesn't see packages as having hierarchy - they might
         //be in different jars)
         while (pe != null && result == null && !pe.isUnnamed()) {
-            result = findNamespaceOn(pe);
+            result = findNamespaceOn(pe, utils);
             if (result == null) {
                 CharSequence name = pe.getQualifiedName();
                 int ix = name.toString().lastIndexOf('.');
@@ -155,12 +156,12 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         return result == null ? DEFAULT_NAMESPACE : result;
     }
 
-    private String findNamespaceForDefaultsAnnotationMirror(Element on, AnnotationMirror defaults) {
+    private String findNamespaceForDefaultsAnnotationMirror(Element on, AnnotationMirror defaults, AnnotationUtils utils) {
         String result;
         if (REPLACEMENT_DEFAULTS_ANNOTATION_TYPE.equals(defaults.getAnnotationType().toString())) {
             result = utils.annotationValue(defaults, "namespace", String.class);
             if (result == null || DEFAULT_NAMESPACE.equals(result)) {
-                String pkgNamespace = findNamespace(on);
+                String pkgNamespace = findNamespace(on, utils);
                 if (pkgNamespace != null && !DEFAULT_NAMESPACE.equals(pkgNamespace) && !pkgNamespace.equals(DEFAULT_NAMESPACE)) {
                     result = pkgNamespace;
                 }
@@ -168,7 +169,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         } else {
             AnnotationMirror ns = utils.annotationValue(defaults, "namespace", AnnotationMirror.class);
             if (ns == null) {
-                String packageNamespace = findNamespace(on);
+                String packageNamespace = findNamespace(on, utils);
                 if (packageNamespace != null) {
                     return packageNamespace;
                 }
@@ -185,9 +186,9 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
         return result == null || result.isEmpty() ? DEFAULT_NAMESPACE : result;
     }
 
-    private String findPath(AnnotationMirror defaults, Element e) {
+    private String findPath(AnnotationMirror defaults, Element e, AnnotationUtils utils) {
         boolean specifiesNamespace;
-        String namespace = findNamespaceForDefaultsAnnotationMirror(e, defaults);
+        String namespace = findNamespaceForDefaultsAnnotationMirror(e, defaults, utils);
 //        if (namespace == null) {
 //            return null;
 //        }
@@ -225,8 +226,8 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
     private final Map<String, Map<String, Element>> elementsForPropertyForPath = new HashMap<>();
 
     @Override
-    protected void handleOne(Element e, AnnotationMirror anno, int order) {
-        String path = findPath(anno, e);
+    protected void handleOne(Element e, AnnotationMirror anno, int order, AnnotationUtils utils) {
+        String path = findPath(anno, e, utils);
         if (path == null) {
             // fail already called
             return;

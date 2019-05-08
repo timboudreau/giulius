@@ -23,6 +23,7 @@
  */
 package com.mastfrog.graal.injection.processor;
 
+import com.mastfrog.annotation.AnnotationUtils;
 import com.mastfrog.graal.injection.processor.GraalEntryIndexFactory.GraalEntry;
 import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_MANY_ANNOTATION;
 import static com.mastfrog.graal.injection.processor.GraalInjectionProcessor.EXPOSE_TYPES_ANNOTATION;
@@ -111,7 +112,7 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
         processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, msg, e, me);
     }
 
-    private void handleReflectionInfo(Element e, String typeName, AnnotationMirror anno) {
+    private void handleReflectionInfo(Element e, String typeName, AnnotationMirror anno, AnnotationUtils utils) {
         String name = utils.annotationValue(anno, "type", String.class);
         name = name == null || name.isEmpty() ? typeName : name;
         int memberCount = 0;
@@ -164,7 +165,7 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
         }
     }
 
-    private void handleExposeTypesAnnotation(Element e, AnnotationMirror anno) {
+    private void handleExposeTypesAnnotation(Element e, AnnotationMirror anno, AnnotationUtils utils) {
         List<String> typesToExpose = utils.typeList(anno, "value");
         utils.warn("Handle expose types: " + anno);
         if (typesToExpose != null) {
@@ -178,17 +179,17 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
     }
 
     @Override
-    protected void handleOne(Element e, AnnotationMirror anno, int order) {
+    protected void handleOne(Element e, AnnotationMirror anno, int order, AnnotationUtils utils) {
         try {
             if (EXPOSE_TYPES_ANNOTATION.equals(anno.getAnnotationType().toString())) {
-                handleExposeTypesAnnotation(e, anno);
+                handleExposeTypesAnnotation(e, anno, utils);
                 return;
             }
 
             if (EXPOSE_MANY_ANNOTATION.equals(anno.getAnnotationType().toString())) {
                 List<AnnotationMirror> exposeAnnotations = utils.annotationValues(anno, "value", AnnotationMirror.class);
                 for (AnnotationMirror expose : exposeAnnotations) {
-                    handleOne(e, expose, order);
+                    handleOne(e, expose, order, utils);
                 }
                 return;
             }
@@ -209,7 +210,7 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
             String typeName = utils.canonicalize(type);
 
             if (anno.getAnnotationType().toString().equals(REFLECTION_INFO_ANNOTATION)) {
-                handleReflectionInfo(e, typeName, anno);
+                handleReflectionInfo(e, typeName, anno, utils);
                 return;
             }
             if (GUICE_MODULE_ANNOTATION.equals(anno.getAnnotationType().toString())) {
