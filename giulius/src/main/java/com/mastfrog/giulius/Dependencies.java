@@ -77,6 +77,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import com.mastfrog.util.thread.QuietAutoCloseable;
+import com.mastfrog.util.time.TimeUtil;
+import java.time.Duration;
 
 /**
  * A wrapper around Guice's injector which enforces a few things such as how
@@ -569,6 +571,9 @@ public final class Dependencies {
                             case BIG_INTEGER:
                                 binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
                                 break;
+                            case DURATION:
+                                binder.bind(Key.get(Duration.class, n)).toProvider(new DurationProvider(p));
+                                break;
                         }
                     }
                 }
@@ -612,6 +617,9 @@ public final class Dependencies {
                                     break;
                                 case BIG_INTEGER:
                                     binder.bind(Key.get(BigInteger.class, n)).toProvider(new BigIntegerProvider(p));
+                                    break;
+                                case DURATION:
+                                    binder.bind(Key.get(Duration.class, n)).toProvider(new DurationProvider(p));
                                     break;
                             }
                         }
@@ -984,6 +992,23 @@ public final class Dependencies {
         public BigInteger get() {
             String s = p.get();
             return s == null ? null : new BigInteger(s);
+        }
+    }
+
+    private static class DurationProvider implements Provider<Duration> {
+        private final Provider<String> p;
+
+        public DurationProvider(Provider<String> p) {
+            this.p = p;
+        }
+
+        @Override
+        public Duration get() {
+            String s = p.get();
+            if (s == null) {
+                return null;
+            }
+            return TimeUtil.parseDuration(s);
         }
     }
 }

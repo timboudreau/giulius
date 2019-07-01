@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2010-2018 Tim Boudreau.
+ * Copyright 2019 Mastfrog Technologies.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,46 +21,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius;
+package com.mastfrog.giulius.postgres.async;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import com.mastfrog.giulius.annotations.Namespace;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_MAX_POOL_SIZE;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_MAX_WAIT_QUEUE_SIZE;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_POOL_SIZE;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE;
 import com.mastfrog.settings.Settings;
-import com.mastfrog.settings.SettingsBuilder;
-import java.io.IOException;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import io.vertx.sqlclient.PoolOptions;
+import javax.inject.Inject;
+import javax.inject.Provider;
 
 /**
  *
- * @author tim
+ * @author Tim Boudreau
  */
-public class ConversionTest {
+final class PoolOptionsProvider implements Provider<PoolOptions> {
 
-    @Test
-    public void test() throws IOException {
-        Settings s = new SettingsBuilder().add("foo", "23").add("bar", "32").build();
-        DependenciesBuilder b = new DependenciesBuilder().add(s, Namespace.DEFAULT);
-        Dependencies deps = b.build();
+    private final Settings settings;
 
-        Q q = deps.getInstance(Q.class);
-        assertNotNull(q);
+    @Inject
+    PoolOptionsProvider(Settings settings) {
+        this.settings = settings;
     }
 
-//    @Namespace("foo")
-    static class Q {
-
-        @Inject
-        Q(@Named("foo") int i, @Named("foo") double d, @Named("foo") byte b,
-                @Named("foo") float f, @Named("foo") long l,
-                @Named("foo") short s) {
-            assertEquals(23, i);
-            assertEquals(23, (int) d);
-            assertEquals(23, b);
-            assertEquals(23, (int) f);
-            assertEquals(23, l);
-            assertEquals(23, s);
-        }
+    @Override
+    public PoolOptions get() {
+        return new PoolOptions().setMaxSize(settings.getInt(SETTINGS_KEY_MAX_POOL_SIZE,
+                DEFAULT_MAX_POOL_SIZE)).setMaxWaitQueueSize(settings.getInt(
+                        SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE, DEFAULT_MAX_WAIT_QUEUE_SIZE));
     }
 }

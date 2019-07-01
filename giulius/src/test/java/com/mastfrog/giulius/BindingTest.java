@@ -23,8 +23,6 @@
  */
 package com.mastfrog.giulius;
 
-import com.mastfrog.giulius.Dependencies;
-import com.mastfrog.giulius.Ordered;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import java.util.Set;

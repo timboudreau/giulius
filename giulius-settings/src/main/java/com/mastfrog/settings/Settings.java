@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License
  *
  * Copyright 2013 Tim Boudreau.
@@ -78,6 +78,10 @@ public interface Settings extends Iterable<String> {
 
     static SettingsBuilder builder() {
         return new SettingsBuilder();
+    }
+
+    static SettingsBuilder builder(String ns) {
+        return new SettingsBuilder(ns);
     }
 
     default Integer getInt(String name) {

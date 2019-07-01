@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Tim Boudreau.
+ * Copyright 2019 Mastfrog Technologies.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,14 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package com.mastfrog.giulius.postgres.async;
 
-package com.mastfrog.giulius;
+import com.mastfrog.function.BooleanBiFunction;
+import io.vertx.core.AsyncResult;
+import java.util.function.Consumer;
 
 /**
+ * A generic interface for things that handle application-level errors,
+ * which also deals with creating error contexts for dealing with
+ * the postgres driver's asynchronous error handling with minimal
+ * code-mess.  Not bound by default, and not required, but useful.
  *
  * @author Tim Boudreau
  */
-public enum SettingsBindings {
-    INT, BOOLEAN, STRING, LONG, BYTE, DOUBLE, SHORT, FLOAT, CHARACTER,
-    BIG_DECIMAL, BIG_INTEGER, DURATION;
+public interface PgErrorHandler extends Thread.UncaughtExceptionHandler, Consumer<Throwable> {
+
+    default boolean isFatal(Throwable thrown) {
+        return false;
+    }
+
+    default void accept(Throwable thrown) {
+        this.uncaughtException(Thread.currentThread(), thrown);
+    }
+
+    default ErrorContext context(BooleanBiFunction<AsyncResult<?>, Throwable> onError) {
+        return new ErrorContext(this, onError);
+    }
 }

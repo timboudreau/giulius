@@ -27,6 +27,7 @@
         <module>giulius-annotations</module>
         <module>injection-reflection-indexer</module>
         <module>giulius-annotation-processors</module>
+        <module>giulius-postgres-async</module>
     </modules>
     <issueManagement>
         <system>Github</system>

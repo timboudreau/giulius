@@ -37,6 +37,7 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.ProtectionDomain;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -265,13 +266,27 @@ public final class SettingsBuilder {
     }
 
     /**
+     * Add a key and value as a duration (will be stored internally as an ISO
+     * 8601 string).
+     *
+     * @param key The key
+     * @param value The value
+     * @return this
+     */
+    public SettingsBuilder add(String key, Duration value) {
+        return add(key, notNull("value", value).toString());
+    }
+
+    /**
      * Add a single key and value
      *
      * @param key
      * @param value
-     * @return
+     * @return this
      */
     public SettingsBuilder add(String key, String value) {
+        notNull("key", key);
+        notNull("value", value);
         // Avoid adding lots of single-property properties instances
         if (!all.isEmpty()) {
             PropertiesSource last = all.get(all.size() - 1);
@@ -581,14 +596,16 @@ public final class SettingsBuilder {
         return result;
     }
 
-    private Map<Character,String> shortcuts = new HashMap<>();
+    private Map<Character, String> shortcuts = new HashMap<>();
+
     /**
      * Add a single-character shortcut command-line argument for use when
-     * parsing command-line arguments.  Note that this method must be called
+     * parsing command-line arguments. Note that this method must be called
      * <i>before</i> any call to <code>parseCommandLineArguments()</code>..
-     * Example: <pre>commandLineShortcut('f', "file")</pre> will result in
-     * being able to run <code>java -jar myapp.jar -f /path/to/file</code>
-     * in place of <code>java -jar myapp.jar --file /path/to/file</code>.
+     * Example:
+     * <pre>commandLineShortcut('f', "file")</pre> will result in being able to
+     * run <code>java -jar myapp.jar -f /path/to/file</code> in place of
+     * <code>java -jar myapp.jar --file /path/to/file</code>.
      *
      * @param character
      * @param key
@@ -602,13 +619,13 @@ public final class SettingsBuilder {
         return this;
     }
 
-    private static Map<Character,String> combineShortcuts(Map<Character,String> a, Map<Character,String> b) {
+    private static Map<Character, String> combineShortcuts(Map<Character, String> a, Map<Character, String> b) {
         if (a.isEmpty()) {
             return b;
         } else if (b.isEmpty()) {
             return a;
         }
-        Map<Character,String> result = new HashMap<>(a);
+        Map<Character, String> result = new HashMap<>(a);
         result.putAll(b);
         return result;
     }
