@@ -26,11 +26,14 @@ package com.mastfrog.giulius.postgres.async;
 import com.mastfrog.util.file.FileUtils;
 import com.mastfrog.util.net.PortFinder;
 import com.mastfrog.util.preconditions.Checks;
+import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.streams.ContinuousLineStream;
 import com.mastfrog.util.strings.Strings;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,6 +42,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -342,7 +346,7 @@ public final class PostgresHarness {
             Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
             synchronized (this) {
                 process = startDb(dest, port);
-                process.onExit().handle((p, thrown) -> {
+                onExit(process).handle((p, thrown) -> {
                     if (thrown != null) {
                         thrown.printStackTrace();
                     }
@@ -522,6 +526,64 @@ public final class PostgresHarness {
         Checks.notEmptyOrNull("command", command);
         return runNamed(pathName(command[0]), command);
     }
+    
+    static boolean onExitMethodMissing;
+    static Method onExitMethod;
+    static synchronized Method onExitMethod() {
+        if (onExitMethod != null) {
+            return onExitMethod;
+        }
+        if (!onExitMethodMissing) {
+            try {
+                return onExitMethod = Process.class.getMethod("onExit");
+            } catch (NoSuchMethodException | SecurityException ex) {
+                onExitMethodMissing = true;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * While still supporting JDK 8, we cannot use Process.onExit() except
+     * reflectively.  The implementation is less than efficient for JDK 8 but
+     * should do the job.
+     *
+     * @param proc A process
+     * @return A completable future
+     */
+    CompletableFuture<Process> onExit(Process proc) {
+        Method onExit = onExitMethod();
+        if (onExit != null) {
+            try {
+                return (CompletableFuture<Process>) onExit.invoke(proc);
+            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                return Exceptions.chuck(ex);
+            }
+        }
+        CompletableFuture<Process> result = new CompletableFuture<>();
+        Runnable busywait = () -> {
+            for(;;) {
+                if (proc.isAlive()) {
+                    try {
+                        Thread.sleep(30);
+                    } catch (InterruptedException ex) {
+                        result.completeExceptionally(ex);
+                    }
+                } else {
+                    result.complete(proc);
+                    return;
+                }
+            }
+        };
+        Thread waiter = new Thread(busywait, "JDK8-Process-Waiter: " + proc);
+        waiter.setDaemon(true);
+        waiter.setPriority(Thread.currentThread().getPriority()-1);
+        waiter.setUncaughtExceptionHandler((thr, ex) -> {
+            ex.printStackTrace();
+        });
+        waiter.start();
+        return result;
+    }
 
     private String runNamed(String name, String... command) throws IOException, InterruptedException, ExecutionException {
         Path outPath = dir.resolve(name + ".out");
@@ -540,7 +602,7 @@ public final class PostgresHarness {
 
         Process proc = pb.start();
         Throwable[] t = new Throwable[1];
-        String result = proc.onExit().handle((p, thrown) -> {
+        String result = onExit(proc).handle((p, thrown) -> {
             int exitCode = p.exitValue();
             if (exitCode != 0) {
                 IOException exitValueException = new IOException(name + " process exited with " + exitCode);
