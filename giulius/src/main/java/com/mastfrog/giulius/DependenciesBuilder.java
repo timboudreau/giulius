@@ -239,6 +239,23 @@ public final class DependenciesBuilder {
         return this;
     }
 
+    private boolean mergeNamespaces;
+    /**
+     * Even if multiple namespaces are present, merge settings from
+     * all namespaces (with the default namespace as the lowest)
+     * layer.  This can be useful when you only have one actual namespace,
+     * which is not the default namespace (so the file name is different,
+     * but you don't actually care about different objects being injected
+     * into classes in different namespaces or packages), as it eliminates
+     * the overhead of binding individual providers for each namespace.
+     *
+     * @return this
+     */
+    public DependenciesBuilder mergeNamespaces() {
+        mergeNamespaces = true;
+        return this;
+    }
+
     private Map<String, Settings> collapse() throws IOException {
         Map<String, Settings> result = new HashMap<>();
         for (Map.Entry<String, List<SettingsBuilder>> e : settingsForNamespace.entrySet()) {
@@ -266,7 +283,7 @@ public final class DependenciesBuilder {
      * @throws IOException 
      */
     public Dependencies build() throws IOException {
-        return new Dependencies(collapse(), settingsBindings, modules.toArray(new Module[modules.size()]));
+        return new Dependencies(mergeNamespaces, collapse(), settingsBindings, modules.toArray(new Module[modules.size()]));
     }
     
     @Override

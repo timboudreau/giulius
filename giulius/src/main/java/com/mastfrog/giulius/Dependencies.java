@@ -43,6 +43,8 @@ import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
+import com.mastfrog.graal.annotation.Expose;
+import com.mastfrog.graal.annotation.ExposeMany;
 import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mastfrog.settings.MutableSettings;
 import static com.mastfrog.settings.SettingsBuilder.DEFAULT_NAMESPACE;
@@ -79,6 +81,7 @@ import java.util.regex.Pattern;
 import com.mastfrog.util.thread.QuietAutoCloseable;
 import com.mastfrog.util.time.TimeUtil;
 import java.time.Duration;
+import java.util.ArrayList;
 
 /**
  * A wrapper around Guice's injector which enforces a few things such as how
@@ -94,6 +97,29 @@ import java.time.Duration;
  *
  * @author Tim Boudreau
  */
+@ExposeMany({
+    // Probably a bug in SubstrateVM that these need to be exposed for reflection,
+    // but they are not present without this
+    @Expose(type = "java.lang.Integer",
+            methods = @Expose.MethodInfo(name = "parseInt", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Boolean",
+            methods = @Expose.MethodInfo(name = "parseBoolean", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Short",
+            methods = @Expose.MethodInfo(name = "parseShort", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Double",
+            methods = @Expose.MethodInfo(name = "parseDouble", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Float",
+            methods = @Expose.MethodInfo(name = "parseFloat", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Byte",
+            methods = @Expose.MethodInfo(name = "parseByte", parameterTypes = {"java.lang.String"})),
+    @Expose(type = "java.lang.Long",
+            methods = @Expose.MethodInfo(name = "parseLong", parameterTypes = {"java.lang.String"})),
+    // Expose the name() methods on both @Named annotations, or running under SubstrateVM
+    // Guice will see them as marker annotations with zero methods and generate keys
+    // incorrectly
+    @Expose(type = "com.google.inject.name.Named", methods = @Expose.MethodInfo(name = "value")),
+    @Expose(type = "javax.inject.Named", methods = @Expose.MethodInfo(name = "value"))
+})
 public final class Dependencies {
 
     /**
@@ -106,6 +132,7 @@ public final class Dependencies {
     private final Set<SettingsBindings> settingsBindings;
     private final List<Module> modules = new LinkedList<>();
     private volatile Injector injector;
+    private final boolean mergeNamespaces;
 
     public Dependencies(Module... modules) throws IOException {
         this(SettingsBuilder.createDefault().build(), modules);
@@ -153,10 +180,11 @@ public final class Dependencies {
      * @param modules A set of modules
      */
     public Dependencies(Settings configuration, Module... modules) {
-        this(Collections.singletonMap(DEFAULT_NAMESPACE, configuration), EnumSet.allOf(SettingsBindings.class), modules);
+        this(false, Collections.singletonMap(DEFAULT_NAMESPACE, configuration), EnumSet.allOf(SettingsBindings.class), modules);
     }
 
-    Dependencies(Map<String, Settings> settings, Set<SettingsBindings> settingsBindings, Module... modules) {
+    Dependencies(boolean mergeNamespaces, Map<String, Settings> settings, Set<SettingsBindings> settingsBindings, Module... modules) {
+        this.mergeNamespaces = mergeNamespaces;
         this.settings.putAll(settings);
         if (!this.settings.containsKey(DEFAULT_NAMESPACE)) {
             try {
@@ -411,6 +439,10 @@ public final class Dependencies {
             return Namespace.class;
         }
 
+        public String toString() {
+            return "Namespace('" + name + "')";
+        }
+
         @Override
         public boolean equals(Object o) {
             return o instanceof Namespace && name.equals(((Namespace) o).value());
@@ -515,21 +547,40 @@ public final class Dependencies {
                 bind(DeploymentMode.class).toInstance(mode);
                 reg.setDeploymentMode(mode);
 
+                boolean onlyDefaultNamespace = knownNamespaces.isEmpty()
+                        || setOf(DEFAULT_NAMESPACE).equals(knownNamespaces);
+
                 Set<String> allKeys = new HashSet<>();
                 for (String namespace : knownNamespaces) {
                     Settings s = settings.get(namespace);
                     if (s == null) {
-                        s = SettingsBuilder.forNamespace(namespace).addGeneratedDefaultsFromClasspath().addDefaultsFromClasspath().build();
+                        s = SettingsBuilder.forNamespace(namespace)
+                                .addGeneratedDefaultsFromClasspath()
+                                .addDefaultsFromClasspath().build();
                         settings.put(namespace, s);
                     }
                     allKeys.addAll(s.allKeys());
                 }
                 Provider<Settings> namespacedSettings;
-                if (knownNamespaces.isEmpty() || setOf(DEFAULT_NAMESPACE).equals(knownNamespaces)) {
+                if (onlyDefaultNamespace) {
                     // 3.5.0 - for Graal, avoid package lookups which are problematic
                     // with reflection - should also improve settings lookups in general
                     String ns = knownNamespaces.isEmpty() ? SettingsBuilder.DEFAULT_NAMESPACE : knownNamespaces.iterator().next();
                     namespacedSettings = Providers.of(settings.get(ns));
+                } else if (mergeNamespaces) {
+                    // This use case is not full-blown namespacing, just
+                    // providing a name for the default
+                    SettingsBuilder sb = Settings.builder();
+                    Settings s = settings.get(Namespace.DEFAULT);
+                    sb.add(s);
+                    List<String> sortedKeys = new ArrayList<>(settings.keySet());
+                    Collections.sort(sortedKeys);
+                    for (String key : sortedKeys) {
+                        if (!Namespace.DEFAULT.equals(key)) {
+                            sb.add(settings.get(key));
+                        }
+                    }
+                    namespacedSettings = Providers.of(sb.build());
                 } else {
                     namespacedSettings = new NamespacedSettingsProvider(Dependencies.this);
                 }
@@ -641,7 +692,7 @@ public final class Dependencies {
             }
         }
 
-        private class ProvisionListenerImpl implements ProvisionListener {
+        private final class ProvisionListenerImpl implements ProvisionListener {
 
             ProvisionListenerImpl() {
             }
@@ -757,6 +808,33 @@ public final class Dependencies {
             return null;
         }
 
+        private static Package reflectivePackageGetPackage(String what) {
+            // Graal will be unable to compile a native image if
+            // its static analysis can see a call to the deprecated
+            // Package.getPackage.  So we do a few tricks, since it
+            // does constant analysis to identify such reflective
+            // calls as well.  On JDKs > 8, the JDK 9 version will be
+            // used and so there is nothing to worry about unless
+            // we are building on a JVMCI-enabled JDK 8, to which the
+            // solution is...don't do that if you're going to use Graal's
+            // native-image tool to build a native executable from it
+            // later
+            StringBuilder sb = new StringBuilder("j").append("ava.lang");
+            String mth = "getPackage";
+            if (1 + 1 == 2) { // defeat Graal's static analysis
+                sb.append(".Package");
+                try {
+                    Class<?> cl = Class.forName(sb.toString());
+                    Method method = cl.getMethod(mth, String.class);
+                    return (Package) method.invoke(null, what);
+                } catch (Exception | Error ex) {
+                    Logger.getLogger(Dependencies.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            }
+            return null;
+        }
+
         @Override
         @SuppressWarnings("deprecation")
         public Settings get() {
@@ -778,7 +856,8 @@ public final class Dependencies {
                                 } else {
                                     pkg = jdk9getPackage(m.group(1));
                                     if (pkg == null) {
-                                        pkg = Package.getPackage(m.group(1));
+//                                        pkg = Package.getPackage(m.group(1));
+                                        pkg = reflectivePackageGetPackage(m.group(1));
                                     }
                                     if (pkg == null || pkg.getName().isEmpty()) {
                                         break;

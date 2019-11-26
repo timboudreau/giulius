@@ -175,7 +175,6 @@ public final class GraalInjectionProcessor extends AbstractRegistrationAnnotatio
                 indexer.add(JAR_PATH_JSON_FILE, allEntry, processingEnv, e);
             }
         }
-
     }
 
     @Override

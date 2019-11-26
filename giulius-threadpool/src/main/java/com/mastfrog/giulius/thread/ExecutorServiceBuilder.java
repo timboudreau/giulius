@@ -51,6 +51,14 @@ public abstract class ExecutorServiceBuilder {
         this.bindingName = bindingName;
     }
 
+    @Override
+    public String toString() {
+        return "ExecutorServiceBuilder(" + bindingName + ", "
+                + " " + defaultThreadCount + ", " + explicitThreadCount
+                + ", " + priority + ", " + type + ", "
+                + legacyName + " " + eager + ")";
+    }
+
     /**
      * Set the stack size for created threads (not used if type = FORK_JOIN
      * where this is made not customizable by the JDK). Values &lt;= 0 mean use

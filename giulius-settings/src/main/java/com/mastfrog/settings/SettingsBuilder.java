@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.function.Consumer;
 
 /**
  * Builder for Settings. Allows multiple sources of settings to be layered
@@ -83,6 +84,7 @@ public final class SettingsBuilder {
      * <code>generated-</code>
      */
     public static final String GENERATED_PREFIX = "generated-";
+    private static final String TRUE = "true";
     private final List<PropertiesSource> all = new ArrayList<>(7);
     private final Set<String> environmentKeys = new HashSet<>(12);
     private final String namespace;
@@ -619,6 +621,13 @@ public final class SettingsBuilder {
         return this;
     }
 
+    public ShortcutsBuilder<SettingsBuilder> defineShortcuts() {
+        return new ShortcutsBuilder<>(namespace, map -> {
+            shortcuts.putAll(map);
+            return this;
+        });
+    }
+
     private static Map<Character, String> combineShortcuts(Map<Character, String> a, Map<Character, String> b) {
         if (a.isEmpty()) {
             return b;
@@ -654,16 +663,39 @@ public final class SettingsBuilder {
      * @return this
      */
     public SettingsBuilder parseCommandLineArguments(Map<Character, String> mapping, String... args) {
+        return parseCommandLineArguments(mapping, args, null);
+    }
+
+    public SettingsBuilder parseCommandLineArguments(String danglingArgAs, String[] args) {
+        notNull("danglingArgAs", danglingArgAs);
+        return parseCommandLineArguments(Collections.emptyMap(), args, dangling -> {
+            this.add(danglingArgAs, dangling);
+        });
+    }
+
+    /**
+     * Parse command line arguments ala <code>--foo</code> translating to a
+     * setting of foo=true or <code>--foo 23</code> translating to a setting of
+     * foo=23.
+     * <p/>
+     * The passed map can map individual characters - i.e. short arguments such
+     * as making -f equivalent to --foo, or -fb equivalent to --foo --bar
+     *
+     * @param args a mapping of short to long args
+     * @return this
+     */
+    public SettingsBuilder parseCommandLineArguments(Map<Character, String> mapping, String[] args, Consumer<String> danglingArgumentHandler) {
         mapping = combineShortcuts(mapping, shortcuts);
         if (args == null || args.length == 0) {
             return this;
         }
         String last = null;
         Properties p = new Properties();
-        for (String arg : args) {
+        for (Iterator<String> it = Arrays.asList(args).iterator(); it.hasNext();) {
+            String arg = it.next();
             if (arg.startsWith("--") && arg.length() > 2 && arg.charAt(2) != '-') {
                 if (last != null) {
-                    p.setProperty(last, "true");
+                    p.setProperty(last, TRUE);
                 }
                 last = arg.substring(2);
             } else if (arg.length() >= 2 && arg.charAt(0) == '-' && arg.charAt(1) != '-') {
@@ -672,7 +704,7 @@ public final class SettingsBuilder {
                     String val = mapping.get(c);
                     if (val != null) {
                         if (last != null) {
-                            p.setProperty(last, "true");
+                            p.setProperty(last, TRUE);
                         }
                         last = val;
                     } else {
@@ -684,12 +716,16 @@ public final class SettingsBuilder {
                     p.setProperty(last, arg);
                     last = null;
                 } else {
-                    throw new ConfigurationError("Dangling argument " + arg);
+                    if (!it.hasNext() && danglingArgumentHandler != null) {
+                        danglingArgumentHandler.accept(arg);
+                    } else {
+                        throw new ConfigurationError("Dangling argument " + arg);
+                    }
                 }
             }
         }
         if (last != null) {
-            p.setProperty(last, "true");
+            p.setProperty(last, TRUE);
         }
         return p.isEmpty() ? this : add(p);
     }
