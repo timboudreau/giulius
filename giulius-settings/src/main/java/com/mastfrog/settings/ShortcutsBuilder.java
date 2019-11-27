@@ -25,7 +25,6 @@ package com.mastfrog.settings;
 
 import com.mastfrog.util.streams.Streams;
 import java.io.InputStream;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -61,8 +60,7 @@ public final class ShortcutsBuilder<T> {
         String filename = namespace + "-shortcuts.list";
         InputStream[] streams = Streams.locate(filename);
         for (InputStream in : streams) {
-//            InputStreamReader isr = new InputStreamReader(in, UTF_8);
-            Scanner scanner = new Scanner(in, UTF_8);
+            Scanner scanner = new Scanner(in, "UTF-8");
             int lineNumber = 0;
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
