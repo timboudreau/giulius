@@ -23,6 +23,7 @@
  */
 package com.mastfrog.giulius.postgres.async;
 
+import com.mastfrog.function.throwing.ThrowingConsumer;
 import com.mastfrog.function.throwing.ThrowingRunnable;
 import com.mastfrog.giulius.Dependencies;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_POOL_SIZE;
@@ -34,7 +35,10 @@ import static com.mastfrog.util.preconditions.Checks.notNull;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.streams.Streams;
 import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.PreparedStatement;
+import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlConnection;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -58,17 +62,22 @@ public class PostgresAsyncModuleTest {
         CountDownLatch latch = new CountDownLatch(1);
         Set<String> names = new HashSet<>();
         ErrorContext ctx = ctx();
-        ctx.handle(p::getConnection, conn -> {
-            ctx.handle("select * from things", conn::preparedQuery, (RowSet rowSet) -> {
-                rowSet.forEach(row -> {
-                    String name = row.getString("name");
-                    assertNotNull(name);
-                    names.add(name);
-                    if (names.size() == 2) {
-                        latch.countDown();
-                    }
+        ctx.handle(p::getConnection, new ThrowingConsumer<SqlConnection>() {
+            @Override
+            public void accept(SqlConnection conn) throws Exception {
+                ctx.handle("select * from things", conn::prepare, (PreparedStatement stmt) -> {
+                    ctx.handleThrowingConsumer(stmt.query()::execute, (RowSet<Row> rowSet) -> {
+                        rowSet.forEach(row -> {
+                            String name = row.getString("name");
+                            assertNotNull(name);
+                            names.add(name);
+                            if (names.size() == 2) {
+                                latch.countDown();
+                            }
+                        });
+                    });
                 });
-            });
+            }
         });
         latch.await(10, TimeUnit.SECONDS);
         assertEquals(2, names.size(), names::toString);

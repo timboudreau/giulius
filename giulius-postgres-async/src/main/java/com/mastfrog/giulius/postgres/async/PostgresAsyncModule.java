@@ -31,7 +31,15 @@ import io.vertx.sqlclient.PoolOptions;
 
 /**
  * Guice bindings for the postgres async client. Binds PgPool and some
- * supporting classes.
+ * supporting classes.  Note:  The vertx driver seems to routinely break binary
+ * compatibility, and there is nothing that can be done about that here -
+ * for example, with version 3.9.1, a bunch of layers of async calls are
+ * added to creating and using a prepared statement, which will break
+ * existing code, and PgConnectOptions curiously, lost overloaded methods
+ * that returned its own type, returning the parent type instead.
+ * <p>
+ * On the other hand, it <i>is</i> a true async postgres driver, and that
+ * is critical if you're in the async framework business.
  *
  * @author Tim Boudreau
  */

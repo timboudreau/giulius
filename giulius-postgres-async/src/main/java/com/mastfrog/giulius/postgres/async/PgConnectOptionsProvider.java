@@ -68,7 +68,7 @@ final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
 
     @Override
     public PgConnectOptions get() {
-        return PgConnectOptions.fromUri(
+        PgConnectOptions opts = PgConnectOptions.fromUri(
                 settings.getString(SETTINGS_KEY_PG_URI))
                 .setCachePreparedStatements(settings.getBoolean(SETTINGS_KEY_CACHE_PREPARED_STATEMENTS, DEFAULT_CACHE_PREPARED_STATEMENTS))
                 .setConnectTimeout(settings.getInt(SETTINGS_KEY_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT))
@@ -79,9 +79,10 @@ final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
                 .setTcpKeepAlive(settings.getBoolean(SETTINGS_KEY_TCP_KEEP_ALIVE, DEFAULT_TCP_KEEP_ALIVE))
                 .setTcpFastOpen(settings.getBoolean(SETTINGS_KEY_TCP_FAST_OPEN, DEFAULT_TCP_FAST_OPEN))
                 .setReconnectAttempts(settings.getInt(SETTINGS_KEY_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_ATTEMPTS))
-                .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY))
-                .setUsePooledBuffers(settings.getBoolean(SETTINGS_KEY_POOLED_BUFFERS, DEFAULT_USE_POOLED_BUFFERS))
+                .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY));
+        opts.setUsePooledBuffers(settings.getBoolean(SETTINGS_KEY_POOLED_BUFFERS, DEFAULT_USE_POOLED_BUFFERS))
                 .setTrustAll(settings.getBoolean(SETTINGS_KEY_TRUST_ALL, DEFAULT_TRUST_ALL));
+        return opts;
     }
 
 }

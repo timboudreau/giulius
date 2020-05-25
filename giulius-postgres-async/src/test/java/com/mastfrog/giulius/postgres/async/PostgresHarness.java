@@ -551,6 +551,7 @@ public final class PostgresHarness {
      * @param proc A process
      * @return A completable future
      */
+    @SuppressWarnings("unchecked")
     CompletableFuture<Process> onExit(Process proc) {
         Method onExit = onExitMethod();
         if (onExit != null) {

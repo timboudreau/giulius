@@ -39,9 +39,9 @@ import java.util.function.Function;
  * errors regardless of which in a chain of nested methods was the trigger.
  * Example:
  * <pre>
- *  ErrorContext ctx = ctx();
- *  ctx.handle(p::getConnection, conn -> {
- *      ctx.handle("select * from things", conn::preparedQuery, (RowSet rowSet) -> {
+  ErrorContext ctx = ctx();
+  ctx.handleThrowing(p::getConnection, conn -> {
+      ctx.handleThrowing("select * from things", conn::preparedQuery, (RowSet rowSet) -> {
  *          rowSet.forEach(row -> {
  *              String name = row.getString("name");
  *              assertNotNull(name);
@@ -93,8 +93,12 @@ public final class ErrorContext {
         }
     }
 
-    public <P, T> P handle(Function<Handler<AsyncResult<T>>, P> c, ThrowingConsumer<T> consumer) {
+    public <P, T> P handleThrowing(Function<Handler<AsyncResult<T>>, P> c, ThrowingConsumer<T> consumer) {
         return c.apply(ifNoError(consumer));
+    }
+
+    public <T> void handleThrowingConsumer(Consumer<Handler<AsyncResult<T>>> c, ThrowingConsumer<T> consumer) {
+        c.accept(ifNoError(consumer));
     }
 
     public <T, R> void handle(R r, BiConsumer<R, Handler<AsyncResult<T>>> c, ThrowingConsumer<T> consumer) {
