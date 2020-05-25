@@ -58,6 +58,9 @@ public class PostgresAsyncModuleTest {
 
     @Test
     public void testSomeMethod() throws InterruptedException {
+        if (!PostgresHarness.binariesExist()) {
+            return;
+        }
         PgPool p = deps.getInstance(PgPool.class);
         CountDownLatch latch = new CountDownLatch(1);
         Set<String> names = new HashSet<>();
@@ -99,12 +102,19 @@ public class PostgresAsyncModuleTest {
 
     @AfterEach
     public void shutdown() throws Exception {
-        onShutdown.run();
-        eh.rethrow();
+        if (onShutdown != null) {
+            onShutdown.run();
+        }
+        if (eh != null) {
+            eh.rethrow();
+        }
     }
 
     @BeforeEach
     public void setup() throws Throwable {
+        if (!PostgresHarness.binariesExist()) {
+            return;
+        }
         eh = new EH();
         onShutdown = ThrowingRunnable.composable(true);
         harn = new PostgresHarness();

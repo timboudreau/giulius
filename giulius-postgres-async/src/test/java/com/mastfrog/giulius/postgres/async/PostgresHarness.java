@@ -73,9 +73,29 @@ public final class PostgresHarness {
     private Path dest;
     private Process process;
     private int port = -1;
+    private static boolean warned;
 
     private PostgresHarness(Path dir) {
         this.dir = dir;
+    }
+
+    public static boolean binariesExist() {
+        for (String file : new String[]{PSQL_BINARY, INITDB_BINARY, POSTGRES_BINARY}) {
+            Path path = Paths.get(file);
+            if (!Files.exists(path) || !Files.isExecutable(path)) {
+                if (!warned) {
+                    warned = true;
+                    System.err.println("Could not find an executable binary named '" + file
+                            + "' in any of " + Strings.join(',', DEFAULT_SEARCH_PATH) + " - "
+                            + "tests using " + PostgresHarness.class.getName() + " will "
+                            + "(or should) be skipped.  If it is present but in an unusual "
+                            + "location, set the system properties 'psql', 'initdb' and 'postgres' "
+                            + "to the absolute paths to the binaries you want to use.");
+                }
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -526,9 +546,10 @@ public final class PostgresHarness {
         Checks.notEmptyOrNull("command", command);
         return runNamed(pathName(command[0]), command);
     }
-    
+
     static boolean onExitMethodMissing;
     static Method onExitMethod;
+
     static synchronized Method onExitMethod() {
         if (onExitMethod != null) {
             return onExitMethod;
@@ -545,7 +566,7 @@ public final class PostgresHarness {
 
     /**
      * While still supporting JDK 8, we cannot use Process.onExit() except
-     * reflectively.  The implementation is less than efficient for JDK 8 but
+     * reflectively. The implementation is less than efficient for JDK 8 but
      * should do the job.
      *
      * @param proc A process
@@ -563,7 +584,7 @@ public final class PostgresHarness {
         }
         CompletableFuture<Process> result = new CompletableFuture<>();
         Runnable busywait = () -> {
-            for(;;) {
+            for (;;) {
                 if (proc.isAlive()) {
                     try {
                         Thread.sleep(30);
@@ -578,7 +599,7 @@ public final class PostgresHarness {
         };
         Thread waiter = new Thread(busywait, "JDK8-Process-Waiter: " + proc);
         waiter.setDaemon(true);
-        waiter.setPriority(Thread.currentThread().getPriority()-1);
+        waiter.setPriority(Thread.currentThread().getPriority() - 1);
         waiter.setUncaughtExceptionHandler((thr, ex) -> {
             ex.printStackTrace();
         });
