@@ -52,7 +52,7 @@ public interface MigrationWorker extends ThrowingQuadConsumer<CompletableFuture<
      * @throws Exception
      */
     @Override
-    void apply(CompletableFuture<Document> a, MongoDatabase b, MongoCollection<Document> s, Function<Class<? extends MigrationWorker>, MigrationWorker> u) throws Exception;
+    void accept(CompletableFuture<Document> a, MongoDatabase b, MongoCollection<Document> s, Function<Class<? extends MigrationWorker>, MigrationWorker> u) throws Exception;
 
     /**
      * Convenience method for handling any thrown exceptions via the

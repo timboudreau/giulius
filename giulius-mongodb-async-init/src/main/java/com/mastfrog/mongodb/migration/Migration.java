@@ -128,7 +128,7 @@ public class Migration {
                         agg.put(e.getKey() + "_backup_" + counter.getAndIncrement(), d);
                     }
                     try {
-                        bu.apply(res, db, db.getCollection(e.getKey()));
+                        bu.accept(res, db, db.getCollection(e.getKey()));
                     } catch (Exception ex) {
                         res.completeExceptionally(ex);
                     }
@@ -151,7 +151,7 @@ public class Migration {
                         OneOf<MigrationWorker, Class<? extends MigrationWorker>> mig = e.getValue();
                         notNull("Null return from " + e, mig);
                         MigrationWorker curr = mig.get(converter);
-                        curr.apply(res, db, db.getCollection(e.getKey()), converter);
+                        curr.accept(res, db, db.getCollection(e.getKey()), converter);
                     } catch (Exception ex) {
                         res.completeExceptionally(ex);
                     }

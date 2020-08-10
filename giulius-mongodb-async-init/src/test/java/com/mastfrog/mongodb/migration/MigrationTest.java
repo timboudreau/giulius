@@ -255,7 +255,7 @@ public class MigrationTest {
         }
 
         @Override
-        public void apply(CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v, Function<Class<? extends MigrationWorker>, MigrationWorker> f) throws Exception {
+        public void accept(CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v, Function<Class<? extends MigrationWorker>, MigrationWorker> f) throws Exception {
             Document results = new Document();
             List<ObjectId> ids = new CopyOnWriteArrayList<>();
             results.append("ids", ids);

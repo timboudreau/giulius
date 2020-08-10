@@ -134,7 +134,7 @@ public class MigrationBuilder<T> {
         notNull("type", workerClass);
         MigrationWorker instantiatingWrapper = (CompletableFuture<Document> a, MongoDatabase b, MongoCollection<Document> s, Function<Class<? extends MigrationWorker>, MigrationWorker> u) -> {
             MigrationWorker actual = u.apply(workerClass);
-            actual.apply(a, b, s, u);
+            actual.accept(a, b, s, u);
         };
         return migrateCollection(collectionName, instantiatingWrapper);
     }
@@ -159,13 +159,13 @@ public class MigrationBuilder<T> {
                         return null;
                     }
                     try {
-                        func.apply(t, u, v, f);
+                        func.accept(t, u, v, f);
                     } catch (Exception ex) {
                         t.completeExceptionally(thrown);
                     }
                     return null;
                 });
-                func.apply(t, u, v, f);
+                func.accept(t, u, v, f);
             };
             migrations.put(collectionName, OneOf.ofA(next));
         }

@@ -230,7 +230,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 sb.append("prov: ").append(prov).append(',');
             }
             for (Codec codec : codecs) {
-                sb.append("codec: " + codec).append(",");
+                sb.append("codec: ").append(codec).append(",");
             }
             return sb.toString();
         }
@@ -242,6 +242,11 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             } catch (CodecConfigurationException ex) {
                 return fallback.get().createCodec(type, ex);
             }
+        }
+
+        @Override
+        public <T> Codec<T> get(Class<T> type, CodecRegistry cr) {
+            return get(type);
         }
     }
 
