@@ -64,6 +64,10 @@ public final class PostgresAsyncModule extends AbstractModule {
     public static final String SETTINGS_KEY_RECONNECT_ATTEMPTS
             = "pg-tcp-fast-open";
     public static final String SETTINGS_KEY_LOG_ACTIVITY = "pg-log-activity";
+    /**
+     * @deprecated Removed in the vertx pg client library.  Does nothing
+     */
+    @Deprecated
     public static final String SETTINGS_KEY_POOLED_BUFFERS = "pg-pooled-buffers";
     public static final String SETTINGS_KEY_TRUST_ALL = "pg-trust-all";
 
@@ -76,7 +80,6 @@ public final class PostgresAsyncModule extends AbstractModule {
     static final boolean DEFAULT_TCP_KEEP_ALIVE = true;
     static final boolean DEFAULT_TCP_FAST_OPEN = true;
     static final boolean DEFAULT_LOG_ACTIVITY = true;
-    static final boolean DEFAULT_USE_POOLED_BUFFERS = true;
     static final boolean DEFAULT_TRUST_ALL = false;
     static final int DEFAULT_MAX_POOL_SIZE = 12;
     static final int DEFAULT_MAX_WAIT_QUEUE_SIZE = 100;

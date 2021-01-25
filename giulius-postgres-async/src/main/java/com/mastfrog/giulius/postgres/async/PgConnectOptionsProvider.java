@@ -34,12 +34,10 @@ import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_TC
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_TCP_QUICK_ACK;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_TRUST_ALL;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_USE_ALPN;
-import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_USE_POOLED_BUFFERS;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_CACHE_PREPARED_STATEMENTS;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_CONNECT_TIMEOUT;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_LOG_ACTIVITY;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_PG_URI;
-import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOLED_BUFFERS;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_QUICK_ACK;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_RECONNECT_ATTEMPTS;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_TCP_CORK;
@@ -79,8 +77,7 @@ final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
                 .setTcpKeepAlive(settings.getBoolean(SETTINGS_KEY_TCP_KEEP_ALIVE, DEFAULT_TCP_KEEP_ALIVE))
                 .setTcpFastOpen(settings.getBoolean(SETTINGS_KEY_TCP_FAST_OPEN, DEFAULT_TCP_FAST_OPEN))
                 .setReconnectAttempts(settings.getInt(SETTINGS_KEY_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_ATTEMPTS))
-                .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY));
-        opts.setUsePooledBuffers(settings.getBoolean(SETTINGS_KEY_POOLED_BUFFERS, DEFAULT_USE_POOLED_BUFFERS))
+                .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY))
                 .setTrustAll(settings.getBoolean(SETTINGS_KEY_TRUST_ALL, DEFAULT_TRUST_ALL));
         return opts;
     }
