@@ -26,12 +26,15 @@ package com.mastfrog.maven.merge.configuration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import static com.google.common.base.Charsets.UTF_8;
 import static com.mastfrog.util.fileformat.PropertiesFileUtils.printLines;
 import static com.mastfrog.util.fileformat.PropertiesFileUtils.savePropertiesFile;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +44,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -58,8 +62,23 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.ZipException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+import jdk.internal.joptsimple.internal.Strings;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -75,6 +94,10 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectDependenciesResolver;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.graph.Dependency;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * A Maven plugin which, on good days, merges together all properties files on
@@ -123,6 +146,8 @@ public class MergeConfigurationMojo extends AbstractMojo {
     private static final Pattern SIG1 = Pattern.compile("META-INF\\/[^\\/]*\\.SF");
     private static final Pattern SIG2 = Pattern.compile("META-INF\\/[^\\/]*\\.DSA");
     private static final Pattern SIG3 = Pattern.compile("META-INF\\/[^\\/]*\\.RSA");
+
+    private static final String PLEXUS_COMPONENTS_FILE = "META-INF/plexus/components.xml";
 
     @Component
     private ProjectDependenciesResolver resolver;
@@ -268,6 +293,9 @@ public class MergeConfigurationMojo extends AbstractMojo {
         JarOutputStream jarOut = null;
         Set<String> seen = new HashSet<>();
 
+        List<Node> plexusComponents = new ArrayList<>();
+        List<String> plexusJars = new ArrayList<>();
+
         List<List<Map<String, Object>>> reflectionInfo = new LinkedList<>();
         Map<String, List<String>> originsOf = new HashMap<>();
         try {
@@ -317,10 +345,17 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     break;
                                 case "META-INF/injection/reflective.json":
                                     try (InputStream in = jf.getInputStream(e)) {
-                                        log.info("Will merge META-INF/injection/reflective.json info from " + jar);
-                                        reflectionInfo.add(readJsonList(in));
-                                    }
-                                    continue;
+                                    log.info("Will merge META-INF/injection/reflective.json info from " + jar);
+                                    reflectionInfo.add(readJsonList(in));
+                                }
+                                continue;
+                                case PLEXUS_COMPONENTS_FILE:
+                                    try (InputStream in = jf.getInputStream(e)) {
+                                    log.info("Will merge " + PLEXUS_COMPONENTS_FILE + " info from " + jar.getName());
+                                    plexusComponents.addAll(readPlexusComponents(jar.getName(), in));
+                                    plexusJars.add(jar.getName());
+                                }
+                                continue;
                                 default:
                                     if ("META-INF/LICENSE".equals(name)
                                             || "META-INF/LICENSE.txt".equals(name)
@@ -472,6 +507,12 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                 ct++;
                             }
                             fileCountForName.put(name, ct);
+                        } else if (PLEXUS_COMPONENTS_FILE.equals(name)) {
+                            try (InputStream in = jar.getInputStream(entry)) {
+                                log.info("Will merge " + PLEXUS_COMPONENTS_FILE + " info from " + f.getName());
+                                plexusComponents.addAll(readPlexusComponents(f.getName(), in));
+                                plexusJars.add(f.getName());
+                            }
                         } else if (jarOut != null) {
                             switch (name) {
                                 case "META-INF/MANIFEST.MF":
@@ -479,10 +520,10 @@ public class MergeConfigurationMojo extends AbstractMojo {
                                     break;
                                 case "META-INF/injection/reflective.json":
                                     try (InputStream in = jar.getInputStream(entry)) {
-                                        log.info("Will merge META-INF/injection/reflective.json info from " + f.getName());
-                                        reflectionInfo.add(readJsonList(in));
-                                    }
-                                    continue;
+                                    log.info("Will merge META-INF/injection/reflective.json info from " + f.getName());
+                                    reflectionInfo.add(readJsonList(in));
+                                }
+                                continue;
 
                                 default:
                                     if ("META-INF/LICENSE".equals(name)
@@ -543,8 +584,6 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
             if (!propertiesForFileName.isEmpty()) {
                 log.warn("Writing merged files: " + propertiesForFileName.keySet());
-            } else {
-//                return;
             }
             String outDir = project.getBuild().getOutputDirectory();
             File dir = new File(outDir);
@@ -576,6 +615,31 @@ public class MergeConfigurationMojo extends AbstractMojo {
                 }
             } else {
                 log.warn("No META_INF/injection/reflective.json data to write");
+            }
+            if (!plexusComponents.isEmpty()) {
+                log.warn("Writing merged " + PLEXUS_COMPONENTS_FILE + " with " + plexusComponents.size() + " components "
+                        + " from " + plexusJars);
+                String body = assemblePlexusComponents(plexusComponents);
+                File dest = new File(dir, "META-INF/plexus");
+                if (!dest.exists()) {
+                    dest.mkdirs();
+                }
+                File comps = new File(dest, "components.xml");
+                try (OutputStream cout = new BufferedOutputStream(new FileOutputStream(comps))) {
+                    cout.write(body.getBytes(UTF_8));;
+                } catch (Exception ex) {
+                    throw new MojoFailureException("Exception writing reflection info", ex);
+                }
+                if (jarOut != null) {
+                    try {
+                        JarEntry je = new JarEntry("META-INF/plexus/components.xml");
+                        jarOut.putNextEntry(je);
+                        jarOut.write(body.getBytes(UTF_8));;
+                        jarOut.closeEntry();
+                    } catch (IOException ex) {
+                        throw new MojoFailureException("Exception writing reflection info", ex);
+                    }
+                }
             }
             for (Map.Entry<String, Set<String>> e : linesForName.entrySet()) {
                 if (shouldSkip(e.getKey())) {
@@ -744,5 +808,65 @@ public class MergeConfigurationMojo extends AbstractMojo {
             }
         }
         return sb.toString();
+    }
+
+    private Collection<? extends Node> readPlexusComponents(String jar, InputStream in) throws MojoFailureException {
+        try {
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            dbFactory.setValidating(false);
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(in);
+            doc.getDocumentElement().normalize();
+
+            XPathFactory fac = XPathFactory.newInstance();
+            XPath xpath = fac.newXPath();
+            XPathExpression findComponents = xpath.compile(
+                    "/component-set/components/component");
+            NodeList nl = (NodeList) findComponents.evaluate(doc, XPathConstants.NODESET);
+
+            List<Node> nodes = new ArrayList<>();
+            for (int i = 0; i < nl.getLength(); i++) {
+                Node n = nl.item(i);
+                nodes.add(n);
+            }
+
+            return nodes;
+        } catch (Exception ex) {
+            throw new MojoFailureException("Could not parse " + PLEXUS_COMPONENTS_FILE + " in " + jar, ex);
+        }
+    }
+
+    private String assemblePlexusComponents(List<Node> all) throws MojoFailureException {
+        try {
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            dbFactory.setValidating(false);
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+
+            Document doc = dBuilder.newDocument();
+            Node root = doc.createElement("component-set");
+            Node sub = doc.createElement("components");
+            root.appendChild(sub);
+            doc.appendChild(root);
+            for (Node n : all) {
+                Node adopted = doc.adoptNode(n);
+                sub.appendChild(adopted);
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            StreamResult res = new StreamResult(out);
+            TransformerFactory tFactory
+                    = TransformerFactory.newInstance();
+            Transformer transformer = tFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "no");
+            transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+//            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", Integer.toString(4));
+            transformer.transform(new DOMSource(doc), res);
+
+            String result = new String(out.toByteArray(), "UTF-8");
+            return result;
+        } catch (Exception ex) {
+            throw new MojoFailureException("Could not assemble a " + PLEXUS_COMPONENTS_FILE, ex);
+        }
+
     }
 }

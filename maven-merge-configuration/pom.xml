@@ -8,6 +8,7 @@
         <version>2.7.1</version>
         <relativePath/>
     </parent>
+    <version>2.7.1.1</version>
     <artifactId>maven-merge-configuration</artifactId>
     <url>https://github.com/timboudreau/giulius</url>
     <name>maven-merge-configuration</name>
