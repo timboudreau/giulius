@@ -11,7 +11,7 @@ target/
 
 /cluster-ids/nbproject/private/
 nb-configuration.xml
-
+nbactions.xml
 /giulius/nbproject/
 /giulius-settings/nbproject/
 /giulius-threadpool/nbproject/

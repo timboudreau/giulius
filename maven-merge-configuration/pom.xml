@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.mastfrog</groupId>
@@ -8,9 +8,11 @@
         <version>2.7.1</version>
         <relativePath/>
     </parent>
-    <version>2.7.1.1</version>
+    <version>2.7.1.2</version>
     <artifactId>maven-merge-configuration</artifactId>
     <url>https://github.com/timboudreau/giulius</url>
+    <description>Maven plugin for building fat-jars and assisting in repeatable builds,
+        which can intelligently merge and scrub various kinds of META-INF files.</description>
     <name>maven-merge-configuration</name>
     <packaging>maven-plugin</packaging>
     <properties>
@@ -24,7 +26,8 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>util-fileformat</artifactId>
+            <artifactId>smart-jar-merge</artifactId>
+            <version>${mastfrog.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -61,7 +64,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.6.0</version>
                 <configuration>
                     <goalPrefix>merge-configuration</goalPrefix>
                     <!-- Utterly non-obvious: http://bit.ly/WwuNiJ -->
@@ -88,52 +91,6 @@
         </plugins>
     </build>
     <!-- repos so I can be built independently -->
-    <repositories>
-        <repository>
-            <id>timboudreau-builds</id>
-            <name>timboudreau.com builds</name>
-            <url>https://timboudreau.com/maven/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>netbeans</id>
-            <name>NetBeans</name>
-            <url>http://bits.netbeans.org/maven2/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>central</id>
-            <name>central</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-        </repository>
-        <repository>
-            <id>sonatype</id>
-            <name>sourceforge</name>
-            <url>http://oss.sonatype.org/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-        </repository>
-    </repositories>
     <issueManagement>
         <system>Github</system>
         <url>https://github.com/timboudreau/giulius/issues</url>

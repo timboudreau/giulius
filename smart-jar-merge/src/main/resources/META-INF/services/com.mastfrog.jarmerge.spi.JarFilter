@@ -1,0 +1,12 @@
+com.mastfrog.jarmerge.builtin.OmitSignatureFiles
+com.mastfrog.jarmerge.builtin.OmitIDEMetadata
+com.mastfrog.jarmerge.builtin.OmitMavenMetadata
+com.mastfrog.jarmerge.builtin.OmitExcludedPrefixes
+com.mastfrog.jarmerge.builtin.OmitExcludedPatterns
+com.mastfrog.jarmerge.builtin.OmitModuleInfo
+com.mastfrog.jarmerge.builtin.RewritePropertiesFiles
+com.mastfrog.jarmerge.builtin.MergeLicenseFiles
+com.mastfrog.jarmerge.builtin.ConcatenateMetaInfServices
+com.mastfrog.jarmerge.builtin.ConcatenateMetaInfLists
+com.mastfrog.jarmerge.builtin.MergeMetaInfSettings
+com.mastfrog.jarmerge.builtin.MergePlexusComponents

@@ -28,6 +28,7 @@
         <module>injection-reflection-indexer</module>
         <module>giulius-annotation-processors</module>
         <module>giulius-postgres-async</module>
+        <module>smart-jar-merge</module>
     </modules>
     <issueManagement>
         <system>Github</system>

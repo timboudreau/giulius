@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.mastfrog</groupId>
+        <artifactId>mastfrog-parent</artifactId>
+        <version>2.7.1</version>
+        <relativePath/>
+    </parent>
+    <artifactId>smart-jar-merge</artifactId>
+    <url>https://github.com/timboudreau/giulius</url>
+    <description>Jar-marging utilities which knows how to coalesce
+        things like META-INF/services files, omit specified Jar entries,
+        rewrite generated properties files minus the generated date-comment
+        that defeats repeatable builds and similar.  Filters for JARs are
+        pluggable via META-INF/services.
+    </description>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-strings</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-fileformat</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>giulius-settings</artifactId>
+            <exclusions>
+                <!-- Sigh - because this is a test dependency, run-in-ide
+                     removes it from the runtime classpath.
+                -->
+                <exclusion>
+                    <groupId>com.mastfrog</groupId>
+                    <artifactId>util-strings</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+    </dependencies>
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/timboudreau/util/issues</url>
+    </issueManagement>
+    <scm>
+        <url>https://github.com/timboudreau/util</url>
+        <connection>scm:git:https://github.com/timboudreau/util</connection>
+        <developerConnection>git@github.com/timboudreau/util</developerConnection>
+    </scm>
+    <organization>
+        <name>Mastfrog Technologies</name>
+        <url>https://mastfrog.com</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>tim</id>
+            <name>Tim Boudreau</name>
+            <url>http://timboudreau.com</url>
+            <email>tim@timboudreau.com</email>
+        </developer>
+    </developers>
+    <build>
+        <!-- 
+            Pending:  Use the maven-antrun plugin to invoke our own
+            code against ourselves so we can dogfood.
+        -->
+        <plugins>
+            <plugin>
+                <groupId>com.mastfrog</groupId>
+                <artifactId>maven-merge-configuration</artifactId>
+                <version>2.5.0</version>
+                <executions>
+                    <execution>
+                        <!--<phase>process-resources</phase>-->
+                        <!--<phase>site</phase>-->
+                        <phase>package</phase>
+                        <id>compile</id>
+                        <goals>
+                            <goal>merge-configuration</goal>
+                        </goals>
+                        <configuration>
+                            <jarName>smart-jar-merge</jarName>
+                            <mainClass>com.mastfrog.jarmerge.JarMerge</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
