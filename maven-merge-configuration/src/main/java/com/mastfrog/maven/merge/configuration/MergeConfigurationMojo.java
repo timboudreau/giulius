@@ -289,7 +289,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         String jn = jarName;
         if (!jn.isEmpty()) {
             if (!jn.contains("/")) {
-                jn = "target/" + jn;
+                jn = project.getBasedir().toPath().resolve("target").resolve(jn).toString();
             }
         }
         JarMerge jm = bldr.finalJarName(jn);
