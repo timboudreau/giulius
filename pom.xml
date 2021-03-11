@@ -20,7 +20,7 @@
         <module>signalreload</module>
         <module>giulius-jdbc</module>
         <module>giulius-mongodb</module>
-        <module>giulius-mongojack</module>
+<!--        <module>giulius-mongojack</module> -->
         <module>giulius-mongodb-async</module>
         <module>giulius-threadpool</module>
         <module>giulius-mongodb-async-init</module>
