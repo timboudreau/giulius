@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>mastfrog-parent</artifactId>
-        <version>2.7.1</version>
+        <version>2.7.2</version>
         <relativePath/>
     </parent>
     <name>Giulius Parent</name>
@@ -20,7 +20,7 @@
         <module>signalreload</module>
         <module>giulius-jdbc</module>
         <module>giulius-mongodb</module>
-<!--        <module>giulius-mongojack</module> -->
+        <!--        <module>giulius-mongojack</module> -->
         <module>giulius-mongodb-async</module>
         <module>giulius-threadpool</module>
         <module>giulius-mongodb-async-init</module>
