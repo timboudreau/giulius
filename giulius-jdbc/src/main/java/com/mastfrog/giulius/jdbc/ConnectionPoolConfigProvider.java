@@ -25,6 +25,7 @@ package com.mastfrog.giulius.jdbc;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import static com.mastfrog.giulius.jdbc.JdbcModule.CATALOG;
 import static com.mastfrog.giulius.jdbc.JdbcModule.CONNECTION_TIMEOUT_MINUTES;
 import static com.mastfrog.giulius.jdbc.JdbcModule.DEFAULT_JDBC_URL;
 import static com.mastfrog.giulius.jdbc.JdbcModule.DEFAULT_JDBC_USER;
@@ -38,6 +39,8 @@ import static com.mastfrog.giulius.jdbc.JdbcModule.JDBC_USER;
 import static com.mastfrog.giulius.jdbc.JdbcModule.MAX_CONNECTIONS_PER_PARTITION;
 import static com.mastfrog.giulius.jdbc.JdbcModule.MAX_CONNECTION_AGE_MINUTES;
 import static com.mastfrog.giulius.jdbc.JdbcModule.MIN_CONNECTIONS_PER_PARTITION;
+import static com.mastfrog.giulius.jdbc.JdbcModule.POOL_MAX_CONNECTIONS;
+import static com.mastfrog.giulius.jdbc.JdbcModule.POOL_MIN_CONNECTIONS;
 import static com.mastfrog.giulius.jdbc.JdbcModule.READ_ONLY;
 import static com.mastfrog.giulius.jdbc.JdbcModule.defaultMaxConnectionsPerPartition;
 import com.mastfrog.settings.Settings;
@@ -61,12 +64,19 @@ class ConnectionPoolConfigProvider implements Provider<HikariConfig> {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public HikariConfig get() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(settings.getString(JDBC_URL, DEFAULT_JDBC_URL));
-        config.setMinimumIdle(settings.getInt(MIN_CONNECTIONS_PER_PARTITION, DEFAULT_MIN_CONNECTIONS_PER_PARTITION));
-        config.setMaximumPoolSize(settings.getInt(MAX_CONNECTIONS_PER_PARTITION, defaultMaxConnectionsPerPartition()));
+        config.setMinimumIdle(settings.getInt(MIN_CONNECTIONS_PER_PARTITION,
+                settings.getInt(POOL_MIN_CONNECTIONS, DEFAULT_MIN_CONNECTIONS_PER_PARTITION)));
+        config.setMaximumPoolSize(settings.getInt(MAX_CONNECTIONS_PER_PARTITION,
+                settings.getInt(POOL_MAX_CONNECTIONS, defaultMaxConnectionsPerPartition())));
         config.setReadOnly(settings.getBoolean(READ_ONLY, DEFAULT_READ_ONLY));
+        String cat = settings.getString(CATALOG);
+        if (cat != null) {
+            config.setCatalog(cat);
+        }
         Long timeout = settings.getLong(CONNECTION_TIMEOUT_MINUTES);
         if (timeout != null) {
             config.setConnectionTimeout(TimeUnit.MILLISECONDS.convert(timeout, TimeUnit.MINUTES));

@@ -46,11 +46,22 @@ public class JdbcModule extends AbstractModule {
      * @deprecated Unused with HikariCP
      */
     public static final String PARTITION_COUNT = "jdbc.partition.count";
+    /**
+     * @deprecated Still honored, but use POOL_MIN_CONNECTIONS
+     */
+    @Deprecated
     public static final String MIN_CONNECTIONS_PER_PARTITION = "jdbc.min.connections.per.partition";
+    public static final String POOL_MIN_CONNECTIONS = "jdbc.pool.min.connections";
     public static final String CONNECTION_TIMEOUT_MINUTES = "jdbc.connection.timeout.minutes";
+    /**
+     * @deprecated Still honored, but use POOL_MAX_CONNECTIONS
+     */
+    @Deprecated
     public static final String MAX_CONNECTIONS_PER_PARTITION = "jdbc.max.connections.per.partition";
+    public static final String POOL_MAX_CONNECTIONS = "jdbc.pool.max.connections";
     public static final String MAX_CONNECTION_AGE_MINUTES = "jdbc.max.connection.age.minutes";
     public static final String CLOSE_OPEN_STATEMENTS = "jdbc.close.open.statements";
+    public static final String CATALOG = "jdbc.catalog";
     @Deprecated
     /**
      * @deprecated Unused with HikariCP
@@ -89,6 +100,10 @@ public class JdbcModule extends AbstractModule {
      */
     public static final int DEFAULT_ACQUIRE_RETRY_ATTEMPTS = 2;
     public static final String DEFAULT_JDBC_URL = "jdbc:postgresql://localhost:5432/postgres";
+    /**
+     * @deprecated Unused with HikariCP
+     */
+    @Deprecated
     public static final int DEFAULT_PARTITION_COUNT = 1;
     public static final int DEFAULT_MIN_CONNECTIONS_PER_PARTITION = 1;
     /**

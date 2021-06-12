@@ -31,6 +31,8 @@ import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides a JDBC connection
@@ -76,26 +78,79 @@ class ConnectionProvider implements Provider<Connection> {
 
     private class LockDelegate implements Provider<Connection> {
 
-        private volatile boolean first = true;
+        private final ConnectionInterceptor icept;
+
+        LockDelegate() {
+            icept = init instanceof JdbcInitializerImpl ? new None() : new Switching(init);
+        }
 
         @Override
-        public synchronized Connection get() {
+        public Connection get() {
             try {
                 HikariPool pool = connectionPool.get();
                 Connection result = pool.getConnection();
                 result = configurer.onProvideConnection(result);
-                if (first) {
-                    synchronized (this) {
-                        if (first) {
-                            first = false;
-                            result = init.onFirstConnect(result);
-                        }
-                    }
-                }
-                return result;
+                return icept.intercept(result);
             } catch (SQLException | IOException ex) {
                 return Exceptions.chuck(ex);
             }
+        }
+    }
+
+    interface ConnectionInterceptor {
+
+        Connection intercept(Connection c) throws SQLException, IOException;
+    }
+
+    private static class None implements ConnectionInterceptor {
+
+        @Override
+        public Connection intercept(Connection c) throws SQLException, IOException {
+            return c;
+        }
+    }
+
+    private static final class Switching implements ConnectionInterceptor {
+
+        private final AtomicReference<ConnectionInterceptor> ref = new AtomicReference<>();
+
+        Switching(JdbcInitializer init) {
+            // Allows us to block all threads requesting a connection until the
+            // connection initializer has completed, but on exit replaces itself
+            // with a non-locking instance so every request for a connection ever
+            // does not bottleneck on a lock that' sonly needed initially
+            ConnectionInterceptor locking = new Locking(init, ref);
+            ref.set(locking);
+        }
+
+        @Override
+        public Connection intercept(Connection c) throws SQLException, IOException {
+            return ref.get().intercept(c);
+        }
+    }
+
+    private static final class Locking implements ConnectionInterceptor {
+
+        private final JdbcInitializer init;
+        private boolean initialized;
+        private final AtomicReference<ConnectionInterceptor> ref;
+
+        public Locking(JdbcInitializer init, AtomicReference<ConnectionInterceptor> ref) {
+            this.init = init;
+            this.ref = ref;
+        }
+
+        @Override
+        public synchronized Connection intercept(Connection c) throws SQLException, IOException {
+            if (!initialized) {
+                initialized = true;
+                try {
+                    return init.onFirstConnect(c);
+                } finally {
+                    ref.set(new None());
+                }
+            }
+            return c;
         }
     }
 }
