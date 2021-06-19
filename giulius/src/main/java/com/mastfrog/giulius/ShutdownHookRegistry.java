@@ -108,7 +108,7 @@ public abstract class ShutdownHookRegistry {
                     }
                     try {
                         result1.run();
-                    } catch (Exception e) {
+                    } catch (Exception | Error e) {
                         Logger.getLogger(ShutdownHookRegistry.class.getName()).log(Level.SEVERE, result1 + " failed", e);
                     } finally {
                         //no matter what, don't try to run it more than once
