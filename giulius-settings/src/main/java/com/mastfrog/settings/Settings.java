@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Interface for read-only settings - yet another interface to key/value pairs.
@@ -70,11 +71,40 @@ import java.util.Set;
  */
 public interface Settings extends Iterable<String> {
 
-    public String getString(String name);
+    String getString(String name);
 
-    public String getString(String name, String defaultValue);
+    String getString(String name, String defaultValue);
 
-    public Set<String> allKeys();
+    /**
+     * Create a Settings from the passed Properties - changes in the Properties
+     * will be reflected in the Settings.
+     * @param props A properties
+     * @return A settings
+     */
+    public static Settings fromProperties(Properties props) {
+        PropertiesSettings result = new PropertiesSettings(null);
+        result.setDelegate(props);
+        return result;
+    }
+
+    /**
+     * Create a Settings whose contents can be set by providing a Properties
+     * object to the consumer passed to the consumer passed here.
+     *
+     * @param delegateSetterConsumer A consumer that accepts a setter for
+     * the properties delegated to (to keep the implementation of mutation
+     * separate from the interface exposed to consumers of this Settings).
+     * @return A Settings
+     */
+    public static Settings delegating(Consumer<Consumer<Properties>> delegateSetterConsumer) {
+        PropertiesSettings result = new PropertiesSettings(null);
+        delegateSetterConsumer.accept(result::setDelegate);
+        return result;
+    }
+
+    default Set<String> allKeys() {
+        return toProperties().stringPropertyNames();
+    }
 
     static SettingsBuilder builder() {
         return new SettingsBuilder();

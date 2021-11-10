@@ -29,13 +29,21 @@ package com.mastfrog.settings;
  */
 public interface MutableSettings extends Settings {
 
-    public void setInt(String name, int value);
+    default void setInt(String name, int value) {
+        setString(name, Integer.toString(value));
+    }
 
-    public void setBoolean(String name, boolean val);
+    default void setBoolean(String name, boolean val) {
+        setString(name, Boolean.toString(val));
+    }
 
-    public void setDouble(String name, double val);
+    default void setDouble(String name, double val) {
+        setString(name, Double.toString(val));
+    }
 
-    public void setLong(String name, long val);
+    default void setLong(String name, long val) {
+        setString(name, Long.toString(val));
+    }
 
     public void setString(String name, String value);
 

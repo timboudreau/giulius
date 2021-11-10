@@ -30,5 +30,5 @@ import java.util.Properties;
  * @author Tim Boudreau
  */
 interface PropertiesContainer {
-    public void setDelegate(Properties properties);
+    void setDelegate(Properties properties);
 }
