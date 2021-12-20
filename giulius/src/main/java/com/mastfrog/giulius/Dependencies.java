@@ -128,11 +128,13 @@ public final class Dependencies {
      * namespace settings (string value is &quot;productionMode&quot;).
      */
     public static final String SYSTEM_PROP_PRODUCTION_MODE = "productionMode";
+    public static final String SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT = "shutdownHookExecutorWait";
     private final Map<String, Settings> settings = new HashMap<>();
     private final Set<SettingsBindings> settingsBindings;
     private final List<Module> modules = new LinkedList<>();
     private volatile Injector injector;
     private final boolean mergeNamespaces;
+    private long shutdownHookWaitMillis;
 
     public Dependencies(Module... modules) throws IOException {
         this(SettingsBuilder.createDefault().build(), modules);
@@ -239,6 +241,10 @@ public final class Dependencies {
     }
 
     private final ThreadLocalCounter ctr = new ThreadLocalCounter();
+
+    void setShutdownHookExecutorWaitMillis(long shutdownHookExecutorWaitMillis) {
+        this.shutdownHookWaitMillis = shutdownHookExecutorWaitMillis;
+    }
 
     private static final class ThreadLocalCounter implements QuietAutoCloseable {
 
@@ -551,6 +557,7 @@ public final class Dependencies {
                         || setOf(DEFAULT_NAMESPACE).equals(knownNamespaces);
 
                 Set<String> allKeys = new HashSet<>();
+                long shutdownTimeout = 0;
                 for (String namespace : knownNamespaces) {
                     Settings s = settings.get(namespace);
                     if (s == null) {
@@ -560,7 +567,14 @@ public final class Dependencies {
                         settings.put(namespace, s);
                     }
                     allKeys.addAll(s.allKeys());
+                    Long shutdownWait = s.getLong(SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT);
+                    if (shutdownWait != null) {
+                        shutdownTimeout = Math.max(shutdownTimeout, shutdownWait);
+                    }
                 }
+                long finalTimeout = shutdownTimeout == 0
+                        ? shutdownHookWaitMillis : shutdownTimeout;
+                reg.setWaitMilliseconds(Math.max(100L, shutdownTimeout));
                 Provider<Settings> namespacedSettings;
                 if (onlyDefaultNamespace) {
                     // 3.5.0 - for Graal, avoid package lookups which are problematic
@@ -1075,6 +1089,7 @@ public final class Dependencies {
     }
 
     private static class DurationProvider implements Provider<Duration> {
+
         private final Provider<String> p;
 
         public DurationProvider(Provider<String> p) {

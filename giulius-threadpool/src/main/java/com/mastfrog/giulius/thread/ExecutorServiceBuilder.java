@@ -25,7 +25,13 @@ package com.mastfrog.giulius.thread;
 
 import com.google.inject.Provider;
 import com.google.inject.util.Providers;
+import com.mastfrog.giulius.ShutdownHooks;
 import com.mastfrog.util.preconditions.Checks;
+import static com.mastfrog.util.preconditions.Checks.greaterThanZero;
+import static com.mastfrog.util.preconditions.Checks.notNull;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Builder for ExecutorService / Executor / ScheduledExecutorService bindings
@@ -46,6 +52,9 @@ public abstract class ExecutorServiceBuilder {
     boolean eager;
     ConventionalThreadSupplier supplier;
     int stackSize;
+    RejectedExecutionPolicy rejectedPolicy
+            = RejectedExecutionPolicy.defaultPolicy();
+    ShutdownBatch shutdownBatch = ShutdownBatch.DEFAULT;
 
     ExecutorServiceBuilder(String bindingName) {
         this.bindingName = bindingName;
@@ -68,7 +77,7 @@ public abstract class ExecutorServiceBuilder {
      * @return this
      */
     public ExecutorServiceBuilder withStackSize(int stackSize) {
-        this.stackSize = stackSize;
+        this.stackSize = greaterThanZero("stackSize", stackSize);
         return this;
     }
 
@@ -149,7 +158,7 @@ public abstract class ExecutorServiceBuilder {
      * @return this
      */
     public ExecutorServiceBuilder withDefaultThreadCount(int threadCount) {
-        this.defaultThreadCount = threadCount;
+        this.defaultThreadCount = greaterThanZero("threadCount", threadCount);
         return this;
     }
 
@@ -162,7 +171,7 @@ public abstract class ExecutorServiceBuilder {
      * @return this
      */
     public ExecutorServiceBuilder withExplicitThreadCount(int threadCount) {
-        this.explicitThreadCount = threadCount;
+        this.explicitThreadCount = greaterThanZero("explicitThreadCount", threadCount);
         return this;
     }
 
@@ -174,6 +183,12 @@ public abstract class ExecutorServiceBuilder {
      * @return this
      */
     public ExecutorServiceBuilder withThreadPriority(int prio) {
+        if (prio < Thread.MIN_PRIORITY || prio > Thread.MAX_PRIORITY) {
+            throw new IllegalArgumentException("Priority must be within "
+                    + " Thread.MIN_PRIORITY (" + Thread.MIN_PRIORITY + ") and "
+                    + "Thread.MAX_PRIORITY (" + Thread.MAX_PRIORITY + ") "
+                    + "but got " + prio);
+        }
         this.priority = prio;
         return this;
     }
@@ -186,7 +201,7 @@ public abstract class ExecutorServiceBuilder {
      * @return this
      */
     public ExecutorServiceBuilder withThreadPoolType(ThreadPoolType type) {
-        this.type = type;
+        this.type = notNull("type", type);
         return this;
     }
 
@@ -248,5 +263,103 @@ public abstract class ExecutorServiceBuilder {
      */
     public ExecutorServiceBuilder scheduled() {
         return this.withThreadPoolType(ThreadPoolType.SCHEDULED);
+    }
+
+    public ExecutorServiceBuilder withRejectedExecutionPolicy(RejectedExecutionPolicy policy) {
+        this.rejectedPolicy = policy;
+        return this;
+    }
+
+    void validate() {
+        if (type != null) {
+            switch(type) {
+                case FORK_JOIN :
+                case WORK_STEALING :
+                    if (!rejectedPolicy.isDefault()) {
+                        throw new IllegalArgumentException("Cannot build a "
+                                + "work-stealing or fork-join pool with a non-default "
+                                + "RejectedExecutionPolicy - ForkJoinPool does not support "
+                                + "RejectedExecutionHandlers, but have policy " + rejectedPolicy);
+                    }
+            }
+        }
+    }
+
+    public enum RejectedExecutionPolicy {
+        ABORT,
+        CALLER_RUNS_IF_NOT_SHUTDOWN,
+        CALLER_ALWAYS_RUNS,
+        DISCARD,
+        DISCARD_OLDEST;
+
+        static RejectedExecutionPolicy defaultPolicy() {
+            return ABORT;
+        }
+
+        boolean isDefault() {
+            return this == ABORT;
+        }
+
+        RejectedExecutionHandler policy() {
+            switch(this) {
+                case ABORT :
+                    return new ThreadPoolExecutor.AbortPolicy();
+                case CALLER_RUNS_IF_NOT_SHUTDOWN :
+                    return new ThreadPoolExecutor.CallerRunsPolicy();
+                case CALLER_ALWAYS_RUNS :
+                    return (r, exe) -> {
+                        r.run();
+                    };
+                case DISCARD :
+                    return new ThreadPoolExecutor.DiscardPolicy();
+                case DISCARD_OLDEST :
+                    return new ThreadPoolExecutor.DiscardOldestPolicy();
+                default :
+                    return new ThreadPoolExecutor.AbortPolicy();
+            }
+        }
+    }
+
+    public ExecutorServiceBuilder shutdownCoordination(ShutdownBatch batch) {
+        this.shutdownBatch = batch;
+        return this;
+    }
+
+    /**
+     * ShutdownHooks contains first, middle and last batches of shutdown
+     * hooks, which are used to shut down and wait for executor services.
+     * Hooks are run in LIFO order.  Ordinarily this is sufficient, but
+     * there are some cases where, due to Guice lazily instantiating things,
+     * a thing that uses a thread pool may be shut down before a thing
+     * that uses it is finished with it; or it may be desirable to have
+     * shutdown occur before other shutdown tasks.
+     * <p>
+     * This enum is used to specify if something other than the default
+     * batch should be used for a given executor.
+     */
+    public enum ShutdownBatch {
+        EARLY,
+        DEFAULT,
+        LATE,
+        IGNORE;
+
+        void apply(ExecutorService svc, ShutdownHooks to) {
+            switch(this) {
+                case EARLY :
+                    to.addFirst(svc);
+                    break;
+                case DEFAULT :
+                    to.add(svc);
+                    break;
+                case LATE :
+                    to.addLast(svc);
+                    break;
+                case IGNORE :
+                    // do nothing
+                    break;
+                default :
+                    throw new AssertionError(this);
+            }
+        }
     }
 }

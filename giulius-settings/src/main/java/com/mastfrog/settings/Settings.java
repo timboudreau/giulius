@@ -23,6 +23,9 @@
  */
 package com.mastfrog.settings;
 
+import com.mastfrog.function.ByteSupplier;
+import com.mastfrog.function.FloatSupplier;
+import com.mastfrog.function.ShortSupplier;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.strings.Strings;
 import java.math.BigInteger;
@@ -31,7 +34,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.DoubleSupplier;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 /**
  * Interface for read-only settings - yet another interface to key/value pairs.
@@ -73,11 +83,26 @@ public interface Settings extends Iterable<String> {
 
     String getString(String name);
 
-    String getString(String name, String defaultValue);
+    default String getString(String name, String defaultValue) {
+        String result = getString(name);
+        if (result == null) {
+            result = defaultValue;
+        }
+        return result;
+    }
+
+    default String string(String name, Supplier<String> defaultValue) {
+        String result = getString(name);
+        if (result == null) {
+            result = defaultValue.get();
+        }
+        return result;
+    }
 
     /**
      * Create a Settings from the passed Properties - changes in the Properties
      * will be reflected in the Settings.
+     *
      * @param props A properties
      * @return A settings
      */
@@ -91,9 +116,9 @@ public interface Settings extends Iterable<String> {
      * Create a Settings whose contents can be set by providing a Properties
      * object to the consumer passed to the consumer passed here.
      *
-     * @param delegateSetterConsumer A consumer that accepts a setter for
-     * the properties delegated to (to keep the implementation of mutation
-     * separate from the interface exposed to consumers of this Settings).
+     * @param delegateSetterConsumer A consumer that accepts a setter for the
+     * properties delegated to (to keep the implementation of mutation separate
+     * from the interface exposed to consumers of this Settings).
      * @return A Settings
      */
     public static Settings delegating(Consumer<Consumer<Properties>> delegateSetterConsumer) {
@@ -114,6 +139,33 @@ public interface Settings extends Iterable<String> {
         return new SettingsBuilder(ns);
     }
 
+    default boolean ifPresent(String key, Consumer<String> valConsumer) {
+        String s = getString(key);
+        if (s != null) {
+            valConsumer.accept(s);
+            return true;
+        }
+        return false;
+    }
+
+    default boolean ifIntPresent(String key, IntConsumer valConsumer) {
+        Integer val = getInt(key);
+        if (val != null) {
+            valConsumer.accept(val);
+            return true;
+        }
+        return false;
+    }
+
+    default boolean ifLongPresent(String key, LongConsumer valConsumer) {
+        Long val = getLong(key);
+        if (val != null) {
+            valConsumer.accept(val);
+            return true;
+        }
+        return false;
+    }
+
     default Integer getInt(String name) {
         String prop = getString(name);
         return prop == null ? null : Integer.parseInt(prop);
@@ -122,6 +174,11 @@ public interface Settings extends Iterable<String> {
     default int getInt(String name, int defaultValue) {
         String prop = getString(name);
         return prop == null ? defaultValue : Integer.parseInt(prop);
+    }
+
+    default int getInt(String name, IntSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsInt() : Integer.parseInt(prop);
     }
 
     default Short getShort(String name) {
@@ -134,6 +191,11 @@ public interface Settings extends Iterable<String> {
         return prop == null ? defaultValue : Short.parseShort(prop);
     }
 
+    default int getShort(String name, ShortSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsShort() : Short.parseShort(prop);
+    }
+
     default Byte getByte(String name) {
         String prop = getString(name);
         return prop == null ? null : Byte.parseByte(prop);
@@ -144,14 +206,24 @@ public interface Settings extends Iterable<String> {
         return prop == null ? defaultValue : Byte.parseByte(prop);
     }
 
+    default byte getByte(String name, ByteSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsByte() : Byte.parseByte(prop);
+    }
+
     default Float getFloat(String name) {
         String prop = getString(name);
         return prop == null ? null : Float.parseFloat(prop);
     }
 
-    default float getFloat(String name, byte defaultValue) {
+    default float getFloat(String name, float defaultValue) {
         String prop = getString(name);
         return prop == null ? defaultValue : Float.parseFloat(prop);
+    }
+
+    default float getFloat(String name, FloatSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsFloat() : Float.parseFloat(prop);
     }
 
     default Long getLong(String name) {
@@ -164,6 +236,11 @@ public interface Settings extends Iterable<String> {
         return prop == null ? defaultValue : Long.parseLong(prop);
     }
 
+    default long getLong(String name, LongSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsLong() : Long.parseLong(prop);
+    }
+
     default Boolean getBoolean(String name) {
         String prop = getString(name);
         return prop == null ? null : Boolean.parseBoolean(prop);
@@ -172,6 +249,11 @@ public interface Settings extends Iterable<String> {
     default boolean getBoolean(String name, boolean defaultValue) {
         String prop = getString(name);
         return prop == null ? defaultValue : Boolean.parseBoolean(prop);
+    }
+
+    default boolean getBoolean(String name, BooleanSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsBoolean() : Boolean.parseBoolean(prop);
     }
 
     default Double getDouble(String name) {
@@ -184,6 +266,11 @@ public interface Settings extends Iterable<String> {
         return prop == null ? defaultValue : Double.parseDouble(prop);
     }
 
+    default double getDouble(String name, DoubleSupplier defaultValue) {
+        String prop = getString(name);
+        return prop == null ? defaultValue.getAsDouble() : Double.parseDouble(prop);
+    }
+
     default byte[] getBase64(String name) {
         String prop = getString(name);
         return prop == null ? null : Base64.getDecoder().decode(prop);
@@ -192,6 +279,11 @@ public interface Settings extends Iterable<String> {
     default byte[] getBase64(String name, byte[] defaultValue) {
         byte[] result = getBase64(name);
         return result == null ? defaultValue : result;
+    }
+
+    default byte[] base64(String name, Supplier<byte[]> defaultValue) {
+        byte[] result = getBase64(name);
+        return result == null ? defaultValue.get() : result;
     }
 
     /**

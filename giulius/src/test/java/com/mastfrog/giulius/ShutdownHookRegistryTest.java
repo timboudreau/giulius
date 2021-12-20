@@ -26,11 +26,18 @@ package com.mastfrog.giulius;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Scopes;
+import com.mastfrog.function.state.Obj;
+import com.mastfrog.util.collections.ArrayUtils;
+import com.mastfrog.util.collections.CollectionUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.IntFunction;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
@@ -57,7 +64,103 @@ public class ShutdownHookRegistryTest {
 
         assertEquals(3, order.size());
 
-        assertEquals(order, Arrays.asList(3,2,1));
+        assertEquals(order, Arrays.asList(3, 2, 1));
+    }
+
+    @Test
+    public void testReentrantHooks() throws Exception {
+        HFact f = new HFact();
+        Hks hooks = new Hks();
+        hooks.add(f.addReentrant(hooks, 11, 15));
+        hooks.add(f.addReentrant(hooks, 1, 5));
+
+        hooks.close();
+
+        System.out.println("GOT " + f.all);
+
+    }
+
+    @Test
+    public void testLayerOrder() throws Exception {
+        HFact f = new HFact();
+        Hks hooks = new Hks();
+        hooks.addFirst(f.apply(12));
+        hooks.addFirst(f.apply(11));
+        hooks.addFirst(f.apply(10));
+        hooks.add(f.apply(22));
+        hooks.add(f.error());
+        hooks.add(f.apply(21));
+        hooks.add(f.apply(20));
+        hooks.add(f.runtimeException());
+        hooks.addLast(f.apply(32));
+        hooks.addLast(f.apply(31));
+        hooks.addLast(f.apply(30));
+        Obj<Throwable> th = Obj.create();
+        int count = hooks.internalRunShutdownHooks(th);
+
+        f.assertAllExecuted().assertOrder(10, 11, 12, 20, 21, 22, 32, 31, 30);
+        Throwable thrown = th.get();
+        assertNotNull("Nothing thrown", thrown);
+        assertTrue("The first-thrown runtime exception should have been rethrown",
+                thrown instanceof RuntimeException);
+        assertNotNull(thrown.getSuppressed());
+        assertEquals("A suppressed exception should be present", 1, thrown.getSuppressed().length);
+        assertTrue("Suppressed exception should be the second-thrown error", thrown.getSuppressed()[0] instanceof Error);
+        assertEquals("Wrong number of hook runs reported", count, f.added.size() + 2);
+    }
+
+    static class Hks extends ShutdownHookRegistry implements AutoCloseable {
+
+        @Override
+        public void close() throws Exception {
+            super.runShutdownHooks();
+        }
+    }
+
+    static class HFact implements IntFunction<Runnable> {
+
+        private final List<Integer> all = new ArrayList<>();
+        private final Set<Integer> added = new TreeSet<>();
+
+        HFact assertOrder(int... vals) {
+            List<Integer> got = ArrayUtils.toBoxedList(vals);
+            assertEquals(all, got);
+            return this;
+        }
+
+        HFact assertAllExecuted() {
+            Set<Integer> found = new TreeSet<>(all);
+            assertEquals("Set of hooks run does not match those added", found, added);
+            return this;
+        }
+
+        public Runnable runtimeException() {
+            return () -> {
+                throw new RuntimeException("Uh oh.");
+            };
+        }
+
+        public Runnable error() {
+            return () -> {
+                throw new Error("Oh no!");
+            };
+        }
+
+        @Override
+        public Runnable apply(int index) {
+            added.add(index);
+            return () -> {
+                System.out.println("run " + index);
+                all.add(index);
+            };
+        }
+
+        public Runnable addReentrant(ShutdownHookRegistry reg, int a, int b) {
+            return () -> {
+                all.add(a);
+                reg.add(apply(b));
+            };
+        }
     }
 
     static class M extends AbstractModule {
@@ -72,6 +175,7 @@ public class ShutdownHookRegistryTest {
     }
 
     private static final List<Integer> order = new ArrayList<>();
+
     public static final class ThingOne implements Runnable {
 
         private boolean hookRan;
@@ -105,7 +209,9 @@ public class ShutdownHookRegistryTest {
     }
 
     public static final class ThingThree implements Runnable {
+
         boolean hookRan;
+
         @Inject
         ThingThree(ShutdownHookRegistry reg) {
             reg.add(this);

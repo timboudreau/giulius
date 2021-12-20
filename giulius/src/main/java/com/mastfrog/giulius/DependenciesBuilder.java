@@ -32,6 +32,7 @@ import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.preconditions.ConfigurationError;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -52,6 +53,7 @@ public final class DependenciesBuilder {
     private final Map<String, List<SettingsBuilder>> settingsForNamespace = Maps.newHashMapWithExpectedSize(5);
     private final List<Module> modules = new LinkedList<>();
     private final Set<File> locations = new LinkedHashSet<>();
+    private long shutdownHookExecutorWaitMillis;
     private final Set<SettingsBindings> settingsBindings = EnumSet.allOf(SettingsBindings.class);
     /**
      * Get the list of namespaces this DependenciesBuilder will bind settings
@@ -63,6 +65,36 @@ public final class DependenciesBuilder {
      */
     public Set<String> namespaces() {
         return new HashSet<>(settingsForNamespace.keySet());
+    }
+
+    /**
+     * Set the length of time that shutdown hooks (which are automatically bound and
+     * can be used to perform resource cleanup and orderly, graceful shutdown behavior,
+     * or restart-without-jvm-exit) should wait for all ExecutorServices where were
+     * added to the shutdown hooks to terminate before proceeding further with shutdown.
+     *
+     * @param dur A duration
+     * @return this
+     */
+    public DependenciesBuilder withShutdownHookExecutorAwaitDuration(Duration dur) {
+        shutdownHookExecutorWaitMillis = dur.toMillis();
+        return this;
+    }
+
+    /**
+     * Set the minimum length of time that shutdown hooks (which are automatically bound and
+     * can be used to perform resource cleanup and orderly, graceful shutdown behavior,
+     * or restart-without-jvm-exit) should wait for all ExecutorServices where were
+     * added to the shutdown hooks to terminate before proceeding further with shutdown.
+     * If this method was already called, the resulting value is the maximum of the original
+     * value and the new one.
+     *
+     * @param dur A duration
+     * @return this
+     */
+    public DependenciesBuilder withMinimumShutdownHookExecutorAwaitDuration(Duration dur) {
+        shutdownHookExecutorWaitMillis = Math.max(dur.toMillis(), shutdownHookExecutorWaitMillis);
+        return this;
     }
 
     /**
@@ -283,7 +315,9 @@ public final class DependenciesBuilder {
      * @throws IOException 
      */
     public Dependencies build() throws IOException {
-        return new Dependencies(mergeNamespaces, collapse(), settingsBindings, modules.toArray(new Module[modules.size()]));
+        Dependencies result = new Dependencies(mergeNamespaces, collapse(), settingsBindings, modules.toArray(new Module[modules.size()]));
+        result.setShutdownHookExecutorWaitMillis(shutdownHookExecutorWaitMillis);
+        return result;
     }
     
     @Override

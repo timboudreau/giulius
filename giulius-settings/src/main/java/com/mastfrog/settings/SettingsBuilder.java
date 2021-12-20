@@ -88,6 +88,7 @@ public final class SettingsBuilder {
     private final List<PropertiesSource> all = new ArrayList<>(7);
     private final Set<String> environmentKeys = new HashSet<>(12);
     private final String namespace;
+    private boolean buildLoggingInstance;
 
     public SettingsBuilder() {
         this.namespace = DEFAULT_NAMESPACE;
@@ -125,6 +126,11 @@ public final class SettingsBuilder {
         Checks.notNull("namespace", namespace);
         Checks.notEmpty("namespace", namespace);
         return new SettingsBuilder(namespace);
+    }
+
+    public SettingsBuilder logging() {
+        buildLoggingInstance = true;
+        return this;
     }
 
     public String getNamespace() {
@@ -595,7 +601,7 @@ public final class SettingsBuilder {
         for (Bridge b : bridges) {
             b.ref = ref;
         }
-        return result;
+        return buildLoggingInstance ? new LoggingSettings(result) : result;
     }
 
     private Map<Character, String> shortcuts = new HashMap<>();

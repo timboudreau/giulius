@@ -24,13 +24,37 @@
 package com.mastfrog.settings;
 
 /**
+ * Mutable interface to settings.
  *
  * @author Tim Boudreau
  */
 public interface MutableSettings extends Settings {
 
+    default void setByte(String name, byte value) {
+        setString(name, Byte.toString(value));
+    }
+
+    default void setShort(String name, short value) {
+        setString(name, Short.toString(value));
+    }
+
+    default void setFloat(String name, float value) {
+        setString(name, Float.toString(value));
+    }
+
     default void setInt(String name, int value) {
         setString(name, Integer.toString(value));
+    }
+
+    default void setIntArray(String name, int... value) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < value.length; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(value);
+        }
+        setString(name, sb.toString());
     }
 
     default void setBoolean(String name, boolean val) {

@@ -123,6 +123,9 @@ final class WritableSettings implements MutableSettings {
     public Properties toProperties() {
         Properties p = new Properties(getSettings().toProperties());
         p.putAll(writeLayer);
+        for (String k : cleared) {
+            p.remove(k);
+        }
         return p;
     }
 

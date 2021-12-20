@@ -97,6 +97,11 @@ public class ThreadModule extends AbstractModule {
             super(bindingName);
         }
 
+        @Override
+        public String toString() {
+            return "ExecutorServiceBuilder(" + bindingName + ")";
+        }
+
         /**
          * Attach this executor service to the ThreadModule to be bound on
          * startup.
@@ -134,7 +139,7 @@ public class ThreadModule extends AbstractModule {
                     .toInstance(threadFactory);
             if (type != ThreadPoolType.SCHEDULED) {
                 Provider<ExecutorService> exeProvider = new ExecutorServiceProvider<>(threadFactory,
-                        threadCount, settings, ueh, type, shutdown);
+                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch);
                 bindOne(binder, ExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, Executor.class, bindingName, exeProvider);
                 bindOne(binder, Thread.class, bindingName, threadFactory);
@@ -151,7 +156,7 @@ public class ThreadModule extends AbstractModule {
                 }
             } else {
                 Provider<ScheduledExecutorService> exeProvider = new ExecutorServiceProvider<>(threadFactory,
-                        threadCount, settings, ueh, type, shutdown);
+                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch);
                 bindOne(binder, ScheduledExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, ExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, Executor.class, bindingName, exeProvider);
