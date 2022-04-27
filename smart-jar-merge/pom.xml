@@ -80,7 +80,9 @@
             <plugin>
                 <groupId>com.mastfrog</groupId>
                 <artifactId>maven-merge-configuration</artifactId>
-                <version>2.5.0</version>
+                <!-- This needs to boostrap from the previous release or 
+                     we get a cyclic dependency -->
+                <version>${maven.merge.configuration.previous}</version>
                 <executions>
                     <execution>
                         <!--<phase>process-resources</phase>-->
