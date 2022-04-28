@@ -466,7 +466,7 @@ public class JarMerge implements ThrowingRunnable {
         omittedFilters.forEach(nm -> omitted.add(nm.toString()));
         Set<String> included = new LinkedHashSet<>();
         includedFilters.forEach(nm -> included.add(nm.toString()));
-
+        Set<JarFilter<?>> tempFilters = new LinkedHashSet<>();
         for (JarFilter<?> f : installedJarFilters()) {
             if (!f.isCritical()) {
                 if (omitted.contains(f.name())) {
@@ -477,8 +477,22 @@ public class JarMerge implements ThrowingRunnable {
                 }
             }
             JarFilter<?> ff = f.configureInstance(jm);
-            finalFilters.add(ff);
+            tempFilters.add(ff);
         }
+        for (Iterator<JarFilter<?>> it=tempFilters.iterator(); it.hasNext();) {
+            JarFilter<?> filter = it.next();
+            boolean remove = false;
+            for (JarFilter<?> other : tempFilters) {
+                if (other != filter && other.supersedes(filter)) {
+                    remove = true;
+                    break;
+                }
+            }
+            if (remove) {
+                it.remove();
+            }
+        }
+        finalFilters.addAll(tempFilters);
         return finalFilters;
     }
 

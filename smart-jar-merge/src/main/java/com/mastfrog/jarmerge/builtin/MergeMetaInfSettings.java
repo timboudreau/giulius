@@ -24,7 +24,6 @@
 package com.mastfrog.jarmerge.builtin;
 
 import com.mastfrog.jarmerge.MergeLog;
-import com.mastfrog.jarmerge.spi.JarFilter;
 import com.mastfrog.jarmerge.support.AbstractJarFilter;
 import com.mastfrog.jarmerge.support.PropertiesFileCoalescer;
 import java.nio.file.Path;

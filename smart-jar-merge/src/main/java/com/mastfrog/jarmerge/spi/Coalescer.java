@@ -24,7 +24,6 @@
 package com.mastfrog.jarmerge.spi;
 
 import com.mastfrog.jarmerge.MergeLog;
-import com.mastfrog.util.strings.Strings;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;

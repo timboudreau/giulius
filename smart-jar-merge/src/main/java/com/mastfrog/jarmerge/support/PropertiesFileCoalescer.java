@@ -24,7 +24,6 @@
 package com.mastfrog.jarmerge.support;
 
 import com.mastfrog.jarmerge.MergeLog;
-import com.mastfrog.jarmerge.spi.Coalescer;
 import com.mastfrog.util.fileformat.PropertiesFileUtils;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -32,13 +31,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
