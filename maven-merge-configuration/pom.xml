@@ -68,11 +68,8 @@
         <plugins>
             <plugin>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.6.4</version>
                 <configuration>
                     <goalPrefix>merge-configuration</goalPrefix>
-<!-- Utterly non-obvious: http://bit.ly/WwuNiJ -->
-                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
                 </configuration>
                 <executions>
                     <execution>
@@ -83,14 +80,6 @@
                         </goals>
                     </execution>
                 </executions>
-<!--                 <executions>
-                    <execution>
-                        <id>generated-helpmojo</id>
-                        <goals>
-                            <goal>helpmojo</goal>
-                        </goals>
-                    </execution>
-                </executions> -->
             </plugin>
         </plugins>
     </build>
