@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.mastfrog</groupId>
         <artifactId>mastfrog-parent</artifactId>
-        <version>2.8.1</version>
+        <version>3.0.0-dev</version>
         <relativePath/>
     </parent>
     <artifactId>smart-jar-merge</artifactId>
@@ -14,8 +17,7 @@
         things like META-INF/services files, omit specified Jar entries,
         rewrite generated properties files minus the generated date-comment
         that defeats repeatable builds and similar.  Filters for JARs are
-        pluggable via META-INF/services.
-    </description>
+        pluggable via META-INF/services.</description>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -47,15 +49,18 @@
         <system>Github</system>
         <url>https://github.com/timboudreau/util/issues</url>
     </issueManagement>
+
     <scm>
         <url>https://github.com/timboudreau/util</url>
         <connection>scm:git:https://github.com/timboudreau/util</connection>
         <developerConnection>git@github.com/timboudreau/util</developerConnection>
     </scm>
+
     <organization>
         <name>Mastfrog Technologies</name>
         <url>https://mastfrog.com</url>
     </organization>
+
     <licenses>
         <license>
             <name>MIT</name>
@@ -63,6 +68,7 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
     <developers>
         <developer>
             <id>tim</id>
@@ -71,8 +77,9 @@
             <email>tim@timboudreau.com</email>
         </developer>
     </developers>
+
     <build>
-        <!-- 
+        <!--
             Pending:  Use the maven-antrun plugin to invoke our own
             code against ourselves so we can dogfood.
         -->
@@ -80,13 +87,13 @@
             <plugin>
                 <groupId>com.mastfrog</groupId>
                 <artifactId>maven-merge-configuration</artifactId>
-                <!-- This needs to boostrap from the previous release or 
+<!-- This needs to boostrap from the previous release or
                      we get a cyclic dependency -->
                 <version>${maven.merge.configuration.previous}</version>
                 <executions>
                     <execution>
-                        <!--<phase>process-resources</phase>-->
-                        <!--<phase>site</phase>-->
+                        <!-- <phase>process-resources</phase> -->
+<!-- <phase>site</phase> -->
                         <phase>package</phase>
                         <id>compile</id>
                         <goals>
