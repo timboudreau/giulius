@@ -55,13 +55,8 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
                     <fork>true</fork>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <debug>true</debug>
-                    <encoding>${project.build.sourceEncoding}</encoding>
                     <compilerArgument>${maven.compiler.argument}</compilerArgument>
                     <compilerArgument>-Xlint:unchecked</compilerArgument>
                     <compilerArgument>-Xdoclint:none</compilerArgument>

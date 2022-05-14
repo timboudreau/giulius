@@ -27,7 +27,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.annotations.Namespace;
-import com.mastfrog.settings.GetsNonNamespacedValue;
+import com.mastfrog.xsettings.GetsNonNamespacedValue;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.settings.ns1.GetsNamespacedValue;

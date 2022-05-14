@@ -18,7 +18,6 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
                     <fork>true</fork>
                 </configuration>
@@ -46,7 +45,7 @@
                         <configuration>
                             <compilerArgs>
                                 <arg>-proc:only</arg>
-                                <arg>-processor</arg>
+                                <arg>--processor-module-path</arg>
                                 <arg>com.mastfrog.graal.injection.processor.GraalInjectionProcessor</arg>
                             </compilerArgs>
                         </configuration>

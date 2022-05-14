@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.settings;
+package com.mastfrog.xsettings;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -35,6 +35,8 @@ import com.google.inject.matcher.Matchers;
 import com.google.inject.spi.TypeEncounter;
 import com.google.inject.spi.TypeListener;
 import com.mastfrog.giulius.annotations.Namespace;
+import com.mastfrog.settings.Settings;
+import com.mastfrog.settings.SettingsBuilder;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;

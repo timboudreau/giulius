@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.settings;
+package com.mastfrog.xsettings;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
