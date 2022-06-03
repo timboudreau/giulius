@@ -17,6 +17,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>meta-inf-loader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>giulius-settings</artifactId>
         </dependency>
         <dependency>

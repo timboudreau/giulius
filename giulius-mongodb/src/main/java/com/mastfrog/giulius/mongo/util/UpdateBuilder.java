@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package com.mastfrog.acteur.mongo.util;
+package com.mastfrog.giulius.mongo.util;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;

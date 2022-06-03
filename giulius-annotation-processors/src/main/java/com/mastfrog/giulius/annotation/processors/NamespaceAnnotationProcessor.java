@@ -28,6 +28,7 @@ import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProc
 import static com.mastfrog.giulius.annotation.processors.NamespaceAnnotationProcessor.OLD_NAMESPACE_ANNOTATION_TYPE;
 import com.mastfrog.annotation.registries.AbstractLineOrientedRegistrationAnnotationProcessor;
 import com.mastfrog.util.service.ServiceProvider;
+import java.io.IOException;
 import java.util.Arrays;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -67,9 +68,18 @@ public class NamespaceAnnotationProcessor extends AbstractLineOrientedRegistrati
             return;
         }
         addLine(DEFAULT_PATH + "namespaces.list", ns, e);
+        MetaInfLoaderGenerators.requiredForElement(e, processingEnv);
     }
 
-    int lineCount = 0;
+    @Override
+    protected void onDone() {
+        try {
+            MetaInfLoaderGenerators.onDone(processingEnv);
+        } catch (IOException ex) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ex.toString());
+            ex.printStackTrace();
+        }
+    }
 
     boolean isNamespace(AnnotationMirror mir) {
         return mir.getAnnotationType().toString().endsWith(".Namespace");

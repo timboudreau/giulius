@@ -1,4 +1,4 @@
-package com.mastfrog.acteur.mongo;
+package com.mastfrog.giulius.mongo;
 
 /**
  * Implemented by MongoModule - used for configuring MongoDB initialization

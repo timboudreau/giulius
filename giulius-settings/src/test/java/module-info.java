@@ -3,6 +3,9 @@ open module com.mastfrog.giulius.settings {
     exports com.mastfrog.settings;
 
     // Inferred from source scan
+    requires com.mastfrog.collections;
+
+    // Inferred from source scan
     requires com.mastfrog.function;
 
     // Inferred from source scan
@@ -22,5 +25,8 @@ open module com.mastfrog.giulius.settings {
 
     // Sibling com.mastfrog/util-strings-3.0.0-dev
     requires com.mastfrog.strings;
+
+    // Inferred from test-source-scan
+    requires transitive junit;
 
 }

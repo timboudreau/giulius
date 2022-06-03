@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014 tim.
+ * Copyright 2015 tim.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,26 +22,15 @@
  * THE SOFTWARE.
  */
 
-package com.mastfrog.acteur.mongo.util;
+package com.mastfrog.giulius.mongo;
+
+import com.google.inject.Module;
 
 /**
  *
- * @author tim
+ * @author Tim Boudreau
  */
-public class InvalidParameterException extends IllegalArgumentException {
+public interface MongoConfigModule extends MongoConfig<MongoConfigModule>, Module {
 
-    InvalidParameterException() {
-    }
-
-    InvalidParameterException(String string) {
-        super(string);
-    }
-
-    InvalidParameterException(String string, Throwable thrwbl) {
-        super(string, thrwbl);
-    }
-
-    InvalidParameterException(Throwable thrwbl) {
-        super(thrwbl);
-    }
+    public String getDatabaseName();
 }

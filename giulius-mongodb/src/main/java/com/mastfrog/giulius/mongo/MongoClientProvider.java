@@ -1,18 +1,18 @@
-package com.mastfrog.acteur.mongo;
+package com.mastfrog.giulius.mongo;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.DATABASE_NAME;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.DEFAULT_MAX_CONNECTIONS;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.DEFAULT_MAX_WAIT_MILLIS;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_CONNECTIONS;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_WAIT_MILLIS;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_PASSWORD;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED;
-import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_USER;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.DATABASE_NAME;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.DEFAULT_MAX_CONNECTIONS;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.DEFAULT_MAX_WAIT_MILLIS;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_CONNECTIONS;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MAX_WAIT_MILLIS;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_PASSWORD;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED;
+import static com.mastfrog.giulius.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_USER;
 import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.util.preconditions.Exceptions;

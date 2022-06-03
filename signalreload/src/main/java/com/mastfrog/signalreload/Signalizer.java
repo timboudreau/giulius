@@ -1,11 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.mastfrog.signalreload;
 
-import com.google.inject.Provider;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.DependenciesBuilder;
 import com.mastfrog.settings.SettingsRefreshInterval;
@@ -14,6 +8,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.inject.Provider;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 

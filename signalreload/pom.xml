@@ -18,6 +18,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius</artifactId>
         </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+        </dependency>
     </dependencies>
     <issueManagement>
         <system>Github</system>

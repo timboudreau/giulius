@@ -22,14 +22,21 @@ open module com.mastfrog.giulius.mongodb.async {
 
     // Inferred from source scan
     requires com.mastfrog.preconditions;
-    
+
+    // Inferred from source scan
+    requires com.mastfrog.strings;
+
     // Inferred from source scan
     // Sibling com.mastfrog/util-time-3.0.0-dev
     requires com.mastfrog.time;
 
     // Inferred from source scan
     requires com.mastfrog.util.function;
-
+    requires com.mastfrog.giulius.tests;
+    // Inferred from test-source-scan
+    requires junit;
+    requires org.mongodb.bson;
+    requires org.mongodb.driver.core;
     // derived from org.mongodb/mongodb-driver-async-0.0.0-? in org/mongodb/mongodb-driver-async/3.12.11/mongodb-driver-async-3.12.11.pom
     requires org.mongodb.driver.async.client;
     requires javax.inject;

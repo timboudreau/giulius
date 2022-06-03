@@ -246,7 +246,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
                     continue;
                 }
                 String val = utils.annotationValue(pair, "value", String.class);
-                if (val== null) {
+                if (val == null) {
                     fail("Missing property value", e, pair);
                     continue;
                 }
@@ -294,5 +294,16 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
             }
         }
         indexer.add(path, new PropertiesIndexEntry(pp, e), processingEnv, e);
+        MetaInfLoaderGenerators.requiredForElement(e, processingEnv);
+    }
+
+    @Override
+    protected void onDone() {
+        try {
+            MetaInfLoaderGenerators.onDone(processingEnv);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ex.toString());
+        }
     }
 }

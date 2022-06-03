@@ -3,25 +3,22 @@ open module com.mastfrog.giulius.mongodb.async.init {
     exports com.mastfrog.mongodb.init;
     exports com.mastfrog.mongodb.migration;
 
-    requires com.google.common;
-
     // Inferred from source scan
     requires com.mastfrog.collections;
-    requires com.mastfrog.giulius.settings;
 
     // Inferred from source scan
-
     // Sibling com.mastfrog/function-3.0.0-dev
     requires com.mastfrog.function;
 
     // Transitive detected by source scan
     requires com.mastfrog.giulius;
+    requires com.mastfrog.giulius.tests;
 
     // Sibling com.mastfrog/giulius-mongodb-async-3.0.0-dev
     requires com.mastfrog.giulius.mongodb.async;
 
     // Sibling com.mastfrog/jackson-3.0.0-dev
-    requires transitive com.mastfrog.jackson;
+    requires com.mastfrog.jackson;
 
     // Inferred from source scan
     requires com.mastfrog.preconditions;
@@ -34,5 +31,8 @@ open module com.mastfrog.giulius.mongodb.async.init {
 
     // derived from com.fasterxml.jackson.core/jackson-annotations-0.0.0-? in com/fasterxml/jackson/core/jackson-annotations/2.9.5/jackson-annotations-2.9.5.pom
     requires static com.fasterxml.jackson.annotation;
+    requires com.fasterxml.jackson.databind;
 
+    // Inferred from test-source-scan
+    requires junit;
 }

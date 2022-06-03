@@ -1,4 +1,4 @@
-package com.mastfrog.acteur.mongo;
+package com.mastfrog.giulius.mongo;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;

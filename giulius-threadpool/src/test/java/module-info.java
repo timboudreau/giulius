@@ -4,7 +4,7 @@ open module com.mastfrog.giulius.threadpool {
     exports com.mastfrog.giulius.thread.util;
 
     requires com.google.guice;
-
+    
     // Sibling com.mastfrog/giulius-3.0.0-dev
     // Transitive detected by source scan
     requires com.mastfrog.giulius;
@@ -14,10 +14,14 @@ open module com.mastfrog.giulius.threadpool {
 
     // Inferred from source scan
     requires com.mastfrog.preconditions;
+    
+    requires com.mastfrog.giulius.settings;
 
     // Inferred from source scan
     requires com.mastfrog.strings;
     requires java.logging;
 
-    requires com.mastfrog.giulius.settings;
+    // Inferred from test-source-scan
+    requires junit;
+
 }

@@ -23,6 +23,7 @@
  */
 package com.mastfrog.giulius;
 
+import static com.google.common.collect.Iterables.all;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Guice;
@@ -893,6 +894,18 @@ public final class Dependencies {
 
     public static Set<String> loadNamespaceListsFromClasspath() throws IOException {
         Set<String> all = new HashSet<>();
+        for (String line : com.mastfrog.metainf.MetaInfLoader.loadAllAsString(Defaults.DEFAULT_PATH + "namespaces.list").split("\n")) {
+            if (line.isBlank() || line.trim().startsWith("#")){
+                continue;
+            }
+            all.add(line.trim());
+            log("Loaded namespace files: " + all);
+        }
+        return all;
+    }
+    
+    public static Set<String> xloadNamespaceListsFromClasspath() throws IOException {
+        Set<String> all = new HashSet<>();
         String listPathOnClasspath = Defaults.DEFAULT_PATH + "namespaces.list";
         InputStream[] streams = Streams.locate(listPathOnClasspath);
         if (streams != null) {
@@ -910,6 +923,7 @@ public final class Dependencies {
         }
         return all;
     }
+    
 
     private static void readNamepaces(Reader reader, Set<? super String> into) throws IOException {
         //XXX preserve comments
