@@ -221,4 +221,18 @@ public interface ShutdownHooks {
         return addLastThrowing(ThrowingRunnable.weak(toRun));
     }
 
+    /**
+     * Imperatively run shutdown tasks, clearing the set of tasks and
+     * deregistering the ShutdownHooks as a VM shutdown hook if it has been
+     * registered.
+     * <p>
+     * In general this should <b>only be called by test frameworks and a few
+     * rare cases of applications that cleanly shut down all their state and
+     * reload themselves, or things run inside an isolating classloader whose
+     * shutdown tasks must run before the classloader is closed.
+     * </p>
+     *
+     * @return The count of tasks run during shutdown
+     */
+    int shutdown();
 }

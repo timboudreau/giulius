@@ -29,7 +29,7 @@ public enum DeploymentMode {
      * unit test.
      */
     public boolean inUnitTest() {
-        String prop = System.getProperty("unit.test", System.getProperty("forkNumber", System.getProperty("surefire.forkNumbe")));
+        String prop = System.getProperty("unit.test", System.getProperty("forkNumber", System.getProperty("surefire.forkNumber")));
         if ( prop != null && !"false".equals(prop)) {
             return true;
         }

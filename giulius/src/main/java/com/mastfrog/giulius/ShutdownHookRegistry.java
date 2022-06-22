@@ -34,15 +34,16 @@ import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,7 +62,13 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
     private final ThrowingRunnable last = ThrowingRunnable.oneShot(false);
     // main needs to be re-runnable and not drop first/middle/last after they run
     private final ThrowingRunnable main = ThrowingRunnable.composable(true);
-    private final Set<ExecutorService> waitFor = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
+    private final Set<ExecutorService> waitFor = Collections.synchronizedSet(
+            Collections.newSetFromMap(new WeakHashMap<>()));
+    // XXX may want to make this lazy and store it in an atomic, as creating 
+    // thread instances has a cost; on the other hand, when are we going to
+    // have an application that makes thousands of instances of 
+    // ShutdownHookRegistry?
+    private final ShutdownThread shutdownThread = new ShutdownThread(this);
     private long executorsWait;
     private final AtomicInteger count = new AtomicInteger();
     private volatile boolean running;
@@ -79,7 +86,11 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
     }
 
     protected void install() {
-        main.addAsShutdownHook();
+        shutdownThread.register();
+    }
+
+    protected void deinstall() {
+        shutdownThread.dergister();
     }
 
     @Override
@@ -205,19 +216,35 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
         return this;
     }
 
+    public int shutdown() {
+        return runShutdownHooks();
+    }
+
     protected synchronized int runShutdownHooks() {
         if (running) {
             LOG.log(Level.WARNING, "Attempt to reenter runShutdownHooks");
             return 0;
         }
-        Obj<Throwable> thrown = Obj.create();
-        int result = internalRunShutdownHooks(thrown);
-        thrown.ifNotNull(th -> {
-            LOG.log(Level.WARNING, "Exceptions thrown in shutdown hooks", th);
-        });
+        int result;
+        try {
+            Obj<Throwable> thrown = Obj.create();
+            result = internalRunShutdownHooks(thrown);
+            thrown.ifNotNull(th -> {
+                LOG.log(Level.WARNING, "Exceptions thrown in shutdown hooks", th);
+            });
+        } finally {
+            try {
+                // If we are running an an application thread due to explicit
+                // shutdown from the application
+                shutdownThread.dergister();
+            } catch (IllegalStateException ex) {
+                // Ok, that just means we really are running in VM shutdown
+            }
+        }
         return result;
     }
 
+    @SuppressWarnings("ThrowableResultIgnored")
     int internalRunShutdownHooks(Obj<Throwable> thrown) {
         running = true;
         try {
@@ -239,7 +266,7 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
                 }
             } finally {
                 long interval = 50;
-                long timeout = System.currentTimeMillis() + this.executorsWait;
+                Timeout timeout = new Timeout(this.executorsWait);
                 Set<ExecutorService> unterminated = new HashSet<>(this.waitFor);
                 while (!waitFor.isEmpty()) {
                     waitFor.clear();
@@ -248,7 +275,7 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
                         for (ExecutorService svc : unterminated) {
                             if (svc.isTerminated()) {
                                 done.add(svc);
-                                if (done.size() == unterminated.size() || System.currentTimeMillis() > timeout) {
+                                if (done.size() == unterminated.size() || timeout.isDone()) {
                                     break;
                                 }
                                 continue;
@@ -268,12 +295,12 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
                                 done.add(svc);
                             }
                         }
-                        if (System.currentTimeMillis() > timeout) {
+                        if (timeout.isDone()) {
                             break;
                         }
                     }
                     unterminated.removeAll(done);
-                    if (System.currentTimeMillis() > timeout) {
+                    if (timeout.isDone()) {
                         break;
                     }
                 }
@@ -442,7 +469,7 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
         @Override
         protected ShutdownHookRegistry add(Object toRun, Phase phase, boolean weak) {
             if (!registered.compareAndSet(false, true)) {
-                register();
+                install();
             }
             return super.add(toRun, phase, weak);
         }
@@ -452,10 +479,6 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
             if (registered.getAndSet(false)) {
                 runShutdownHooks();
             }
-        }
-
-        private void register() {
-            install();
         }
     }
 
@@ -489,5 +512,93 @@ public abstract class ShutdownHookRegistry implements ShutdownHooks {
 
     void setWaitMilliseconds(long wait) {
         this.executorsWait = Math.max(0, wait);
+    }
+
+    private static final class Timeout {
+
+        private final long at;
+
+        Timeout(long millis) {
+            at = System.currentTimeMillis() + millis;
+        }
+
+        boolean isDone() {
+            return System.currentTimeMillis() > at;
+        }
+    }
+
+    /**
+     *
+     *
+     * @return
+     */
+    public static Optional<ShutdownHookRegistry> current() {
+        for (ShutdownThread thread : REGISTERED_HOOKS) {
+            Optional<ShutdownHookRegistry> result = thread.get();
+            if (result.isPresent()) {
+                return result;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static final Set<ShutdownThread> REGISTERED_HOOKS
+            = ConcurrentHashMap.newKeySet();
+
+    private static final class ShutdownThread extends Thread {
+
+        private final ShutdownHookRegistry registry;
+        private final AtomicBoolean registered = new AtomicBoolean();
+
+        ShutdownThread(ShutdownHookRegistry registry) {
+            this.registry = registry;
+        }
+
+        ShutdownHookRegistry registry() {
+            return registry;
+        }
+
+        Optional<ShutdownHookRegistry> get() {
+            if (registered.get() && getContextClassLoader() == Thread.currentThread().getContextClassLoader()) {
+                return Optional.of(registry);
+            }
+            return Optional.empty();
+        }
+
+        boolean register() {
+            boolean result = registered.compareAndSet(false, true);
+            if (result) {
+                REGISTERED_HOOKS.add(this);
+                try {
+                    Runtime.getRuntime().addShutdownHook(this);
+                } catch (IllegalStateException ex) {
+                    result = false;
+                }
+            }
+            return result;
+        }
+
+        boolean dergister() {
+            boolean result = registered.compareAndSet(true, false);
+            if (result) {
+                try {
+                    Runtime.getRuntime().removeShutdownHook(this);
+                } catch (IllegalStateException ex) {
+                    result = false;
+                }
+                REGISTERED_HOOKS.remove(this);
+            }
+            return result;
+        }
+
+        @Override
+        public void run() {
+            try {
+                registry.runShutdownHooks();
+            } finally {
+                registered.set(false);
+                REGISTERED_HOOKS.remove(this);
+            }
+        }
     }
 }

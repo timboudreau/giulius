@@ -28,7 +28,6 @@ import com.google.inject.Inject;
 import com.google.inject.Scopes;
 import com.mastfrog.function.state.Obj;
 import com.mastfrog.util.collections.ArrayUtils;
-import com.mastfrog.util.collections.CollectionUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
