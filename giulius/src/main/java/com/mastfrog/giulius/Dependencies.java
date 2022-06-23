@@ -308,7 +308,7 @@ public final class Dependencies {
      */
     public void shutdown() {
         try {
-            reg.runShutdownHooks();
+            reg.shutdown();
         } finally {
             for (Dependencies d : others) {
                 d.shutdown();
@@ -536,6 +536,9 @@ public final class Dependencies {
                 Binder binder = binder();
                 bind(Dependencies.class).toInstance(Dependencies.this);
                 bind(ShutdownHookRegistry.class).toInstance(reg);
+                bind(ShutdownHooks.class).toInstance(reg);
+                bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg.realHooks());
+                bind(com.mastfrog.shutdown.hooks.ShutdownHookRegistry.class).toInstance(reg.realHooks());
                 Set<String> knownNamespaces = loadNamespaceListsFromClasspath();
                 log("Loaded namespaces " + knownNamespaces);
                 knownNamespaces.addAll(settings.keySet());

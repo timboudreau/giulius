@@ -16,6 +16,8 @@
         <version>2.8.2</version>
         <relativePath/>
     </parent>
+    <version>2.8.2.1</version>
+
 
     <name>Giulius Parent</name>
     <description>Guice + Configuration tools</description>

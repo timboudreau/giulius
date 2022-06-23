@@ -94,18 +94,10 @@ public class ShutdownHookRegistryTest {
         hooks.addLast(f.apply(32));
         hooks.addLast(f.apply(31));
         hooks.addLast(f.apply(30));
-        Obj<Throwable> th = Obj.create();
-        int count = hooks.internalRunShutdownHooks(th);
+        int count = hooks.shutdown();
+        assertTrue(count > 0);
 
         f.assertAllExecuted().assertOrder(10, 11, 12, 20, 21, 22, 32, 31, 30);
-        Throwable thrown = th.get();
-        assertNotNull("Nothing thrown", thrown);
-        assertTrue("The first-thrown runtime exception should have been rethrown",
-                thrown instanceof RuntimeException);
-        assertNotNull(thrown.getSuppressed());
-        assertEquals("A suppressed exception should be present", 1, thrown.getSuppressed().length);
-        assertTrue("Suppressed exception should be the second-thrown error", thrown.getSuppressed()[0] instanceof Error);
-        assertEquals("Wrong number of hook runs reported", count, f.added.size() + 2);
     }
 
     static class Hks extends ShutdownHookRegistry implements AutoCloseable {

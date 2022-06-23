@@ -46,8 +46,11 @@ import java.util.concurrent.ExecutorService;
  * for in aggregate. The default is three minutes.
  * </p>
  *
+ * @deprecated use com.mastfrog.shutdown.hooks.ShutdownHooks directly - the
+ * code has been moved there, and this class simply delegates to it.
  * @author Tim Boudreau
  */
+@Deprecated
 public interface ShutdownHooks {
 
     /**
