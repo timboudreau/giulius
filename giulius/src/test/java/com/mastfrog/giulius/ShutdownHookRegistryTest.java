@@ -26,7 +26,6 @@ package com.mastfrog.giulius;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Scopes;
-import com.mastfrog.function.state.Obj;
 import com.mastfrog.util.collections.ArrayUtils;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.IntFunction;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
@@ -100,6 +98,7 @@ public class ShutdownHookRegistryTest {
         f.assertAllExecuted().assertOrder(10, 11, 12, 20, 21, 22, 32, 31, 30);
     }
 
+    @SuppressWarnings("deprecation")
     static class Hks extends ShutdownHookRegistry implements AutoCloseable {
 
         @Override
@@ -146,7 +145,8 @@ public class ShutdownHookRegistryTest {
             };
         }
 
-        public Runnable addReentrant(ShutdownHookRegistry reg, int a, int b) {
+        @SuppressWarnings("deprecation")
+        public Runnable addReentrant(com.mastfrog.giulius.ShutdownHookRegistry reg, int a, int b) {
             return () -> {
                 all.add(a);
                 reg.add(apply(b));
@@ -172,7 +172,8 @@ public class ShutdownHookRegistryTest {
         private boolean hookRan;
 
         @Inject
-        ThingOne(ShutdownHookRegistry reg) {
+        @SuppressWarnings("deprecation")
+        ThingOne(com.mastfrog.giulius.ShutdownHookRegistry reg) {
             reg.add(this);
         }
 
@@ -188,7 +189,8 @@ public class ShutdownHookRegistryTest {
         private boolean hookRan;
 
         @Inject
-        ThingTwo(ShutdownHookRegistry reg) {
+        @SuppressWarnings("deprecation")
+        ThingTwo(com.mastfrog.giulius.ShutdownHookRegistry reg) {
             reg.add(this);
         }
 
@@ -204,7 +206,8 @@ public class ShutdownHookRegistryTest {
         boolean hookRan;
 
         @Inject
-        ThingThree(ShutdownHookRegistry reg) {
+        @SuppressWarnings("deprecation")
+        ThingThree(com.mastfrog.giulius.ShutdownHookRegistry reg) {
             reg.add(this);
         }
 

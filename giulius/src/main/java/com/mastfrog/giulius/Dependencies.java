@@ -531,6 +531,7 @@ public final class Dependencies {
     private final class DependenciesModule extends AbstractModule {
 
         @Override
+        @SuppressWarnings("deprecation")
         protected void configure() {
             try {
                 Binder binder = binder();

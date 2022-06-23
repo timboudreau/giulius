@@ -26,7 +26,6 @@ package com.mastfrog.giulius;
 import com.google.inject.ImplementedBy;
 import com.google.inject.Singleton;
 import com.mastfrog.function.throwing.ThrowingRunnable;
-import com.mastfrog.giulius.ShutdownHookRegistry.VMShutdownHookRegistry;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.concurrent.Callable;
@@ -41,7 +40,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @deprecated use com.mastfrog.shutdown.hooks.ShutdownHookRegistry directly - the
  * code has been moved there, and this class simply delegates to it.
  */
-@ImplementedBy(VMShutdownHookRegistry.class)
+@SuppressWarnings("deprecation") 
+@ImplementedBy(com.mastfrog.giulius.ShutdownHookRegistry.VMShutdownHookRegistry.class)
 @Deprecated
 public abstract class ShutdownHookRegistry implements ShutdownHooks {
 
