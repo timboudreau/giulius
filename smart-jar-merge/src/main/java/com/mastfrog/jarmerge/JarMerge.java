@@ -35,16 +35,22 @@ import com.mastfrog.util.strings.Strings;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import jdk.javadoc.doclet.StandardDoclet;
 
 /**
  * Factored out of the original maven-merge-dependencies plugin, this is a
@@ -58,7 +64,7 @@ import java.util.Set;
 public class JarMerge implements ThrowingRunnable {
 
     static final String DEFAULT_JAR_NAME = "combined.jar";
-    final String jarName;
+    public final String jarName;
     public final Set<String> excludePathPrefixes;
     public final Set<JarFilter<?>> filters;
     public final boolean generateIndex;
@@ -70,6 +76,8 @@ public class JarMerge implements ThrowingRunnable {
     public final Set<String> excludePatterns;
     public final boolean zerodates;
     public final boolean verbose;
+    public final Map<String, String> manifestEntries;
+    public final Map<String, String> extensionProperties;
     private final TriFunction<String, Phase, JarMerge, MergeLog> logFactory;
 
     private JarMerge(String jarName, String excludePaths, String exclude,
@@ -78,6 +86,17 @@ public class JarMerge implements ThrowingRunnable {
             boolean dryRun, int compressionLevel, String mainClass,
             String excludePatterns, boolean zerodates, boolean verbose,
             TriFunction<String, Phase, JarMerge, MergeLog> logFactory) {
+        this(jarName, excludePatterns, exclude, filters, generateIndex, jars,
+                exitOnError, dryRun, compressionLevel, mainClass, excludePatterns,
+                zerodates, verbose, logFactory, emptyMap(), emptyMap());
+    }
+
+    private JarMerge(String jarName, String excludePaths, String exclude,
+            Set<JarFilter<?>> filters, boolean generateIndex, Set<Path> jars,
+            boolean exitOnError, boolean dryRun, int compressionLevel,
+            String mainClass, String excludePatterns, boolean zerodates,
+            boolean verbose, TriFunction<String, Phase, JarMerge, MergeLog> logFactory,
+            Map<String, String> extensionProperties, Map<String, String> manifestEntries) {
         this.jarName = outputJarName(jarName, jars);
         this.logFactory = logFactory;
         Set<String> prefixen = new HashSet<>();
@@ -89,18 +108,29 @@ public class JarMerge implements ThrowingRunnable {
         this.exitOnError = exitOnError;
         this.dryRun = dryRun;
         this.filters = Collections.unmodifiableSet(filters);
-        this.jars = Collections.unmodifiableSet(jars);
+        this.jars = jars;
         this.compressionLevel = compressionLevel;
         this.mainClass = mainClass;
         this.zerodates = zerodates;
         this.verbose = verbose;
+        this.manifestEntries = unmodifiableMap(manifestEntries);
+        this.extensionProperties = unmodifiableMap(extensionProperties);
         if (jars.contains(Paths.get(outputJarName(jarName, jars)))) {
-            throw new IllegalStateException("Output jar " + jarName + " is one of the input jars: " + jars);
+//            throw new IllegalStateException("Output jar " + jarName
+//                    + " is one of the input jars: " + jars);
         }
+    }
+
+    public boolean isOverwrite() {
+        return jars.contains(Paths.get(outputJarName(jarName, jars)));
     }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Path outputJar() {
+        return Paths.get(jarName);
     }
 
     private static String outputJarName(String specified, Set<Path> jars) {
@@ -144,6 +174,19 @@ public class JarMerge implements ThrowingRunnable {
 
     @Override
     public void run() throws Exception {
+        Path output = Paths.get(jarName);
+        if (!dryRun && isOverwrite() && Files.exists(output)) {
+            Path copy;
+            if (output.getParent() == null) {
+                copy = Paths.get("original-" + output.getFileName());
+            } else {
+                copy = output.getParent().resolve("original-" + output.getFileName());
+            }
+            System.out.println("Copy " + output + " to " + copy);
+            Files.copy(output, copy, StandardCopyOption.REPLACE_EXISTING);
+            jars.remove(output);
+            jars.add(copy);
+        }
         List<Phase> phases = new ArrayList<>();
         phases.add(Phase.DRY_RUN);
         if (!dryRun) {
@@ -479,7 +522,7 @@ public class JarMerge implements ThrowingRunnable {
             JarFilter<?> ff = f.configureInstance(jm);
             tempFilters.add(ff);
         }
-        for (Iterator<JarFilter<?>> it=tempFilters.iterator(); it.hasNext();) {
+        for (Iterator<JarFilter<?>> it = tempFilters.iterator(); it.hasNext();) {
             JarFilter<?> filter = it.next();
             boolean remove = false;
             for (JarFilter<?> other : tempFilters) {
@@ -534,6 +577,8 @@ public class JarMerge implements ThrowingRunnable {
         private final Set<String> omittedFilters = new HashSet<>();
         private final Set<String> includedFilters = new HashSet<>();
         private final Set<Path> jars = new LinkedHashSet<>();
+        private final Map<String, String> extensionProperties = new LinkedHashMap<>();
+        private final Map<String, String> manifestEntries = new LinkedHashMap<>();
 
         private static final Set<String> KNOWN = knownFilterNames();
 
@@ -548,7 +593,7 @@ public class JarMerge implements ThrowingRunnable {
             Set<JarFilter<?>> finalFilters = new HashSet<>(filters);
             JarMerge result = new JarMerge(jarName, excludePaths, exclude, finalFilters,
                     index, jars, exitOnError, dryRun, compressionLevel, mainClass,
-                    excludePatterns, zeroDates, verbose, logFactory);
+                    excludePatterns, zeroDates, verbose, logFactory, extensionProperties, manifestEntries);
 
             if (loadFromClasspath) {
                 loadFromClasspath(result, includedFilters, finalFilters, omittedFilters);
@@ -683,5 +728,26 @@ public class JarMerge implements ThrowingRunnable {
             }
             return this;
         }
+
+        public Builder withExtensionProperties(Map<String, String> toStringMap) {
+            this.extensionProperties.putAll(toStringMap);
+            return this;
+        }
+
+        public Builder withManifestEntries(Map<String, String> toStringMap) {
+            this.manifestEntries.putAll(toStringMap);
+            return this;
+        }
+
+        public Builder withExtensionProperty(String k, String v) {
+            this.extensionProperties.put(k, v);
+            return this;
+        }
+
+        public Builder withManifestEntry(String k, String v) {
+            this.manifestEntries.put(k, v);
+            return this;
+        }
+
     }
 }

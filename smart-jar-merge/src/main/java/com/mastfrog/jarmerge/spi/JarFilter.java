@@ -165,4 +165,11 @@ public interface JarFilter<C extends Coalescer> extends Comparable<JarFilter<?>>
     default void setZeroDates(boolean val) {
         // do nothing
     }
+
+    default <T> T as(Class<T> type) {
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        }
+        return null;
+    }
 }

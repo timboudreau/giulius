@@ -150,6 +150,9 @@ final class PhaseRunner {
             // to set the times on its entry
             JarEntry manifest = new JarEntry("META-INF/MANIFEST.MF");
             configureFolderEntry(manifest);
+            manifest.setCreationTime(EPOCH);
+            manifest.setLastAccessTime(EPOCH);
+            manifest.setLastModifiedTime(EPOCH);
             result.putNextEntry(manifest);
             result.write(sb.toString().getBytes(UTF_8));
 
@@ -172,7 +175,7 @@ final class PhaseRunner {
         }
 
         void spool(Path jar, JarFile file, JarEntry entry) throws IOException {
-            try (InputStream in = wrap(jar, file, entry)) {
+            try ( InputStream in = wrap(jar, file, entry)) {
                 Streams.copy(in, Streams.nullOutputStream());
             }
         }
@@ -261,8 +264,16 @@ final class PhaseRunner {
 
         HashCollector hasher = new HashCollector();
 
-        try (JarOutputStream jarOut = jarOut(outputJar, output)) {
+        try ( JarOutputStream jarOut = jarOut(outputJar, output)) {
             Manifest m = output.createOutputManifest(settings);
+
+            if (!settings.manifestEntries.isEmpty()) {
+                Attributes attrs = m.getMainAttributes();
+                settings.manifestEntries.forEach((k, v) -> {
+                    attrs.putValue(k, v);
+                });
+            }
+
             if (settings.compressionLevel > 0) {
                 jarOut.setLevel(settings.compressionLevel);
                 jarOut.setMethod(JarOutputStream.DEFLATED);
@@ -288,6 +299,9 @@ final class PhaseRunner {
             });
 
             settings.eachJar((jarPath, last) -> {
+
+                System.out.println("ONE JAR " + jarPath);
+
                 withJar(jarPath, jarFile -> {
                     eachEntry(jarFile, entry -> {
                         String entryName = entry.getName();
@@ -337,7 +351,7 @@ final class PhaseRunner {
                                 jarOut.putNextEntry(en);
                                 if (!entry.isDirectory()) {
                                     outputLog.debug("Include {0} from {1}", entryName, jarPath.getFileName());
-                                    try (InputStream in = hasher.wrap(jarPath, jarFile, entry)) {
+                                    try ( InputStream in = hasher.wrap(jarPath, jarFile, entry)) {
                                         Streams.copy(in, jarOut, Math.min(2048, Math.max(0, (int) entry.getSize())));
                                     }
                                 } else {
@@ -370,16 +384,17 @@ final class PhaseRunner {
             }
         }
         hasher.logWarnings(outputLog);
-        System.out.println("Wrote " + outputJar.toAbsolutePath());
         return output;
     }
 
     private static final FileTime EPOCH = FileTime.from(Instant.EPOCH);
 
     private void configureFolderEntry(JarEntry en) {
-        en.setCreationTime(EPOCH);
-        en.setLastModifiedTime(EPOCH);
-        en.setLastAccessTime(EPOCH);
+        if (settings.zerodates) {
+            en.setCreationTime(EPOCH);
+            en.setLastModifiedTime(EPOCH);
+            en.setLastAccessTime(EPOCH);
+        }
     }
 
     public void writeParentDirs(List<String> indexParentPaths, Set<String> indexPaths, final JarOutputStream jarOut, Set<String> written) throws IOException {
@@ -416,7 +431,7 @@ final class PhaseRunner {
     }
 
     private void withJar(Path jar, ThrowingConsumer<JarFile> c) throws Exception {
-        try (JarFile jf = new JarFile(jar.toFile())) {
+        try ( JarFile jf = new JarFile(jar.toFile())) {
             c.accept(jf);
         }
     }
@@ -581,18 +596,22 @@ final class PhaseRunner {
 
         Manifest createOutputManifest(JarMerge settings) {
             Manifest manifest = new Manifest();
-            manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-            manifest.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VENDOR, "smart-jar-merge-2.7.1");
+            Attributes attrs = manifest.getMainAttributes();
+            attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+            attrs.put(Attributes.Name.IMPLEMENTATION_VENDOR, "smart-jar-merge-2.8.3.1");
 
             Attributes.Name main = Attributes.Name.MAIN_CLASS;
             if (settings.mainClass != null && !settings.mainClass.trim().isEmpty()) {
-                manifest.getMainAttributes().put(main, settings.mainClass);
+                attrs.put(main, settings.mainClass);
             } else if (firstManifest != null) {
                 Object mc = firstManifest.getMainAttributes().get(main);
                 if (mc != null) {
                     manifest.getMainAttributes().put(main, mc);
                 }
             }
+            settings.manifestEntries.forEach((k, v) -> {
+                attrs.putValue(k, v);
+            });
             return manifest;
         }
 

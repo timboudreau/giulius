@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 <project
-     xmlns="http://maven.apache.org/POM/4.0.0"
-     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,6 +15,7 @@
     </parent>
 
     <artifactId>maven-merge-configuration</artifactId>
+    <version>2.8.3.1</version>
 
     <url>https://github.com/timboudreau/giulius</url>
     <description>
@@ -36,8 +37,20 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.telenav.cactus</groupId>
+            <artifactId>cactus-maven-xml</artifactId>
+            <version>1.5.18</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>smart-jar-merge</artifactId>
+            <version>${mastfrog.version}.1</version>
+        </dependency>
+        <!-- Dependency of giulius-settings, but if we don't explicitly list
+        it, it can wind up not on the classpath when running this plugin -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-collections</artifactId>
             <version>${mastfrog.version}</version>
         </dependency>
         <dependency>
@@ -98,13 +111,13 @@
                 </executions>
 
                 <!-- <executions>
-                     <execution>
-                     <id>generated-helpmojo</id>
-                     <goals>
-                     <goal>helpmojo</goal>
-                     </goals>
-                     </execution>
-                     </executions> -->
+                <execution>
+                <id>generated-helpmojo</id>
+                <goals>
+                <goal>helpmojo</goal>
+                </goals>
+                </execution>
+                </executions> -->
 
             </plugin>
 

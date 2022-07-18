@@ -14,10 +14,11 @@
     </parent>
 
     <artifactId>smart-jar-merge</artifactId>
+    <version>2.8.3.1</version>
 
     <url>https://github.com/timboudreau/giulius</url>
     <description>
-        Jar-marging utilities which knows how to coalesce
+        Jar-marging utility which knows how to coalesce
         things like META-INF/services files, omit specified Jar entries,
         rewrite generated properties files minus the generated date-comment
         that defeats repeatable builds and similar.  Filters for JARs are
@@ -29,6 +30,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>util-strings</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-streams</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -109,10 +114,6 @@
                 <version>${maven.merge.configuration.previous}</version>
                 <executions>
                     <execution>
-
-                        <!-- <phase>process-resources</phase> -->
-                        <!-- <phase>site</phase> -->
-
                         <phase>package</phase>
                         <id>compile</id>
                         <goals>
@@ -121,6 +122,13 @@
                         <configuration>
                             <jarName>smart-jar-merge</jarName>
                             <mainClass>com.mastfrog.jarmerge.JarMerge</mainClass>
+                            <omitModuleInfo>true</omitModuleInfo>
+                            <normalizeMetaInfPropertiesFiles>true</normalizeMetaInfPropertiesFiles>
+                            <zerodates>true</zerodates>
+                            <compressionLevel>0</compressionLevel>
+                            <skipLicenseFiles>true</skipLicenseFiles>
+                            <skipMavenMetadata>true</skipMavenMetadata>
+                            <index>true</index>
                         </configuration>
                     </execution>
                 </executions>
