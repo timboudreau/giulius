@@ -24,15 +24,16 @@
 package com.mastfrog.jarmerge.builtin;
 
 import com.mastfrog.jarmerge.MergeLog;
+import com.mastfrog.jarmerge.spi.ClassNameRewriter;
 import com.mastfrog.jarmerge.spi.Coalescer;
-import com.mastfrog.jarmerge.spi.JarFilter;
 import com.mastfrog.jarmerge.support.AbstractJarFilter;
 import com.mastfrog.jarmerge.support.Concatenator;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.ENSURE_TRAILING_NEWLINE;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.OMIT_BLANK_LINES;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.OMIT_DUPLICATE_LINES;
+import static com.mastfrog.jarmerge.support.Concatenator.Features.TRANSFORM_CLASS_NAMES;
+import static com.mastfrog.jarmerge.support.Concatenator.Features.TRANSFORM_FILE_NAME;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.TRIM_LINES;
-import static com.mastfrog.jarmerge.support.Concatenator.Features.ZERO_DATES;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.maybeWithZeroDates;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -64,7 +65,10 @@ public class ConcatenateMetaInfServices extends AbstractJarFilter<Coalescer> {
                         = maybeWithZeroDates(zeroDates(),
                                 OMIT_BLANK_LINES,
                                 OMIT_DUPLICATE_LINES,
-                                TRIM_LINES, ENSURE_TRAILING_NEWLINE);
+                                TRIM_LINES, ENSURE_TRAILING_NEWLINE,
+                                TRANSFORM_CLASS_NAMES,
+                                TRANSFORM_FILE_NAME
+                                );
                 return concatForPath.computeIfAbsent(path, pt -> new Concatenator(pt, features));
             }
         }
@@ -73,7 +77,10 @@ public class ConcatenateMetaInfServices extends AbstractJarFilter<Coalescer> {
                     = maybeWithZeroDates(zeroDates(),
                             OMIT_BLANK_LINES,
                             OMIT_DUPLICATE_LINES,
-                            TRIM_LINES, ENSURE_TRAILING_NEWLINE);
+                            TRIM_LINES, 
+                            ENSURE_TRAILING_NEWLINE,
+                            TRANSFORM_CLASS_NAMES,
+                            TRANSFORM_FILE_NAME);
             return concatForPath.computeIfAbsent(path, pt -> new Concatenator(pt, features));
         }
         return null;

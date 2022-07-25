@@ -28,6 +28,7 @@ import com.mastfrog.jarmerge.support.AbstractJarFilter;
 import com.mastfrog.jarmerge.support.Concatenator;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.ENSURE_TRAILING_NEWLINE;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.OMIT_BLANK_LINES;
+import static com.mastfrog.jarmerge.support.Concatenator.Features.TRANSFORM_CLASS_NAMES;
 import static com.mastfrog.jarmerge.support.Concatenator.Features.maybeWithZeroDates;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -53,7 +54,8 @@ public class ConcatenateMetaInfLists extends AbstractJarFilter<Concatenator> {
         Concatenator.Features[] features
                 = maybeWithZeroDates(zeroDates(),
                         OMIT_BLANK_LINES,
-                        ENSURE_TRAILING_NEWLINE);
+                        ENSURE_TRAILING_NEWLINE,
+                        TRANSFORM_CLASS_NAMES);
 
         switch (name) {
             case "META-INF/http/pages.list":

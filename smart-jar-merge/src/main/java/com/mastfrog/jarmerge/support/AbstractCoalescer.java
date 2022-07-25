@@ -24,7 +24,9 @@
 package com.mastfrog.jarmerge.support;
 
 import com.mastfrog.jarmerge.MergeLog;
+import com.mastfrog.jarmerge.spi.ClassNameRewriter;
 import com.mastfrog.jarmerge.spi.Coalescer;
+import com.mastfrog.util.path.UnixPath;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -52,6 +54,12 @@ public abstract class AbstractCoalescer implements Coalescer {
 
     @Override
     public final String path() {
+        if (isTransformFileNames()) {
+            UnixPath up = UnixPath.get(name);
+            UnixPath par = up.getParent();
+            String s = ClassNameRewriter.get().apply(up.getFileName().toString());
+            return par == null ? s : par.resolve(s).toString();
+        }
         return name;
     }
 
@@ -126,7 +134,7 @@ public abstract class AbstractCoalescer implements Coalescer {
     public final void add(Path jar, JarEntry entry, JarFile file, MergeLog log) throws Exception {
         Runnable updateFileTimes = updateFileTimes(entry);
         boolean success;
-        try (InputStream in = file.getInputStream(entry)) {
+        try ( InputStream in = file.getInputStream(entry)) {
             success = read(jar, entry, file, in, log);
         }
         if (success) {
@@ -134,10 +142,15 @@ public abstract class AbstractCoalescer implements Coalescer {
         }
     }
 
+    protected boolean isTransformFileNames() {
+        return false;
+    }
+
     @Override
     public final void writeCoalesced(JarOutputStream out, MergeLog log) throws Exception {
         if (canWrite(log)) {
-            JarEntry nue = new JarEntry(path());
+            String pth = path();
+            JarEntry nue = new JarEntry(pth);
             setFileTimes(nue);
             out.putNextEntry(nue);
             write(nue, out, log);

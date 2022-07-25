@@ -25,8 +25,6 @@ package com.mastfrog.jarmerge.builtin;
 
 import com.mastfrog.jarmerge.MergeLog;
 import com.mastfrog.jarmerge.builtin.MergePlexusComponents.PlexusComponentsCoalescer;
-import com.mastfrog.jarmerge.spi.Coalescer;
-import com.mastfrog.jarmerge.spi.JarFilter;
 import com.mastfrog.jarmerge.support.AbstractCoalescer;
 import com.mastfrog.jarmerge.support.AbstractJarFilter;
 import java.io.ByteArrayOutputStream;

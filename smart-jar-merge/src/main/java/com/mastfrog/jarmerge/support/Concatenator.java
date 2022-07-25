@@ -24,6 +24,9 @@
 package com.mastfrog.jarmerge.support;
 
 import com.mastfrog.jarmerge.MergeLog;
+import com.mastfrog.jarmerge.spi.ClassNameRewriter;
+import static com.mastfrog.jarmerge.support.Concatenator.Features.TRANSFORM_CLASS_NAMES;
+import static com.mastfrog.jarmerge.support.Concatenator.Features.TRANSFORM_FILE_NAME;
 import com.mastfrog.util.streams.Streams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,6 +56,7 @@ public final class Concatenator extends AbstractCoalescer {
 
     private final Map<Path, List<String>> linesForPath = new LinkedHashMap<>(7);
     private final Charset encoding;
+    private final ClassNameRewriter rewriter;
     private Set<Features> features;
 
     public Concatenator(String name, Features... features) {
@@ -67,6 +71,16 @@ public final class Concatenator extends AbstractCoalescer {
             f.addAll(Arrays.asList(features));
         }
         this.features = Collections.unmodifiableSet(f);
+        if (this.features.contains(TRANSFORM_CLASS_NAMES) || this.features.contains(TRANSFORM_FILE_NAME)) {
+            rewriter = ClassNameRewriter.get();
+        } else {
+            rewriter = null;
+        }
+    }
+
+    @Override
+    protected boolean isTransformFileNames() {
+        return features.contains(TRANSFORM_FILE_NAME);
     }
 
     @Override
@@ -105,6 +119,7 @@ public final class Concatenator extends AbstractCoalescer {
     }
 
     private List<String> lines(MergeLog log) {
+        ClassNameRewriter rewriter = this.rewriter;
         List<String> result = new ArrayList<>();
         Map<String, Path> pathForLine = features.contains(Features.OMIT_DUPLICATE_LINES) ? new HashMap<>(256) : null;
         linesForPath.forEach((pth, lns) -> {
@@ -121,6 +136,9 @@ public final class Concatenator extends AbstractCoalescer {
                 }
                 if (features.contains(Features.OMIT_SHELL_COMMENT_LINES) && !line.isEmpty() && line.charAt(0) == '#') {
                     continue;
+                }
+                if (rewriter != null) {
+                    line = rewriter.apply(line);
                 }
                 if (pathForLine != null) {
                     Path old = pathForLine.get(line);
@@ -149,7 +167,9 @@ public final class Concatenator extends AbstractCoalescer {
         ENSURE_TRAILING_NEWLINE,
         WINDOWS_NEWLINES,
         SHELL_COMMENT_HEADINGS,
-        ZERO_DATES;
+        ZERO_DATES,
+        TRANSFORM_CLASS_NAMES,
+        TRANSFORM_FILE_NAME;
 
         public static Features[] maybeWithZeroDates(boolean z, Features... orig) {
             if (!z) {

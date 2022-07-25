@@ -26,7 +26,6 @@ package com.mastfrog.jarmerge;
 import com.mastfrog.function.TriFunction;
 import com.mastfrog.jarmerge.spi.Coalescer;
 import com.mastfrog.jarmerge.spi.JarFilter;
-import com.mastfrog.function.throwing.ThrowingBiConsumer;
 import com.mastfrog.function.throwing.ThrowingConsumer;
 import com.mastfrog.function.throwing.ThrowingSeptaConsumer;
 import static com.mastfrog.jarmerge.Phase.WRITE;
@@ -77,6 +76,7 @@ final class PhaseRunner {
     private final Phase phase;
     private final JarMerge settings;
     private final TriFunction<String, Phase, JarMerge, MergeLog> logFactory;
+    static final int DEFAULT_BUFFER_SIZE = 2048;
 
     public static void main(String[] args) throws Exception {
         JarMerge.main(new String[]{"--list"});
@@ -299,9 +299,6 @@ final class PhaseRunner {
             });
 
             settings.eachJar((jarPath, last) -> {
-
-                System.out.println("ONE JAR " + jarPath);
-
                 withJar(jarPath, jarFile -> {
                     eachEntry(jarFile, entry -> {
                         String entryName = entry.getName();
@@ -352,7 +349,7 @@ final class PhaseRunner {
                                 if (!entry.isDirectory()) {
                                     outputLog.debug("Include {0} from {1}", entryName, jarPath.getFileName());
                                     try ( InputStream in = hasher.wrap(jarPath, jarFile, entry)) {
-                                        Streams.copy(in, jarOut, Math.min(2048, Math.max(0, (int) entry.getSize())));
+                                        Streams.copy(in, jarOut, Math.min(DEFAULT_BUFFER_SIZE, Math.max(0, (int) entry.getSize())));
                                     }
                                 } else {
                                     indexPaths.add(entryName);

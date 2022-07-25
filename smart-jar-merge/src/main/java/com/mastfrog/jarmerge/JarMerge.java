@@ -24,10 +24,12 @@
 package com.mastfrog.jarmerge;
 
 import com.mastfrog.function.TriFunction;
+import com.mastfrog.function.threadlocal.ThreadLocalValue;
 import com.mastfrog.jarmerge.spi.JarFilter;
 import com.mastfrog.function.throwing.ThrowingBiConsumer;
 import com.mastfrog.function.throwing.ThrowingRunnable;
 import com.mastfrog.jarmerge.PhaseRunner.PhaseOutput;
+import com.mastfrog.jarmerge.spi.ClassNameRewriter;
 import com.mastfrog.settings.Settings;
 import static com.mastfrog.util.preconditions.Checks.notNull;
 import com.mastfrog.util.strings.AlignedText;
@@ -50,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
-import jdk.javadoc.doclet.StandardDoclet;
 
 /**
  * Factored out of the original maven-merge-dependencies plugin, this is a
@@ -63,6 +64,7 @@ import jdk.javadoc.doclet.StandardDoclet;
  */
 public class JarMerge implements ThrowingRunnable {
 
+    private static final ThreadLocalValue<JarMerge> MERGE = ThreadLocalValue.create();
     static final String DEFAULT_JAR_NAME = "combined.jar";
     public final String jarName;
     public final Set<String> excludePathPrefixes;
@@ -79,6 +81,7 @@ public class JarMerge implements ThrowingRunnable {
     public final Map<String, String> manifestEntries;
     public final Map<String, String> extensionProperties;
     private final TriFunction<String, Phase, JarMerge, MergeLog> logFactory;
+    private ClassNameRewriter rewriter;
 
     private JarMerge(String jarName, String excludePaths, String exclude,
             Set<JarFilter<?>> filters,
@@ -115,10 +118,13 @@ public class JarMerge implements ThrowingRunnable {
         this.verbose = verbose;
         this.manifestEntries = unmodifiableMap(manifestEntries);
         this.extensionProperties = unmodifiableMap(extensionProperties);
-        if (jars.contains(Paths.get(outputJarName(jarName, jars)))) {
-//            throw new IllegalStateException("Output jar " + jarName
-//                    + " is one of the input jars: " + jars);
+    }
+
+    public ClassNameRewriter rewriter() {
+        if (rewriter == null) {
+            rewriter = ClassNameRewriter.coalesce(filters);
         }
+        return rewriter;
     }
 
     public boolean isOverwrite() {
@@ -171,31 +177,42 @@ public class JarMerge implements ThrowingRunnable {
         }
         return all;
     }
+    
+    /**
+     * For use by jar filters which need access to the current JarMerge
+     * <i>and run on the same thread they were invoked on</i>.
+     * 
+     * @return A JarMerge or null
+     */
+    public static JarMerge get() {
+        return MERGE.get();
+    }
 
     @Override
     public void run() throws Exception {
-        Path output = Paths.get(jarName);
-        if (!dryRun && isOverwrite() && Files.exists(output)) {
-            Path copy;
-            if (output.getParent() == null) {
-                copy = Paths.get("original-" + output.getFileName());
-            } else {
-                copy = output.getParent().resolve("original-" + output.getFileName());
+        MERGE.withValueThrowing(this, () -> {
+            Path output = Paths.get(jarName);
+            if (!dryRun && isOverwrite() && Files.exists(output)) {
+                Path copy;
+                if (output.getParent() == null) {
+                    copy = Paths.get("original-" + output.getFileName());
+                } else {
+                    copy = output.getParent().resolve("original-" + output.getFileName());
+                }
+                Files.copy(output, copy, StandardCopyOption.REPLACE_EXISTING);
+                jars.remove(output);
+                jars.add(copy);
             }
-            System.out.println("Copy " + output + " to " + copy);
-            Files.copy(output, copy, StandardCopyOption.REPLACE_EXISTING);
-            jars.remove(output);
-            jars.add(copy);
-        }
-        List<Phase> phases = new ArrayList<>();
-        phases.add(Phase.DRY_RUN);
-        if (!dryRun) {
-            phases.add(Phase.WRITE);
-        }
-        PhaseOutput prev = null;
-        for (Phase mode : phases) {
-            prev = run(mode, prev);
-        }
+            List<Phase> phases = new ArrayList<>();
+            phases.add(Phase.DRY_RUN);
+            if (!dryRun) {
+                phases.add(Phase.WRITE);
+            }
+            PhaseOutput prev = null;
+            for (Phase mode : phases) {
+                prev = run(mode, prev);
+            }
+        });
     }
 
     private PhaseRunner.PhaseOutput run(Phase phase, PhaseOutput prevPhaseOut) throws Exception {
