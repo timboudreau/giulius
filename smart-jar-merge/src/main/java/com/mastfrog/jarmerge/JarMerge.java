@@ -224,6 +224,16 @@ public class JarMerge implements ThrowingRunnable {
             c.accept(iterator.next(), !iterator.hasNext());
         }
     }
+    
+    /**
+     * Get the set of installed filters, in the order they will be applied.
+     * @return A list of unique filter instances.
+     */
+    public List<JarFilter> filters() {
+        List<JarFilter> result = new ArrayList<>(this.filters);
+        Collections.sort(result);
+        return result;
+    }
 
     public static void main(String[] args) throws Exception {
         int lastFileIndex = args.length;

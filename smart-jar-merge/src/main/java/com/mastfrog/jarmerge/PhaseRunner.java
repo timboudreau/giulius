@@ -105,11 +105,12 @@ final class PhaseRunner {
 
     void iterateJarsAndFilters(PhaseOutput output,
             ThrowingSeptaConsumer<Path, JarFile, JarEntry, JarFilter, MergeLog, PhaseOutput, Boolean> c) throws Exception {
+        List<JarFilter> filters = settings.filters();
         settings.eachJar((path, last) -> {
             withJar(path, jarFile -> {
                 output.onOpenJar(path, jarFile);
                 eachEntry(jarFile, en -> {
-                    for (JarFilter filter : settings.filters) {
+                    for (JarFilter filter : filters) {
                         MergeLog log = logFactory.apply(filter.name(), phase, settings);
                         c.accept(path, jarFile, en, filter, log, output, last);
                     }
@@ -318,7 +319,7 @@ final class PhaseRunner {
                             return;
                         }
                         boolean write = true;
-                        for (JarFilter<?> filter : settings.filters) {
+                        for (JarFilter<?> filter : settings.filters()) {
                             MergeLog log = logFactory.apply(filter.name(), phase, settings);
                             write = writeCheck(jarOut, jarPath, jarFile, entry, filter, log, output, last);
                             if (!write) {
