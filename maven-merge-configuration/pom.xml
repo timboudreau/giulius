@@ -44,7 +44,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>smart-jar-merge</artifactId>
-            <version>${mastfrog.version}.2</version>
+            <version>${mastfrog.version}.3</version>
         </dependency>
         <!-- Dependency of giulius-settings, but if we don't explicitly list
         it, it can wind up not on the classpath when running this plugin -->
