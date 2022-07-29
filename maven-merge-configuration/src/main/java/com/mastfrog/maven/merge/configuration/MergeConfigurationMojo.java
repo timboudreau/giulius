@@ -250,7 +250,7 @@ public class MergeConfigurationMojo extends AbstractMojo {
         if (ix > 0 && ix < nm.length() - 1) {
             nm = nm.substring(0, ix);
         }
-        if (classifier != null && !classifier.trim().isBlank()) {
+        if (classifier != null && !classifier.trim().isEmpty()) {
             nm += "-" + classifier.trim();
         }
         return nm;
