@@ -70,7 +70,10 @@ public class PomRewriter {
         List<AbstractXMLUpdater> removals = new ArrayList<>();
         for (Dependency dep : removed) {
             // XXX need a better query
-            removals.add(new XMLElementRemoval(xf, "/project/dependencies/dependency[./artifactId[text()=\"" + dep.getArtifact().getArtifactId() + "\"]]"));
+            removals.add(new XMLElementRemoval(xf,
+                    "/project/dependencies/dependency[./artifactId[text()=\""
+                    + dep.getArtifact().getArtifactId()
+                    + "\"]]"));
         }
         return xf.inContext(doc -> {
             AbstractXMLUpdater.applyAll(removals, false, msg -> {
@@ -87,5 +90,9 @@ public class PomRewriter {
             super(path);
         }
 
+        @Override
+        public String toString() {
+            return path().toString();
+        }
     }
 }
