@@ -43,13 +43,15 @@ public class OmitSignatureFiles extends AbstractJarFilter<Coalescer> {
     private static final String INDEX = "META-INF/INDEX.LIST";
     private static final String DEPENDENCIES = "META-INF/DEPENDENCIES";
     private static final String MANIFEST = "META-INF/MANIFEST.MF";
-    private static final List<String> MUST_SKIP = Arrays.asList(DEPENDENCIES, INDEX, MANIFEST);
+    private static final List<String> MUST_SKIP = Arrays.asList(DEPENDENCIES,
+            INDEX, MANIFEST);
 
     private static final Pattern[] patterns = new Pattern[]{SIG1, SIG2, SIG3};
 
     @Override
     public String description() {
-        return "Omits jar signature files and similar which will be wrong in a merged jar.";
+        return "Omits jar signature files and similar which will be wrong in a "
+                + "merged jar.";
     }
 
     @Override

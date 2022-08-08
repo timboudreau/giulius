@@ -71,6 +71,7 @@ public class AbstractJarFilter<C extends Coalescer> implements JarFilter<C> {
         }
     }
 
+    @Override
     public String toString() {
         return name();
     }

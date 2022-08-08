@@ -155,7 +155,7 @@ public interface JarFilter<C extends Coalescer> extends Comparable<JarFilter<?>>
      * @return A filter which != this
      */
     JarFilter<C> configureInstance(JarMerge jarMerge);
-
+    
     /**
      * Called by the framework if the date for all generated files in the jar
      * should be set to the unix epoch for repeatable builds.

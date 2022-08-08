@@ -36,10 +36,13 @@ public class OmitModuleInfo extends AbstractJarFilter<Coalescer> {
 
     @Override
     public boolean omit(String path, Path inJar, MergeLog log) {
-        if ("module-info.class".equals(path)) {
-            return true;
-        }
-        return false;
+        return "module-info.class".equals(path)
+                || isVersionedModuleInfo(path);
+    }
+
+    private static boolean isVersionedModuleInfo(String path) {
+        return path.startsWith("META-INF/versions/")
+                && path.endsWith("/module-info.class");
     }
 
     @Override
