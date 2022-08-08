@@ -24,16 +24,19 @@
 package com.mastfrog.jarmerge.builtin;
 
 import com.mastfrog.function.state.Int;
-import com.mastfrog.function.throwing.ThrowingBiConsumer;
+import com.mastfrog.function.state.Obj;
+import com.mastfrog.function.throwing.ThrowingTriConsumer;
 import com.mastfrog.jarmerge.MergeLog;
 import com.mastfrog.jarmerge.builtin.MergeLicenseFiles.LicenseConcatenator;
 import com.mastfrog.jarmerge.support.AbstractCoalescer;
 import com.mastfrog.jarmerge.support.AbstractJarFilter;
 import com.mastfrog.util.streams.Streams;
 import com.mastfrog.util.strings.Escaper;
+import static com.mastfrog.util.strings.Strings.sha1;
 import java.io.InputStream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -55,6 +58,8 @@ public class MergeLicenseFiles extends AbstractJarFilter<LicenseConcatenator> {
     private static final String MERGED_LICENSE_FILE = "META-INF/LICENSE.txt";
     private static final String[] LICENSE_FILE_NAMES_WITH_LEADING_SLASH
             = new String[]{"/license", "/notice", "/credits", "/about"};
+    private static final String LICENSE_HEAD = "# SmartJarMerge Coalesced License Format 1.0";
+    private static final String JAR_SET_LINE_PREFIX = "# License or notice found in ";
 
     private LicenseConcatenator coa;
 
@@ -154,7 +159,7 @@ public class MergeLicenseFiles extends AbstractJarFilter<LicenseConcatenator> {
         }
 
         private String hashForText(String text) {
-            return NonWordCharEscaper.INSTANCE.escape(text);
+            return sha1(NonWordCharEscaper.INSTANCE.escape(text));
         }
 
         @Override
@@ -164,6 +169,11 @@ public class MergeLicenseFiles extends AbstractJarFilter<LicenseConcatenator> {
             // formatting, so make a hash sans those things and use that as a key
             // to avoid duplicates
             String text = Streams.readString(in, UTF_8);
+            if (consumeCoalescedLicenseFile(text)) {
+                log.log("Found an existing coalesced license file in {0}. Merging it.",
+                        file.getName());
+                return true;
+            }
             String hash = hashForText(text.trim().toLowerCase());
             if (!textForHash.containsKey(hash)) {
                 textForHash.put(hash, text);
@@ -182,28 +192,102 @@ public class MergeLicenseFiles extends AbstractJarFilter<LicenseConcatenator> {
             return true;
         }
 
-        private void writeLine(String txt, JarOutputStream out) throws Exception {
+        private void writeText(String txt, JarOutputStream out) throws Exception {
             out.write(txt.getBytes(UTF_8));
+        }
+
+        private boolean consumeCoalescedLicenseFile(String text) {
+            if (isCoalescedLicenseFile(text) && text.length() > LICENSE_HEAD.length() + 1) {
+                text = text.substring(LICENSE_HEAD.length() + 1);
+                StringBuilder curr = new StringBuilder();
+                Obj<String> currHash = Obj.create();
+                Runnable next = () -> {
+                    if (curr.length() > 0 && currHash.isSet()) {
+                        String theHash = currHash.set(null);
+                        textForHash.putIfAbsent(theHash, curr.toString().trim());
+                        curr.setLength(0);
+                    }
+                };
+                for (String line : text.split("\n")) {
+                    line = line.trim();
+                    String newHash = jarsAndHash(line);
+                    if (newHash != null) {
+                        next.run();
+                        currHash.set(newHash);
+                    } else {
+                        curr.append(line).append('\n');
+                    }
+                }
+                next.run();
+                return true;
+            }
+            return false;
+        }
+
+        private static boolean isCoalescedLicenseFile(String text) {
+            return text.startsWith(LICENSE_HEAD + "\n");
         }
 
         @Override
         protected void write(JarEntry entry, JarOutputStream out, MergeLog log) throws Exception {
             Int curr = Int.create();
-            eachJarSetAndLicense((jars, licenseText) -> {
+            writeText(LICENSE_HEAD + "\n", out);
+            eachJarSetLicenseAndHash((jars, licenseText, licenseHash) -> {
                 if (curr.increment() > 0) {
                     out.write('\n');
                     out.write('\n');
                 }
-                writeLine("# License or notice found in " + jars, out);
+                writeText(jarSetLine(jars, licenseHash), out);
                 out.write('\n');
-                writeLine(licenseText, out);
+                writeText(licenseText, out);
             });
         }
 
-        private void eachJarSetAndLicense(ThrowingBiConsumer<String, String> c) throws Exception {
-            for (Map.Entry<String, String> e : licenseForJarList().entrySet()) {
-                c.accept(e.getKey(), e.getValue());
+        private static String jarSetLine(String jars, String hash) {
+            return JAR_SET_LINE_PREFIX + jars + " sha1::" + hash + "\n";
+        }
+
+        private String jarsAndHash(String text) {
+            text = text.trim();
+            if (text.startsWith(JAR_SET_LINE_PREFIX)) {
+                text = text.substring(JAR_SET_LINE_PREFIX.length());
+                int ix = text.lastIndexOf(" sha1::");
+                if (ix >= 0 && ix < text.length() - " sha1::".length()) {
+                    String hash = text.substring(ix + " sha1::".length()).trim();
+                    String jars = text.substring(0, ix);
+                    for (String jar : jars.split(",")) {
+                        jar = jar.trim();
+                        pathsForHash.computeIfAbsent(hash, j -> new HashSet<>()).add(Paths.get(jar));
+                    }
+                    return hash;
+                }
             }
+            return null;
+        }
+
+        private void eachJarSetLicenseAndHash(ThrowingTriConsumer<String, String, String> c) throws Exception {
+            for (Map.Entry<String, HashEntry> e : licenseAndHashForJarList().entrySet()) {
+                c.accept(e.getKey(), e.getValue().text, e.getValue().hash);
+            }
+        }
+
+        static final class HashEntry {
+
+            final String hash;
+            final String text;
+
+            public HashEntry(String hash, String text) {
+                this.hash = hash;
+                this.text = text;
+            }
+        }
+
+        private Map<String, HashEntry> licenseAndHashForJarList() {
+            Map<String, HashEntry> result = new TreeMap<>();
+            pathsForHash.forEach((licenseTextHash, jarPaths) -> {
+                result.put(toS(jarPaths), new HashEntry(licenseTextHash, textForHash.get(licenseTextHash)));
+            });
+            return result;
         }
 
         private Map<String, String> licenseForJarList() {
