@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.mongodb.async;
+package com.mastfrog.giulius.mongodb.reactive;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
@@ -29,16 +29,15 @@ import com.google.inject.Key;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
-import com.mastfrog.asyncpromises.mongo.CollectionPromises;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.preconditions.ConfigurationError;
-import com.mongodb.async.client.MongoClient;
-import com.mongodb.async.client.MongoClientSettings;
-import com.mongodb.async.client.MongoClients;
-import com.mongodb.async.client.MongoCollection;
-import com.mongodb.async.client.MongoDatabase;
+import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.reactivestreams.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -78,7 +77,7 @@ import org.bson.codecs.configuration.CodecRegistry;
  *
  * @author Tim Boudreau
  */
-public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyncConfig<GiuliusMongoAsyncModule> {
+public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements MongoAsyncConfig<GiuliusMongoReactiveStreamsModule> {
 
     private MongoClientSettings settings;
     private volatile boolean done;
@@ -91,7 +90,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
     private final Set<Class<? extends CodecProvider>> codecProviderTypes = new HashSet<>();
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public GiuliusMongoAsyncModule() {
+    public GiuliusMongoReactiveStreamsModule() {
         Java8DateTimeCodecProvider.installCodecs(this);
     }
 
@@ -102,7 +101,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule withCodecProvider(CodecProvider prov) {
+    public GiuliusMongoReactiveStreamsModule withCodecProvider(CodecProvider prov) {
         checkDone();
         checkSettings();
         codecProviders.add(prov);
@@ -124,7 +123,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule withCodec(Codec<?> prov) {
+    public GiuliusMongoReactiveStreamsModule withCodec(Codec<?> prov) {
         checkDone();
         checkSettings();
         codecs.add(prov);
@@ -140,7 +139,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule withCodecProvider(Class<? extends CodecProvider> prov) {
+    public GiuliusMongoReactiveStreamsModule withCodecProvider(Class<? extends CodecProvider> prov) {
         checkDone();
         checkSettings();
         codecProviderTypes.add(prov);
@@ -155,7 +154,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule withCodec(Class<? extends Codec<?>> prov) {
+    public GiuliusMongoReactiveStreamsModule withCodec(Class<? extends Codec<?>> prov) {
         checkDone();
         checkSettings();
         codecTypes.add(prov);
@@ -164,7 +163,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
 
     private Class<? extends DynamicCodecs> dynCodecs;
 
-    public GiuliusMongoAsyncModule withDynamicCodecs(Class<? extends DynamicCodecs> codecs) {
+    public GiuliusMongoReactiveStreamsModule withDynamicCodecs(Class<? extends DynamicCodecs> codecs) {
         checkDone();
         if (dynCodecs != null) {
             throw new ConfigurationError("Dynamic codecs already set");
@@ -198,8 +197,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 return registry;
             }
             Dependencies deps = this.deps.get();
-            List<CodecProvider> providers = new LinkedList<>(GiuliusMongoAsyncModule.this.codecProviders);
-            List<Codec<?>> codecs = new LinkedList<>(GiuliusMongoAsyncModule.this.codecs);
+            List<CodecProvider> providers = new LinkedList<>(GiuliusMongoReactiveStreamsModule.this.codecProviders);
+            List<Codec<?>> codecs = new LinkedList<>(GiuliusMongoReactiveStreamsModule.this.codecs);
             for (Class<? extends CodecProvider> c : codecProviderTypes) {
                 providers.add(deps.getInstance(c));
             }
@@ -244,6 +243,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             }
         }
 
+        @Override
         public <T> Codec<T> get(Class<T> type, CodecRegistry cr) {
             return get(type);
         }
@@ -271,7 +271,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule withClientSettings(MongoClientSettings settings) {
+    public GiuliusMongoReactiveStreamsModule withClientSettings(MongoClientSettings settings) {
         checkDone();
         this.settings = settings;
         return this;
@@ -286,7 +286,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @param bindingName The binding and collection name
      * @return this
      */
-    public <T> GiuliusMongoAsyncModule bindCollection(String bindingName, Class<T> type) {
+    public <T> GiuliusMongoReactiveStreamsModule bindCollection(String bindingName, Class<T> type) {
         return bindCollection(bindingName, bindingName, type);
     }
 
@@ -298,7 +298,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * question
      * @return this
      */
-    public GiuliusMongoAsyncModule bindCollection(String bindingName) {
+    public GiuliusMongoReactiveStreamsModule bindCollection(String bindingName) {
         bindCollection(bindingName, bindingName);
         return this;
     }
@@ -313,7 +313,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @param initializerType The type of initializer
      * @return this
      */
-    public GiuliusMongoAsyncModule withInitializer(Class<? extends MongoAsyncInitializer> initializerType) {
+    public GiuliusMongoReactiveStreamsModule withInitializer(Class<? extends MongoAsyncInitializer> initializerType) {
         checkDone();
         initializers.add(initializerType);
         return this;
@@ -328,7 +328,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public GiuliusMongoAsyncModule bindCollection(String bindingName, String collectionName) {
+    public GiuliusMongoReactiveStreamsModule bindCollection(String bindingName, String collectionName) {
         checkDone();
         bindings.add(new CollectionBinding<Document>(collectionName, bindingName, null, Document.class));
         return this;
@@ -347,7 +347,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * @return this
      */
     @Override
-    public <T> GiuliusMongoAsyncModule bindCollection(String bindingName, String collectionName, Class<T> type) {
+    public <T> GiuliusMongoReactiveStreamsModule bindCollection(String bindingName, String collectionName, Class<T> type) {
         checkDone();
         bindings.add(new CollectionBinding<T>(collectionName, bindingName, null, type));
         return this;
@@ -443,8 +443,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             Provider<ExistingCollections> existingProvider = binder.getProvider(ExistingCollections.class);
             MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(collection, Document.class, existingProvider, clientProvider);
             Provider<MongoFutureCollection<Document>> futProvider = new FutureCollectionProvider(docProvider);
-            CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
-            binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
+//            CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
+//            binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
             binder.bind(FUTURE_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(futProvider);
             if (type != Document.class) {
@@ -452,10 +452,10 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
                 Type t = new FakeType<>(type);
                 Key<MongoCollection<T>> key = (Key<MongoCollection<T>>) Key.get(t, Names.named(bindingName));
                 binder.bind(key).toProvider(typedProvider);
-                CollectionPromisesProvider<T> promises = new CollectionPromisesProvider<>(typedProvider);
-                Type ct = new FakeType2<>(type);
-                Key<CollectionPromises<T>> promiseKey = (Key<CollectionPromises<T>>) Key.get(ct, Names.named(bindingName));
-                binder.bind(promiseKey).toProvider(promises);
+//                CollectionPromisesProvider<T> promises = new CollectionPromisesProvider<>(typedProvider);
+//                Type ct = new FakeType2<>(type);
+//                Key<CollectionPromises<T>> promiseKey = (Key<CollectionPromises<T>>) Key.get(ct, Names.named(bindingName));
+//                binder.bind(promiseKey).toProvider(promises);
                 Type ft = new FakeType3(type);
                 Key<MongoFutureCollection<T>> futureKey = (Key<MongoFutureCollection<T>>) Key.get(ft, Names.named(bindingName));
                 binder.bind(futureKey).toProvider(new TypedFutureCollectionProvider<>(futProvider, type));
@@ -497,14 +497,9 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
      * TypeLiteral for MongoCollection parameterized on BSON Document.
      */
     public static final TypeLiteral<MongoCollection<Document>> MONGO_DOCUMENT_COLLECTION = new TL();
-    public static final TypeLiteral<CollectionPromises<Document>> COLLECTION_PROMISES = new CPL();
     public static final TypeLiteral<MongoFutureCollection<Document>> FUTURE_COLLECTION = new MFCD();
 
     static class TL extends TypeLiteral<MongoCollection<Document>> {
-
-    }
-
-    static class CPL extends TypeLiteral<CollectionPromises<Document>> {
 
     }
 
@@ -537,31 +532,6 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         }
     }
 
-    static class FakeType2<T> implements ParameterizedType {
-
-        private final Class<T> genericType;
-
-        public FakeType2(Class<T> genericType) {
-            this.genericType = genericType;
-        }
-
-        public String getTypeName() {
-            return CollectionPromises.class.getName();
-        }
-
-        public Type[] getActualTypeArguments() {
-            return new Type[]{genericType};
-        }
-
-        public Type getRawType() {
-            return CollectionPromises.class;
-        }
-
-        public Type getOwnerType() {
-            return null;
-        }
-    }
-
     static class FakeType3<T> implements ParameterizedType {
 
         private final Class<T> genericType;
@@ -587,17 +557,4 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         }
     }
 
-    static class CollectionPromisesProvider<T> implements Provider<CollectionPromises<T>> {
-
-        private final MongoTypedCollectionProvider<T> prov;
-
-        public CollectionPromisesProvider(MongoTypedCollectionProvider<T> prov) {
-            this.prov = prov;
-        }
-
-        @Override
-        public CollectionPromises<T> get() {
-            return new CollectionPromises<>(prov.get());
-        }
-    }
 }
