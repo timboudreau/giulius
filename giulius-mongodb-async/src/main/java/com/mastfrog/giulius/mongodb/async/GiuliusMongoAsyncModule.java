@@ -244,7 +244,7 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
             }
         }
 
-        @Override
+//        @Override removed in some versions
         public <T> Codec<T> get(Class<T> type, CodecRegistry cr) {
             return get(type);
         }
