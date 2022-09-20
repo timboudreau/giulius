@@ -350,7 +350,7 @@ final class PhaseRunner {
                                 if (!entry.isDirectory()) {
                                     outputLog.debug("Include {0} from {1}", entryName, jarPath.getFileName());
                                     try ( InputStream in = hasher.wrap(jarPath, jarFile, entry)) {
-                                        Streams.copy(in, jarOut, Math.min(DEFAULT_BUFFER_SIZE, Math.max(0, (int) entry.getSize())));
+                                        Streams.copy(in, jarOut, Math.min(DEFAULT_BUFFER_SIZE, Math.max(256, (int) entry.getSize())));
                                     }
                                 } else {
                                     indexPaths.add(entryName);
