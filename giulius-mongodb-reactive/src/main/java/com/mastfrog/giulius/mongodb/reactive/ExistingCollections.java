@@ -24,7 +24,6 @@
 package com.mastfrog.giulius.mongodb.reactive;
 
 import com.google.common.collect.Maps;
-import com.mastfrog.settings.Settings;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.MongoCommandException;
 import com.mongodb.reactivestreams.client.MongoClient;
@@ -33,7 +32,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -54,13 +53,11 @@ public class ExistingCollections {
     private final Provider<MongoAsyncInitializer.Registry> reg;
     private Provider<MongoDatabase> dbProvider;
     public static final String SETTINGS_KEY_MAX_WAIT_SECONDS = "mongo.list.collections.max.wait.seconds";
-    private final Provider<Settings> settings;
 
     @Inject
-    ExistingCollections(@Named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_DATABASE_NAME) Provider<String> dbName, Provider<MongoAsyncInitializer.Registry> reg, Provider<Settings> settings) {
+    ExistingCollections(@Named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_DATABASE_NAME) Provider<String> dbName, Provider<MongoAsyncInitializer.Registry> reg) {
         this.dbName = dbName;
         this.reg = reg;
-        this.settings = settings;
     }
 
     MongoCollection<Document> get(String name) {
@@ -78,38 +75,12 @@ public class ExistingCollections {
     }
 
     void init(MongoClient client, Provider<MongoClient> clientProvider) {
-        CountDownLatch latch = new CountDownLatch(1);
         dbProvider = new MongoDatabaseProvider(clientProvider, dbName.get());
         MongoDatabase db = dbProvider.get();
-        Throwable[] th = new Throwable[1];
-        db.listCollectionNames().subscribe(new Subscriber<String>() {
-            @Override
-            public void onSubscribe(Subscription s) {
-            }
-
-            @Override
-            public void onNext(String t) {
-                addExisting(t);
-            }
-
-            @Override
-            public void onError(Throwable thrown) {
-                if (thrown != null) {
-                    th[0] = thrown;
-                    return;
-                }
-                latch.countDown();
-            }
-
-            @Override
-            public void onComplete() {
-                latch.countDown();
-            }
-        });
         try {
-            latch.await(settings.get().getInt(SETTINGS_KEY_MAX_WAIT_SECONDS, 60),
-                    SECONDS);
-        } catch (InterruptedException ex) {
+            Subscribers.multiple(db.listCollectionNames())
+                    .get().forEach(this::addExisting);
+        } catch (InterruptedException | ExecutionException ex) {
             Exceptions.chuck(ex);
         }
     }
@@ -141,11 +112,12 @@ public class ExistingCollections {
                 Throwable[] th = new Throwable[1];
                 dbProvider.get().createCollection(name, opts)
                         .subscribe(new Subscriber<Void>() {
-                            boolean created;
+                            boolean created = true;
 
                             @Override
                             public void onSubscribe(Subscription s) {
                                 // do nothing
+                                s.request(1);
                             }
 
                             @Override
@@ -161,7 +133,7 @@ public class ExistingCollections {
                                 } else {
                                     created = false;
                                 }
-                                latch.countDown();
+//                                latch.countDown();
                             }
 
                             @Override
@@ -171,10 +143,8 @@ public class ExistingCollections {
                                     reg.get().onCreateCollection(name, dbProvider.get().getCollection(name));
                                 }
                                 collections.put(name, result);
-
                                 latch.countDown();
                             }
-
                         });
                 try {
                     latch.await();

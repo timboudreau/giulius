@@ -42,11 +42,22 @@ final class EnhCompletableFutureCollectionSubscriber<T, C extends Collection<? s
         this.collection = collection;
     }
 
+    EnhCompletableFutureCollectionSubscriber(C collection) {
+        this.future = new EnhCompletableFuture<>();
+        this.collection = collection;
+    }
+
+    EnhCompletableFuture<C> future() {
+        return future;
+    }
+
     @Override
     public void onSubscribe(Subscription s) {
         if (future.isCancelled()) {
             s.cancel();
             future.complete(null);
+        } else {
+            s.request(Long.MAX_VALUE);
         }
     }
 

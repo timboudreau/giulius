@@ -23,7 +23,7 @@
  */
 package com.mastfrog.giulius.mongodb.reactive;
 
-import com.mastfrog.giulius.ShutdownHookRegistry;
+import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClients;

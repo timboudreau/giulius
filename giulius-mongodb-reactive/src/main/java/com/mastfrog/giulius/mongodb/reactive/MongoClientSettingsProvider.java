@@ -126,10 +126,21 @@ final class MongoClientSettingsProvider implements Provider<MongoClientSettings>
         MongoClientSettings.Builder sb = MongoClientSettings.builder()
                 .readPreference(pref)
                 .codecRegistry(registry)
-                //                .connectionPoolSettings(cp.build())
-                //                .sslSettings(ssl)
-                .writeConcern(wc) //                .clusterSettings(cluster)
-                ;
+                .applyToClusterSettings(bldr -> {
+                    bldr.applySettings(cluster);
+                })
+                .applyToSslSettings(bldr -> {
+                    bldr.applySettings(ssl);
+                })
+                .applyToConnectionPoolSettings(bldr -> {
+                    bldr.applySettings(cp.build());
+                })
+                .writeConcern(wc);
+        
+        String appName = settings.getString("application.name");
+        if (appName != null) {
+            sb.applicationName(appName);
+        }
 
         if (credential != null) {
             sb.credential(credential);

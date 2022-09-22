@@ -137,6 +137,11 @@ public class TestSupport implements Function<Throwable, Boolean> {
         cons.accept(te);
         te.await();
     }
+    
+    public static void awaitThrowing(ThrowingConsumer<TestSupport> cons) {
+        await(cons.toNonThrowing());
+    }
+    
 
     /**
      * Create a new TestSupport which will manage async calls and collect

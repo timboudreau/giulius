@@ -57,16 +57,16 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
     private static final InstantCodec INSTANT = new InstantCodec();
     private static final DurationCodec DURATION = new DurationCodec();
 
-    private final List<CodecKey<?>> l = new ArrayList<>(5);
-    private final IntMap<CodecKey<?>> imp = CollectionUtils.intMap(6);
+    private final List<CodecKey<?>> keys = new ArrayList<>(5);
+    private final IntMap<CodecKey<?>> imp = IntMap.create(6);
 
     public Java8DateTimeCodecProvider() {
-        l.add(new CodecKey<>(ZonedDateTime.class, ZONED_DATE_TIME));
-        l.add(new CodecKey<>(LocalDateTime.class, LOCAL_DATE_TIME));
-        l.add(new CodecKey<>(OffsetDateTime.class, OFFSET_DATE_TIME));
-        l.add(new CodecKey<>(Instant.class, INSTANT));
-        l.add(new CodecKey<>(Duration.class, DURATION));
-        for (CodecKey<?> k : l) {
+        keys.add(new CodecKey<>(ZonedDateTime.class, ZONED_DATE_TIME));
+        keys.add(new CodecKey<>(LocalDateTime.class, LOCAL_DATE_TIME));
+        keys.add(new CodecKey<>(OffsetDateTime.class, OFFSET_DATE_TIME));
+        keys.add(new CodecKey<>(Instant.class, INSTANT));
+        keys.add(new CodecKey<>(Duration.class, DURATION));
+        for (CodecKey<?> k : keys) {
             imp.put(k.type.hashCode(), k);
         }
     }
@@ -90,7 +90,7 @@ public class Java8DateTimeCodecProvider implements CodecProvider {
         if (kk1 != null) {
             return kk1;
         }
-        for (CodecKey<?> k : l) {
+        for (CodecKey<?> k : keys) {
             CodecKey<J> matched = k.match(type);
             if (matched != null) {
                 return matched;

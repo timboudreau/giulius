@@ -26,14 +26,15 @@ package com.mastfrog.mongodb.init;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
+import com.mastfrog.giulius.mongodb.reactive.Subscribers;
 import static com.mastfrog.mongodb.init.InitCollectionsInitializer.LOG;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.strings.Strings;
 import com.mastfrog.util.collections.CollectionUtils;
 import com.mongodb.MongoCommandException;
 import com.mongodb.WriteConcern;
-import com.mongodb.async.client.MongoCollection;
-import com.mongodb.async.client.MongoDatabase;
+import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.InsertManyOptions;
 import java.util.ArrayList;
@@ -56,7 +57,9 @@ final class OneCollectionInfo {
     private final Set<Document> prepopulate;
 
     @JsonCreator
-    OneCollectionInfo(@JsonProperty(value = "name") String name, @JsonProperty(value = "opts") CreateCollectionOptions opts, @JsonProperty(value = "indexInfos") IndexInfo[] infos, @JsonProperty(value = "prepopulate") Document... prepopulate) {
+    OneCollectionInfo(@JsonProperty(value = "name") String name,
+            @JsonProperty(value = "opts") CreateCollectionOptions opts,
+            @JsonProperty(value = "indexInfos") IndexInfo[] infos, @JsonProperty(value = "prepopulate") Document... prepopulate) {
         this.name = Checks.notNull("name", name);
         this.indexInfos.addAll(Arrays.asList(Checks.notNull("infos", infos)));
         this.opts = opts;
@@ -85,7 +88,8 @@ final class OneCollectionInfo {
                 System.err.println("creating collection " + name);
             }
             Exception stack = new Exception("Creating collection " + name);
-            db.createCollection(name, opts, (v, thrown) -> {
+            Subscribers.callback(db.createCollection(name, opts), (v, thrown) -> {
+                System.out.println("CREATE COLLECTION CALLBACK " + name + " " + v + " " + thrown);
                 if (thrown != null) {
                     thrown.addSuppressed(stack);
                     if (thrown instanceof MongoCommandException) {
@@ -100,7 +104,9 @@ final class OneCollectionInfo {
                     return;
                 }
                 MongoCollection<?> coll = ensureIndexes(db, creating, c);
+                System.out.println("ON CREATE " + name + " " + coll.getNamespace());
                 onCreate.accept(name, coll);
+//                c.accept(null);
             });
         } else {
             ensureIndexes(db, creating, c);
@@ -108,14 +114,15 @@ final class OneCollectionInfo {
     }
 
     private MongoCollection<Document> ensureIndexes(MongoDatabase db, boolean creating, Consumer<Throwable> c) {
-        System.out.println("ENSURE INDEXES " + name + "  creating " + creating);
-        MongoCollection<Document> coll = db.getCollection(name).withWriteConcern(WriteConcern.FSYNC_SAFE);
+        System.out.println("Ensure indexes " + name + " on " + db.getName() + " creating " + creating);
+        MongoCollection<Document> coll = db.getCollection(name).withWriteConcern(WriteConcern.JOURNALED);
         Iterator<IndexInfo> indexInfo = ImmutableSet.copyOf(indexInfos).iterator();
         Map<String, Document> indexForName = new ConcurrentHashMap<>();
         boolean populated[] = new boolean[1];
         Consumer<Throwable> c1 = new Consumer<Throwable>() {
             @Override
             public void accept(Throwable thrown) {
+                System.out.println("C1 ACCEPT " + thrown);
                 if (thrown != null) {
                     c.accept(thrown);
                     return;
@@ -134,9 +141,15 @@ final class OneCollectionInfo {
                         System.err.println("Create index " + next.name + " on " + name);
                     }
                     next.create(coll, this);
+                    if (creating) {
+//                        populateDocuments(coll, this);
+                    }
                 } else {
+                    System.out.println("populated " + populated[0] + " creating " + creating
+                            + " prepopulate " + prepopulate.size());
                     if (!populated[0] && creating && !prepopulate.isEmpty()) {
                         populated[0] = true;
+                        System.out.println("  call populate documents ");
                         populateDocuments(coll, this);
                     } else {
                         if (indexInfo.hasNext()) {
@@ -148,38 +161,44 @@ final class OneCollectionInfo {
                 }
             }
         };
-
-        coll.listIndexes().forEach((Document ix) -> {
-            String name = ix.getString("name");
-            if (name == null) {
-                throw new IllegalStateException("Index document has no name field in " + db.getName() + "." + name + ": " + ix);
-            }
-            indexForName.put(name, ix);
-        }, (v, thrown) -> {
-            if (thrown != null) {
-                c.accept(thrown);
+        Subscribers.forEach(coll.listIndexes(), (ix, thrown) -> {
+            String indexName = ix.getString("name");
+            if (indexName == null) {
+                new IllegalStateException("Index document has no name field in " + db.getName() + "." + indexName + ": " + ix).printStackTrace();
                 return;
             }
-            if (LOG) {
-                System.err.println("found existing indexes on " + name + ": " + indexForName);
-            }
-            c1.accept(null);
+            indexForName.put(indexName, ix);
+        }).whenComplete((ignored, thrown) -> {
+            System.out.println("HAVE INDEXES " + indexForName.keySet());
+            c1.accept(thrown);
         });
         return coll;
     }
 
     private void populateDocuments(MongoCollection<Document> coll, Consumer<Throwable> c) {
+        System.out.println("POPULATE DOCS " + coll.getNamespace());
         if (LOG) {
             System.err.println("Prepopulate " + prepopulate.size() + " documents in " + name);
         }
         for (Document d : prepopulate) {
             Object id = d.get("_id");
+            // JSON defined docs will have string ids, which mongodb will accept,
+            // but queries will fail:
             if (id instanceof String && ObjectId.isValid((String) id)) {
                 d.put("_id", new ObjectId((String) id));
             }
         }
-        coll.insertMany(new ArrayList<>(prepopulate), new InsertManyOptions().ordered(true), (v, thrown) -> {
-            c.accept(thrown);
-        });
+        System.out.println("INSERTING " + prepopulate.size() + " docs");
+        Exception e = new Exception("Insert " + prepopulate.size() + " docs into " + coll.getNamespace());
+        InsertManyOptions insertOptions = new InsertManyOptions().ordered(true);
+        Subscribers.first(coll.insertMany(new ArrayList<>(prepopulate), insertOptions),
+                (v, thrown) -> {
+                    if (thrown != null) {
+                        thrown.addSuppressed(e);
+                    }
+                    System.out.println("Insert many of " + prepopulate.size() + " " + v + " " + thrown);
+                    c.accept(thrown);
+                }
+        );
     }
 }

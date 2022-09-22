@@ -23,8 +23,6 @@
  */
 package com.mastfrog.giulius.mongodb.reactive;
 
-import com.mastfrog.giulius.mongodb.reactive.GiuliusMongoReactiveStreamsModule;
-import com.mastfrog.giulius.mongodb.reactive.MongoAsyncInitializer;
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Named;
 import com.mastfrog.giulius.mongodb.reactive.MongoAsyncClientTest.TestModule;
@@ -34,11 +32,16 @@ import com.mastfrog.giulius.tests.TestWith;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
+import static java.util.Collections.synchronizedSet;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import org.bson.Document;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -52,12 +55,25 @@ import org.junit.runner.RunWith;
 public class MongoAsyncClientTest {
 
     @Test
-    public void testClient(MongoClient client, @Named("stuff") MongoCollection<Document> stuff, @Named("maps") MongoCollection<Map> maps, @Named("maps") MongoCollection<Document> mapsAsDocs) {
+    public void testClient(MongoClient client,
+            @Named("stuff") MongoCollection<Document> stuff,
+            @Named("maps") MongoCollection<Map> maps,
+            @Named("maps") MongoCollection<Document> mapsAsDocs,
+            Init init) {
         assertNotNull(stuff);
         assertNotNull(maps);
         assertNotNull(mapsAsDocs);
         assertEquals(Map.class, maps.getDocumentClass());
         assertEquals(Document.class, mapsAsDocs.getDocumentClass());
+        init.assertOnBeforeCreateCalled()
+                .assertOnAfterCreateCalled();
+        init.assertOnCreateCalledForCollection("stuff");
+        init.assertOnCreateCalledForCollection("maps");
+    }
+
+    @Test
+    public void testMongoDatabaseIsBound(MongoDatabase db) {
+        assertNotNull(db);
     }
 
     static class TestModule extends AbstractModule {
@@ -73,6 +89,26 @@ public class MongoAsyncClientTest {
 
     static class Init extends MongoAsyncInitializer {
 
+        boolean onBeforeCreateCalled;
+        boolean onAfterCreateCalled;
+        private final Set<String> onCreate = synchronizedSet(new HashSet<>());
+
+        Init assertOnCreateCalledForCollection(String name) {
+            assertTrue("onCreateCollection not called for " + name + ". Have: "
+                    + onCreate.toString(), onCreate.contains(name));
+            return this;
+        }
+
+        Init assertOnBeforeCreateCalled() {
+            assertTrue("onBeforeCreateMongoClient not called", onBeforeCreateCalled);
+            return this;
+        }
+
+        Init assertOnAfterCreateCalled() {
+            assertTrue("onAfterCreateMongoClient not called", onAfterCreateCalled);
+            return this;
+        }
+
         @Inject
         public Init(Registry reg) {
             super(reg);
@@ -80,16 +116,19 @@ public class MongoAsyncClientTest {
 
         @Override
         public MongoClientSettings onBeforeCreateMongoClient(MongoClientSettings settings) {
+            onBeforeCreateCalled = true;
             return super.onBeforeCreateMongoClient(settings);
         }
 
         @Override
         public MongoClient onAfterCreateMongoClient(MongoClient client) {
+            onAfterCreateCalled = true;
             return super.onAfterCreateMongoClient(client);
         }
 
         @Override
         public void onCreateCollection(String name, MongoCollection<?> collection) {
+            onCreate.add(name);
             super.onCreateCollection(name, collection);
         }
 

@@ -43,12 +43,18 @@ final class EnhCompletableFutureSubscriber<T> implements Subscriber<T> {
     EnhCompletableFutureSubscriber() {
         this(new EnhCompletableFuture<>());
     }
+    
+    EnhCompletableFuture<T> future() {
+        return future;
+    }
 
     @Override
     public void onSubscribe(Subscription s) {
         if (future.isCancelled()) {
             s.cancel();
             future.complete(null);
+        } else {
+            s.request(1);
         }
     }
 

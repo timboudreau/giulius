@@ -480,6 +480,7 @@ public final class MongoFutureCollection<T> {
             synchronized (this) {
                 sub = s;
             }
+            s.request(1);
         }
 
         @Override

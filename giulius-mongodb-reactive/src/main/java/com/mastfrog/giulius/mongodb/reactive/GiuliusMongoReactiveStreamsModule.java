@@ -330,7 +330,7 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
     @Override
     public GiuliusMongoReactiveStreamsModule bindCollection(String bindingName, String collectionName) {
         checkDone();
-        bindings.add(new CollectionBinding<Document>(collectionName, bindingName, null, Document.class));
+        bindings.add(new CollectionBinding<>(collectionName, bindingName, null, Document.class));
         return this;
     }
 
@@ -349,7 +349,7 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
     @Override
     public <T> GiuliusMongoReactiveStreamsModule bindCollection(String bindingName, String collectionName, Class<T> type) {
         checkDone();
-        bindings.add(new CollectionBinding<T>(collectionName, bindingName, null, type));
+        bindings.add(new CollectionBinding<>(collectionName, bindingName, null, type));
         return this;
     }
 
@@ -357,8 +357,7 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
     protected void configure() {
         Provider<String> dbNameProvider = binder().getProvider(Key.get(String.class, Names.named(SETTINGS_KEY_DATABASE_NAME)));
         Provider<MongoAsyncInitializer.Registry> registryProvider = binder().getProvider(MongoAsyncInitializer.Registry.class);
-        Provider<Settings> settingsProvider = binder().getProvider(Settings.class);
-        ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider, settingsProvider);
+        ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider);
         bind(ExistingCollections.class).toInstance(existing);
         for (Class<? extends MongoAsyncInitializer> itype : this.initializers) {
             bind(itype).asEagerSingleton();

@@ -100,6 +100,7 @@ class KnownCollections implements Iterable<String> {
         @Override
         public void onSubscribe(Subscription s) {
             // do nothing
+            s.request(Long.MAX_VALUE);
         }
 
         @Override

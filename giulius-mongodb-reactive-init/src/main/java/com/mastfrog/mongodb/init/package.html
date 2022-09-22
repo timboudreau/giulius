@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <title>MongoDB Init API</title>
+    </head>
+    <body>
+        <h1>MongoDB Init API</h1>
+
+        <p>
+            MongoDB is great for creating collections on-demand, but certain
+            tasks, such as creating indexes, prepopulating collections and
+            defining properties on those collections require doing some work
+            on initialization.  This library provides a formal way to do that.
+        </p>
+        <p>
+            This library works with the <i>giulius-mongo-async-module</i> to
+            make it easy to define collections, their parameters and indexes
+            in a formal way, and ensure they are created as such.
+        </p>
+        <h2>Usage</h2>
+        <p>
+            To use, simply install a <code><a href="MongoInitModule.html">MongoInitModule</a></code>
+            and use its <code>withCollections()</code> method to create a
+            <code><a href="CollectionsInfoBuilder.html">CollectionsInfoBuilder</a></code>
+            to define collections, indexes, etc.
+        </p>
+        <p>
+            We support three activities:
+        </p>
+        <ul>
+            <li>Defining collections and their properties (such as <code>capped</code>)</li>
+            <li>Defining indexes, which will be ensured to exist on each startup</li>
+            <li>Defining documents to prepopulate collections with - these will only
+                be used in the case that <i>the collection is being created and did not
+                    exist prior to initialization</i></li>
+        </ul>
+        <h2>Example</h2>
+        <pre>
+    static class Ini extends AbstractModule {
+
+        @Override
+        protected void configure() {
+            MongoInitModule mod = new MongoInitModule();
+            mod.withCollections().add("stuff").capped(true).maxDocuments(5).sizeInBytes(80000)
+                    .withIndex("num").background(true).put("ix", 1).build()
+                    .insertDocumentIfCreating(new Document("foo", "bar").append("ix", 22))
+                    .insertDocumentIfCreating(new Document("baz", "quux").append("ix", 13))
+                    .build()
+                    .add("junk").withIndex("words").unique(true).put("word", 1).build()
+                    .insertDocumentIfCreating(new Document("word", "hey"))
+                    .insertDocumentIfCreating(new Document("word", "foo"))
+                    .insertDocumentIfCreating(new Document("word", "zoopa"))
+                    .build().build();
+            install(mod);
+
+            install(new GiuliusMongoAsyncModule().bindCollection("stuff").bindCollection("junk"));
+        }
+    }
+        </pre>
+    </body>
+</html>

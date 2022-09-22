@@ -14,31 +14,42 @@
         <relativePath/>
     </parent>
 
-    <artifactId>giulius-mongodb-reactive</artifactId>
+    <artifactId>giulius-mongodb-reactive-init</artifactId>
 
     <url>https://github.com/timboudreau/giulius</url>
-
-    <description>Update to giulius-mongodb-async which uses the reactive-streams driver</description>
-
+    
     <properties>
         <enforcer.skip>true</enforcer.skip>
     </properties>
 
+    <scm>
+        <url>https://github.com/timboudreau/giulius.git</url>
+        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
+        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
+    </scm>
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/timboudreau/giulius/issues</url>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Mastfrog Technologies</name>
+        <url>https://mastfrog.com</url>
+    </organization>
+
     <dependencies>
 
         <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-reactivestreams</artifactId>
-            <version>4.7.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>bson</artifactId>
-            <version>4.7.1</version>
-        </dependency>        
-        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>giulius</artifactId>
+            <artifactId>giulius-mongodb-reactive</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -46,18 +57,42 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>util-time</artifactId>
+            <artifactId>jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+            <version>4.7.1</version>
+        </dependency>        
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>giulius-mongodb-reactive</artifactId>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>acteur-mongo-async</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius-tests</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>injection-reflection-indexer</artifactId>
-            <scope>compile</scope>
-            <version>${mastfrog.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -68,22 +103,9 @@
     </dependencies>
 
     <build>
+
+        <!-- to enable console logging in real time -->
         <plugins>
-
-            <plugin>
-
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -98,43 +120,14 @@
                     <trimStackTrace>false</trimStackTrace>
                     <useFile>false</useFile>
                     <systemPropertyVariables>
+                        <migration.log>true</migration.log>
+                        <unit.test>true</unit.test>
                         <acteur.debug>false</acteur.debug>
+                        <forkNumber>${surefire.forkNumber}</forkNumber>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
-
     </build>
-    <issueManagement>
-        <system>Github</system>
-        <url>https://github.com/timboudreau/giulius/issues</url>
-    </issueManagement>
-
-    <scm>
-        <url>https://github.com/timboudreau/giulius.git</url>
-        <connection>scm:git:https://github.com/timboudreau/giulius.git</connection>
-        <developerConnection>git@github.com/timboudreau/giulius.git</developerConnection>
-    </scm>
-
-    <organization>
-        <name>Mastfrog Technologies</name>
-        <url>https://mastfrog.com</url>
-    </organization>
-
-    <licenses>
-        <license>
-            <name>MIT</name>
-            <url>https://opensource.org/licenses/MIT</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Tim Boudreau</name>
-            <email>tim@timboudreau.com</email>
-            <url>https://timboudreau.com</url>
-        </developer>
-    </developers>
 
 </project>
