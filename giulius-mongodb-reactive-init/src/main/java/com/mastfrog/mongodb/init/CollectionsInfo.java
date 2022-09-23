@@ -26,21 +26,17 @@ package com.mastfrog.mongodb.init;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import static com.mastfrog.mongodb.init.InitCollectionsInitializer.LOG;
-import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.inject.Singleton;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 /**
  * Encapsulates information about a collection of collections which should be
@@ -63,9 +59,9 @@ final class CollectionsInfo {
         return this;
     }
 
-    void init(MongoDatabase db, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
+    void init(MongoDatabase db, Subscribers subscribers, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
         try {
-            Set<String> all = Subscribers.multipleSet(db.listCollectionNames())
+            Set<String> all = subscribers.multipleSet(db.listCollectionNames())
                     .get();
             System.out.println("ALL COLLECTIONS " + all);
             Iterator<OneCollectionInfo> ones = ImmutableSet.copyOf(infos).iterator();
@@ -82,7 +78,7 @@ final class CollectionsInfo {
                         if (LOG) {
                             System.err.println("Init collection " + info.name);
                         }
-                        info.init(db, all, this, onCreate);
+                        info.init(db, subscribers, all, this, onCreate);
                     } else {
                         if (LOG) {
                             System.err.println("Done creating collections");

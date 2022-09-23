@@ -25,7 +25,7 @@ package com.mastfrog.mongodb.init;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 import java.util.function.Consumer;
@@ -63,6 +63,6 @@ final class IndexInfo {
 
     public void create(MongoCollection<Document> coll, Consumer<Throwable> c) {
         Publisher<String> pub = coll.createIndex(description, options);
-        Subscribers.callback(pub, (res, th) -> c.accept(th));
+        Subscribers.create().callback(pub, (res, th) -> c.accept(th));
     }
 }

@@ -27,8 +27,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.name.Named;
 import com.mastfrog.giulius.mongodb.reactive.GiuliusMongoReactiveStreamsModule;
 import com.mastfrog.giulius.mongodb.reactive.MongoHarness;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
 import com.mastfrog.giulius.mongodb.reactive.TestSupport;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.giulius.tests.GuiceRunner;
 import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.giulius.tests.TestWith;
@@ -52,21 +52,22 @@ import org.junit.runner.RunWith;
 public class InitCollectionsInitializerTest {
 
     @Test
-    public void test(MongoDatabase db, @Named("stuff") MongoCollection<Document> stuff, @Named("junk") MongoCollection<Document> junk, CollectionsInfo info) {
+    public void test(MongoDatabase db, @Named("stuff") MongoCollection<Document> stuff,
+            Subscribers subscribers, @Named("junk") MongoCollection<Document> junk, CollectionsInfo info) {
 
         System.out.println("INFO IS " + info);
 
-        List<Document> stuffDocs = allDocs(stuff);
+        List<Document> stuffDocs = allDocs(stuff, subscribers);
         assertEquals(stuffDocs + " expected 2 documents in " + stuff.getNamespace() + " but got " + stuffDocs.size(), 2, stuffDocs.size());
 
-        List<Document> junkDocs = allDocs(junk);
+        List<Document> junkDocs = allDocs(junk, subscribers);
         assertEquals(junkDocs + " expected 3 documents in " + junk.getNamespace() + " but got " + junkDocs.size(), 3, junkDocs.size());
 
-        List<Document> stuffIndexes = allIndexes(stuff);
+        List<Document> stuffIndexes = allIndexes(stuff, subscribers);
 
         assertIndex("num", "ix", 1, stuffIndexes);
 
-        List<Document> junkIndexes = allIndexes(junk);
+        List<Document> junkIndexes = allIndexes(junk, subscribers);
 
         assertIndex("wubbles", "word", 1, junkIndexes);
 
@@ -74,7 +75,7 @@ public class InitCollectionsInitializerTest {
         // Now try re-running the initialization, which should not throw
         // exceptions and have no side effects
         TestSupport.await((ts) -> {
-            info.init(db, (thrown) -> {
+            info.init(db, subscribers, (thrown) -> {
                 if (thrown != null) {
                     ts.apply(thrown);
                 } else {
@@ -86,17 +87,17 @@ public class InitCollectionsInitializerTest {
         });
         assertNull("Re-running initializer should not create any collections", created.get());
 
-        List<Document> stuffDocs2 = allDocs(stuff);
+        List<Document> stuffDocs2 = allDocs(stuff, subscribers);
         assertEquals(stuffDocs2 + " - documents added twice", 2, stuffDocs2.size());
 
-        List<Document> junkDocs2 = allDocs(junk);
+        List<Document> junkDocs2 = allDocs(junk, subscribers);
         assertEquals(junkDocs2 + " - documents added twice", 3, junkDocs2.size());
 
-        List<Document> stuffIndexes2 = allIndexes(stuff);
+        List<Document> stuffIndexes2 = allIndexes(stuff, subscribers);
 
         assertIndex("num", "ix", 1, stuffIndexes2);
 
-        List<Document> junkIndexes2 = allIndexes(junk);
+        List<Document> junkIndexes2 = allIndexes(junk, subscribers);
 
         assertIndex("wubbles", "word", 1, junkIndexes2);
 
@@ -120,10 +121,10 @@ public class InitCollectionsInitializerTest {
         assertEquals("Wrong value in key " + k + " for " + key, val, k.get(key));
     }
 
-    List<Document> allIndexes(MongoCollection<Document> coll) {
+    List<Document> allIndexes(MongoCollection<Document> coll, Subscribers subscribers) {
         List<Document> docs = new CopyOnWriteArrayList<>();
         TestSupport.await((ts) -> {
-            Subscribers.multiple(coll.listIndexes())
+            subscribers.multiple(coll.listIndexes())
                     .whenComplete((all, thrown) -> {
                         if (all != null) {
                             docs.addAll(all);
@@ -138,10 +139,10 @@ public class InitCollectionsInitializerTest {
         return docs;
     }
 
-    List<Document> allDocs(MongoCollection<Document> coll) {
+    List<Document> allDocs(MongoCollection<Document> coll, Subscribers subscribers) {
         List<Document> docs = new CopyOnWriteArrayList<>();
         TestSupport.await((TestSupport supp) -> {
-            EnhCompletableFuture<List<Document>> fut = Subscribers.multiple(coll.find());
+            EnhCompletableFuture<List<Document>> fut = subscribers.multiple(coll.find());
             fut.whenComplete((doclist, thrown) -> {
                 if (doclist != null) {
                     docs.addAll(doclist);

@@ -28,11 +28,12 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
+import com.google.inject.util.Providers;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.mongodb.reactive.GiuliusMongoReactiveStreamsModule;
 import com.mastfrog.giulius.mongodb.reactive.MongoHarness;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
 import com.mastfrog.giulius.mongodb.reactive.TestSupport;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.giulius.tests.GuiceRunner;
 import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.giulius.tests.TestWith;
@@ -71,6 +72,8 @@ import org.junit.runner.RunWith;
 @TestWith({MongoHarness.Module.class, Ini.class, JacksonModule.class})
 @IfBinaryAvailable("mongod")
 public class MigrationTest {
+    
+    private static final long TIMEOUT=40000;
 
     @Inject
     ObjectMapper mapper;
@@ -80,11 +83,16 @@ public class MigrationTest {
         System.out.println("Test stuff");
     }
 
-    @Test
-    public void test(@Named("stuff") Provider<MongoCollection<Document>> stuff, @Named("migrations") Provider<MongoCollection<Document>> migrations, Provider<MongoDatabase> db, Provider<MongoClient> client, Provider<Dependencies> deps) throws InterruptedException, Throwable {
+    @Test(timeout=TIMEOUT)
+    public void test(@Named("stuff") Provider<MongoCollection<Document>> stuff,
+            Subscribers subscribers,
+            @Named("migrations") Provider<MongoCollection<Document>> migrations,
+            Provider<MongoDatabase> db,
+            Provider<MongoClient> client,
+            Provider<Dependencies> deps) throws InterruptedException, Throwable {
         Function<Class<? extends MigrationWorker>, MigrationWorker> convert = deps.get()::getInstance;
         TestSupport.awaitThrowing(ts -> {
-            Subscribers.multiple(stuff.get().find())
+            subscribers.multiple(stuff.get().find())
                     .whenComplete((res, fail) -> {
                         if (fail != null) {
                             ts.apply(fail);
@@ -102,7 +110,7 @@ public class MigrationTest {
                     });
         });
         TestSupport.awaitThrowing(ts -> {
-            Subscribers.multiple(migrations.get().find())
+            subscribers.multiple(migrations.get().find())
                     .whenComplete((res, fail) -> {
                         if (fail != null) {
                             ts.apply(fail);
@@ -115,11 +123,12 @@ public class MigrationTest {
                     });
         });
         Migration[] m = new Migration[1];
-        new MigrationBuilder("stuff-new", 10, (mig) -> {
+        new MigrationBuilder<>("stuff-new", 10, (mig) -> {
             m[0] = (Migration) mig;
             return null;
         }).backup("stuff", new Document("index", new Document("$lte", 50)))
-                .migrateCollection("stuff", mig(false)).build();
+                .migrateCollection("stuff", mig(false,
+                        Providers.of(subscribers))).build();
         assertNotNull(m[0]);
         CompletableFuture<Document> cf = new CompletableFuture<>();
         CompletableFuture<Document> res = m[0].migrate(cf, client.get(), db.get(), convert);
@@ -140,7 +149,7 @@ public class MigrationTest {
         assertNotNull(ds[0]);
         assertEquals(ds[0].toString(), Boolean.TRUE, ds[0].getBoolean("alreadyRun"));
         TestSupport.awaitThrowing((TestSupport ts) -> {
-            Long val = Subscribers.single(migrations.get().countDocuments())
+            Long val = subscribers.single(migrations.get().countDocuments())
                     .get();
             ts.run(() -> {
                 try {
@@ -153,13 +162,14 @@ public class MigrationTest {
         });
     }
 
-    @Test
-    public void testRollback(@Named("stuff") Provider<MongoCollection<Document>> stuff, @Named("migrations") Provider<MongoCollection<Document>> migrations, Provider<MongoDatabase> db, Provider<MongoClient> client, Provider<Dependencies> deps) throws InterruptedException, Throwable {
+    @Test(timeout=TIMEOUT)
+    public void testRollback(@Named("stuff") Provider<MongoCollection<Document>> stuff,
+            Subscribers subscribers, @Named("migrations") Provider<MongoCollection<Document>> migrations, Provider<MongoDatabase> db, Provider<MongoClient> client, Provider<Dependencies> deps) throws InterruptedException, Throwable {
         System.out.println("ROLLBACK");
         Function<Class<? extends MigrationWorker>, MigrationWorker> convert = deps.get()::getInstance;
 
         Migration[] m = new Migration[1];
-        new MigrationBuilder("stuff-new", 12, (mig) -> {
+        new MigrationBuilder<>("stuff-new", 12, (mig) -> {
             m[0] = (Migration) mig;
             return null;
         }).backup("stuff", new Document("index", new Document("$lte", 150)))
@@ -185,7 +195,7 @@ public class MigrationTest {
         assertEquals("Failed", thr[0].getCause().getMessage());
         assertNull(ds[0]);
         Thread.sleep(750);
-        List<Document> found = Subscribers.multiple(stuff.get().find())
+        List<Document> found = subscribers.multiple(stuff.get().find())
                 .get();
         for (Document d : found) {
             assertFalse(d.toString(), d.containsKey("author"));
@@ -220,7 +230,7 @@ public class MigrationTest {
                 return deps.get().getInstance(c);
             };
             m.addMigration("stuff-new", 10).backup("stuff", new Document("index", new Document("$lte", 50)))
-                    .migrateCollection("stuff", mig(false)).build();
+                    .migrateCollection("stuff", mig(false, binder().getProvider(Subscribers.class))).build();
             install(m);
 
             install(new GiuliusMongoReactiveStreamsModule().bindCollection("stuff").bindCollection("migrations"));
@@ -228,7 +238,7 @@ public class MigrationTest {
 
     }
 
-    static MigrationWorker mig(boolean fail) {
+    static MigrationWorker mig(boolean fail, Provider<Subscribers> subscribers) {
         return (CompletableFuture<Document> t, MongoDatabase u, MongoCollection<Document> v, Function<Class<? extends MigrationWorker>, MigrationWorker> f) -> {
             Document results = new Document();
             List<ObjectId> ids = new CopyOnWriteArrayList<>();
@@ -236,7 +246,7 @@ public class MigrationTest {
             results.append("start", new Date());
             List<UpdateOneModel<Document>> updates = new CopyOnWriteArrayList<>();
 
-            Subscribers.forEach(v.find(new Document("author", new Document("$exists", true))),
+            subscribers.get().forEach(v.find(new Document("author", new Document("$exists", true))),
                     (d, thrown) -> {
                         if (d != null) {
                             ids.add(d.getObjectId("_id"));
@@ -258,7 +268,7 @@ public class MigrationTest {
                 System.out.println("Applying " + updates.size() + " updates");
                 if (!updates.isEmpty()) {
                     v.bulkWrite(updates)
-                            .subscribe(Subscribers.callback((v3, t3) -> {
+                            .subscribe(subscribers.get().callback((v3, t3) -> {
                                 if (t3 != null) {
                                     System.out.println("exceptional complete");
                                     t.completeExceptionally(t3);
@@ -280,10 +290,13 @@ public class MigrationTest {
 
     static class Failer implements MigrationWorker {
 
+        private final Subscribers subscribers;
+
         @Inject
-        Failer(Settings settings) {
+        Failer(Settings settings, Subscribers subscribers) {
             assertNotNull(settings);
-            // just proving injections works
+            assertNotNull(subscribers);
+            this.subscribers = subscribers;
         }
 
         @Override
@@ -295,7 +308,7 @@ public class MigrationTest {
             List<UpdateOneModel<Document>> updates = new CopyOnWriteArrayList<>();
 
             try {
-                Subscribers.multiple(v.find(new Document("index", new Document("$exists", true))))
+                subscribers.multiple(v.find(new Document("index", new Document("$exists", true))))
                         .get()
                         .forEach(d -> {
                             ids.add(d.getObjectId("_id"));
@@ -310,7 +323,7 @@ public class MigrationTest {
             results.append("updateCount", updates.size());
             System.out.println("Applying " + updates.size() + " updates then will fail");
             if (!updates.isEmpty()) {
-                Subscribers.blockingCallback(v.bulkWrite(updates), (v3, t3) -> {
+                subscribers.blockingCallback(v.bulkWrite(updates), (v3, t3) -> {
                     if (t3 != null) {
                         t.completeExceptionally(t3);
                         return;
@@ -318,7 +331,7 @@ public class MigrationTest {
                     t.completeExceptionally(new FooException("Failed"));
                 });
 
-                v.bulkWrite(updates).subscribe(Subscribers.callback((v3, t3) -> {
+                v.bulkWrite(updates).subscribe(subscribers.callback((v3, t3) -> {
                     if (t3 != null) {
                         t.completeExceptionally(t3);
                         return;

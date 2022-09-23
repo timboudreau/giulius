@@ -26,7 +26,7 @@ package com.mastfrog.mongodb.init;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import static com.mastfrog.mongodb.init.InitCollectionsInitializer.LOG;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.strings.Strings;
@@ -81,14 +81,14 @@ final class OneCollectionInfo {
         return o instanceof OneCollectionInfo && ((OneCollectionInfo) o).name.equals(name);
     }
 
-    void init(MongoDatabase db, Set<String> existingCollectionNames, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
+    void init(MongoDatabase db, Subscribers subscribers, Set<String> existingCollectionNames, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
         boolean creating = !existingCollectionNames.contains(name);
         if (creating) {
             if (LOG) {
                 System.err.println("creating collection " + name);
             }
             Exception stack = new Exception("Creating collection " + name);
-            Subscribers.callback(db.createCollection(name, opts), (v, thrown) -> {
+            subscribers.callback(db.createCollection(name, opts), (v, thrown) -> {
                 System.out.println("CREATE COLLECTION CALLBACK " + name + " " + v + " " + thrown);
                 if (thrown != null) {
                     thrown.addSuppressed(stack);
@@ -96,24 +96,23 @@ final class OneCollectionInfo {
                         MongoCommandException e = (MongoCommandException) thrown;
                         if ("collection already exists".equals(e.getErrorMessage()) || e.getErrorCode() == -1) {
                             thrown.printStackTrace();
-                            ensureIndexes(db, false, c);
+                            ensureIndexes(db, subscribers, false, c);
                             return;
                         }
                     }
                     c.accept(thrown);
                     return;
                 }
-                MongoCollection<?> coll = ensureIndexes(db, creating, c);
-                System.out.println("ON CREATE " + name + " " + coll.getNamespace());
+                MongoCollection<?> coll = ensureIndexes(db, subscribers, creating, c);
                 onCreate.accept(name, coll);
 //                c.accept(null);
             });
         } else {
-            ensureIndexes(db, creating, c);
+            ensureIndexes(db, subscribers, creating, c);
         }
     }
 
-    private MongoCollection<Document> ensureIndexes(MongoDatabase db, boolean creating, Consumer<Throwable> c) {
+    private MongoCollection<Document> ensureIndexes(MongoDatabase db, Subscribers subscribers, boolean creating, Consumer<Throwable> c) {
         System.out.println("Ensure indexes " + name + " on " + db.getName() + " creating " + creating);
         MongoCollection<Document> coll = db.getCollection(name).withWriteConcern(WriteConcern.JOURNALED);
         Iterator<IndexInfo> indexInfo = ImmutableSet.copyOf(indexInfos).iterator();
@@ -122,7 +121,6 @@ final class OneCollectionInfo {
         Consumer<Throwable> c1 = new Consumer<Throwable>() {
             @Override
             public void accept(Throwable thrown) {
-                System.out.println("C1 ACCEPT " + thrown);
                 if (thrown != null) {
                     c.accept(thrown);
                     return;
@@ -150,7 +148,7 @@ final class OneCollectionInfo {
                     if (!populated[0] && creating && !prepopulate.isEmpty()) {
                         populated[0] = true;
                         System.out.println("  call populate documents ");
-                        populateDocuments(coll, this);
+                        populateDocuments(coll, subscribers, this);
                     } else {
                         if (indexInfo.hasNext()) {
                             this.accept(null);
@@ -161,7 +159,7 @@ final class OneCollectionInfo {
                 }
             }
         };
-        Subscribers.forEach(coll.listIndexes(), (ix, thrown) -> {
+        subscribers.forEach(coll.listIndexes(), (ix, thrown) -> {
             String indexName = ix.getString("name");
             if (indexName == null) {
                 new IllegalStateException("Index document has no name field in " + db.getName() + "." + indexName + ": " + ix).printStackTrace();
@@ -175,7 +173,7 @@ final class OneCollectionInfo {
         return coll;
     }
 
-    private void populateDocuments(MongoCollection<Document> coll, Consumer<Throwable> c) {
+    private void populateDocuments(MongoCollection<Document> coll, Subscribers subscribers, Consumer<Throwable> c) {
         System.out.println("POPULATE DOCS " + coll.getNamespace());
         if (LOG) {
             System.err.println("Prepopulate " + prepopulate.size() + " documents in " + name);
@@ -191,7 +189,7 @@ final class OneCollectionInfo {
         System.out.println("INSERTING " + prepopulate.size() + " docs");
         Exception e = new Exception("Insert " + prepopulate.size() + " docs into " + coll.getNamespace());
         InsertManyOptions insertOptions = new InsertManyOptions().ordered(true);
-        Subscribers.first(coll.insertMany(new ArrayList<>(prepopulate), insertOptions),
+        subscribers.first(coll.insertMany(new ArrayList<>(prepopulate), insertOptions),
                 (v, thrown) -> {
                     if (thrown != null) {
                         thrown.addSuppressed(e);

@@ -28,7 +28,7 @@ import static com.mastfrog.util.preconditions.Checks.notNull;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.function.NamedCompletableFuture;
 import com.mastfrog.function.throwing.ThrowingTriConsumer;
-import com.mastfrog.giulius.mongodb.reactive.Subscribers;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.util.collections.AtomicLinkedQueue;
 import com.mastfrog.util.multivariate.OneOf;
 import com.mongodb.client.model.ReplaceOneModel;
@@ -64,6 +64,10 @@ public class Migration {
     private final Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations;
     private final Map<String, Document> backupQueryForCollection;
     private static final boolean LOG = Boolean.getBoolean("migration.log");
+    // We are running at application startup, before the server is live, so
+    // there is no need to use the injectable Subscribers that will reconstitute
+    // the request scope for what we're doing here - it will always be empty.
+    private final Subscribers subscribers = Subscribers.create();
 
     public Migration(String name, int newVersion, Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations, Map<String, Document> backupQueryForCollection) {
         this.name = name;
@@ -102,7 +106,7 @@ public class Migration {
             Document agg = new Document("migration", name).append("version", newVersion)
                     .append("start", new Date());
             migrationsCollection.find(new Document("migration", name).append("version", newVersion)
-                    .append("success", true)).first().subscribe(Subscribers.callback((found, thrown) -> {
+                    .append("success", true)).first().subscribe(subscribers.callback((found, thrown) -> {
                 if (thrown != null) {
                     resFuture.completeExceptionally(thrown);
                     return;
@@ -185,7 +189,7 @@ public class Migration {
                     agg.append("thrown", appendThrowable(thrown));
                     rollback(db, agg);
                 }
-                migrationsCollection.insertOne(agg).subscribe(Subscribers.callback((x, thrown2) -> {
+                migrationsCollection.insertOne(agg).subscribe(subscribers.callback((x, thrown2) -> {
                     if (thrown != null && thrown2 != null) {
                         thrown.addSuppressed(thrown2);
                         thrown2 = thrown;
@@ -238,7 +242,7 @@ public class Migration {
                 for (Document d : all) {
                     replacements.add(new ReplaceOneModel<>(new Document("_id", d.getObjectId("_id")), d));
                 }
-                to.bulkWrite(replacements).subscribe(Subscribers.callback((bwr, th2) -> {
+                to.bulkWrite(replacements).subscribe(subscribers.callback((bwr, th2) -> {
                     if (th2 != null) {
                         thisCollection.append("batch-" + ct + "-failed", true);
                         thisCollection.append("batch-" + ct + "-succeeded", appendThrowable(th2));
@@ -248,7 +252,7 @@ public class Migration {
                 }));
             };
 
-            Subscribers.forEach(from.find().batchSize(50).allowDiskUse(true), (item, thrown) -> {
+            subscribers.forEach(from.find().batchSize(50).allowDiskUse(true), (item, thrown) -> {
                 if (thrown != null) {
                     latch.countDown();
                     return;
@@ -291,7 +295,7 @@ public class Migration {
             Runnable oneBatch = () -> {
                 List<Document> drained = pending.drain();
                 if (!drained.isEmpty()) {
-                    backups.insertMany(drained).subscribe(Subscribers.callback((v2, thrown3) -> {
+                    backups.insertMany(drained).subscribe(subscribers.callback((v2, thrown3) -> {
                         if (thrown3 != null) {
                             t.completeExceptionally(thrown3);
                             return;
@@ -308,7 +312,7 @@ public class Migration {
                 }
             };
 
-            Subscribers.forEach(origs.find(queryDoc).batchSize(50), (doc, thrown) -> {
+            subscribers.forEach(origs.find(queryDoc).batchSize(50), (doc, thrown) -> {
                 if (thrown != null) {
                     t.completeExceptionally(thrown);
                     return;

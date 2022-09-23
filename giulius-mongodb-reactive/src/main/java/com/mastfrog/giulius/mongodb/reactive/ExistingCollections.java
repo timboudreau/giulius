@@ -34,6 +34,8 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -113,50 +115,33 @@ public class ExistingCollections {
         public synchronized MongoCollection<Document> get() {
             if (collections.get(name) instanceof CreatingCollectionSupplier) {
                 CountDownLatch latch = new CountDownLatch(1);
-                Throwable[] th = new Throwable[1];
+                AtomicBoolean created = new AtomicBoolean(true);
+                AtomicReference<Throwable> thr = new AtomicReference<>();
+                Subscriber<Void> sub = subscribers.get().first((ignored, thrown) -> {
+                    try {
+                        if (thrown != null && !isAlreadyExists(thrown)) {
+                            thr.set(thrown);
+                            created.set(false);
+                        }
+                        CollectionSupplier result = new CollectionSupplier(name);
+                        if (created.get()) {
+                            reg.get().onCreateCollection(name, dbProvider.get().getCollection(name));
+                        }
+                        collections.put(name, result);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
                 dbProvider.get().createCollection(name, opts)
-                        .subscribe(new Subscriber<Void>() {
-                            boolean created = true;
-
-                            @Override
-                            public void onSubscribe(Subscription s) {
-                                // do nothing
-                                s.request(1);
-                            }
-
-                            @Override
-                            public void onNext(Void t) {
-
-                            }
-
-                            @Override
-                            public void onError(Throwable thrown) {
-                                if (!isAlreadyExists(thrown)) {
-                                    th[0] = thrown;
-                                    return;
-                                } else {
-                                    created = false;
-                                }
-//                                latch.countDown();
-                            }
-
-                            @Override
-                            public void onComplete() {
-                                CollectionSupplier result = new CollectionSupplier(name);
-                                if (created) {
-                                    reg.get().onCreateCollection(name, dbProvider.get().getCollection(name));
-                                }
-                                collections.put(name, result);
-                                latch.countDown();
-                            }
-                        });
+                        .subscribe(sub);
                 try {
                     latch.await();
                 } catch (InterruptedException ex) {
                     return Exceptions.chuck(ex);
                 }
-                if (th[0] != null) {
-                    return Exceptions.chuck(th[0]);
+                Throwable thrown = thr.get();
+                if (thrown != null) {
+                    return Exceptions.chuck(thrown);
                 }
             }
             CollectionSupplier result = new CollectionSupplier(name);

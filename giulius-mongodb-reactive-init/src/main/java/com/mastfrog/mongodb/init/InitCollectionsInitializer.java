@@ -26,6 +26,7 @@ package com.mastfrog.mongodb.init;
 import com.mastfrog.giulius.Ordered;
 import static com.mastfrog.giulius.mongodb.reactive.MongoAsyncConfig.SETTINGS_KEY_DATABASE_NAME;
 import com.mastfrog.giulius.mongodb.reactive.MongoAsyncInitializer;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.reactivestreams.client.MongoClient;
@@ -49,26 +50,25 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
     public static final boolean DEFAULT_BLOCKING = true;
     private final boolean blocking;
 
-    static boolean LOG = true;
+    static boolean LOG = false;
+    private final Subscribers subscribers;
 
     @Inject
-    InitCollectionsInitializer(Registry reg, CollectionsInfo info, 
-            @Named(SETTINGS_KEY_DATABASE_NAME) String dbName, Settings settings) {
+    InitCollectionsInitializer(Registry reg, CollectionsInfo info,
+            @Named(SETTINGS_KEY_DATABASE_NAME) String dbName, Subscribers subscribers, Settings settings) {
         super(reg);
         this.info = info;
         this.dbName = dbName;
         blocking = settings.getBoolean(SETTINGS_KEY_DATABASE_NAME, DEFAULT_BLOCKING);
+        this.subscribers = subscribers;
     }
 
     @Override
     public MongoClient onAfterCreateMongoClient(MongoClient client) {
-        System.out.println("InitCollectionsInitializer onAfterCreateMongoClient");
         MongoDatabase db = client.getDatabase(dbName);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> thrown = new AtomicReference<>();
-        System.out.println("ON AFTER CREATE CLIENT ");
         Consumer<Throwable> c = (th) -> {
-            System.out.println("initColl th " + th);
             if (th != null) {
                 Throwable t = thrown.get();
                 if (t == null) {
@@ -78,7 +78,6 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
                 }
                 th.printStackTrace();
             }
-            System.out.println("count down the latch for InitCollectionsInitializer");
             latch.countDown();
             if (!blocking && thrown.get() != null) {
                 thrown.get().printStackTrace();
@@ -90,15 +89,11 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
         if (LOG) {
             System.err.println("init " + c);
         }
-        
-        System.out.println("CALL INIT " + db.getName() + " " + c + " ");
-        info.init(db, c, (t, u) -> {
-            System.out.println("INIT " + db.getName() + " " + c + " " + t + " " + u);
+
+        info.init(db, subscribers, c, (t, u) -> {
             super.createdCollection(dbName, u);
-            System.out.println("  init returned for " + u.getNamespace());
         });
         if (blocking) {
-            System.out.println("WE WILL BLOCK.");
             try {
                 if (LOG) {
                     System.err.println("Blocking " + Thread.currentThread().getName()
