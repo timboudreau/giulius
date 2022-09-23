@@ -24,6 +24,7 @@
 package com.mastfrog.giulius.mongodb.reactive;
 
 import com.google.common.collect.Maps;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.MongoCommandException;
 import com.mongodb.reactivestreams.client.MongoClient;
@@ -53,11 +54,14 @@ public class ExistingCollections {
     private final Provider<MongoAsyncInitializer.Registry> reg;
     private Provider<MongoDatabase> dbProvider;
     public static final String SETTINGS_KEY_MAX_WAIT_SECONDS = "mongo.list.collections.max.wait.seconds";
+    private final Provider<Subscribers> subscribers;
 
     @Inject
-    ExistingCollections(@Named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_DATABASE_NAME) Provider<String> dbName, Provider<MongoAsyncInitializer.Registry> reg) {
+    ExistingCollections(@Named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_DATABASE_NAME) Provider<String> dbName,
+            Provider<MongoAsyncInitializer.Registry> reg, Provider<Subscribers> subscribers) {
         this.dbName = dbName;
         this.reg = reg;
+        this.subscribers = subscribers;
     }
 
     MongoCollection<Document> get(String name) {
@@ -78,7 +82,7 @@ public class ExistingCollections {
         dbProvider = new MongoDatabaseProvider(clientProvider, dbName.get());
         MongoDatabase db = dbProvider.get();
         try {
-            Subscribers.multiple(db.listCollectionNames())
+            subscribers.get().multiple(db.listCollectionNames())
                     .get().forEach(this::addExisting);
         } catch (InterruptedException | ExecutionException ex) {
             Exceptions.chuck(ex);

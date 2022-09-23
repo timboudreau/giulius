@@ -1,0 +1,88 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2022 Mastfrog Technologies.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package com.mastfrog.giulius.mongodb.reactive.util;
+
+import com.google.inject.ImplementedBy;
+import com.mastfrog.util.preconditions.Exceptions;
+import com.mastfrog.util.thread.QuietAutoCloseable;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+/**
+ *
+ * @author Tim Boudreau
+ */
+@ImplementedBy(DefaultSubscriberContext.class)
+public abstract class SubscriberContext {
+
+    public Runnable wrap(Runnable runnable) {
+        return () -> {
+            try ( QuietAutoCloseable cl = beforeAfter()) {
+                runnable.run();
+            } catch (Exception | Error e) {
+                onThrow(e);
+            }
+        };
+    }
+
+    public <T> Consumer<T> wrap(Consumer<T> runnable) {
+        return val -> {
+            try ( QuietAutoCloseable cl = beforeAfter()) {
+                runnable.accept(val);
+            } catch (Exception | Error e) {
+                onThrow(e);
+            }
+        };
+    }
+
+    public <T> Supplier<T> wrap(Supplier<T> supp) {
+        return () -> {
+            try ( QuietAutoCloseable cl = beforeAfter()) {
+                return supp.get();
+            } catch (Exception | Error e) {
+                onThrow(e);
+                return Exceptions.chuck(e);
+            }
+        };
+    }
+
+    public <T, R> BiConsumer<T, R> wrap(BiConsumer<T, R> runnable) {
+        return (t, r) -> {
+            try ( QuietAutoCloseable cl = beforeAfter()) {
+                runnable.accept(t, r);
+            } catch (Exception | Error e) {
+                onThrow(e);
+            }
+        };
+    }
+
+    protected abstract void onThrow(Throwable thrown);
+
+    protected abstract QuietAutoCloseable beforeAfter();
+
+    public final void run(Runnable run) {
+        wrap(run).run();
+    }
+}

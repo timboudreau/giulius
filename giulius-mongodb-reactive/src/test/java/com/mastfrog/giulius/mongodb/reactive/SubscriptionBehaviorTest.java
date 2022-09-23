@@ -25,6 +25,7 @@ package com.mastfrog.giulius.mongodb.reactive;
 
 import com.mastfrog.function.state.Obj;
 import com.mastfrog.giulius.Dependencies;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.giulius.tests.GuiceRunner;
 import com.mastfrog.giulius.tests.IfBinaryAvailable;
 import com.mastfrog.util.preconditions.Exceptions;
@@ -162,7 +163,8 @@ public class SubscriptionBehaviorTest {
         client = MongoClients.create("mongodb://localhost:" + harn.port());
         db = client.getDatabase("SubscriptionBehaviorTest");
         Obj<Throwable> thr = Obj.createAtomic();
-        Subscribers.blockingCallback(db.createCollection("stuff"), (res, thrown) -> {
+        
+        Subscribers.create().blockingCallback(db.createCollection("stuff"), (res, thrown) -> {
             thr.set(thrown);
             System.out.println("RES " + res + " " + (res == null ? "" : res.getClass().getName()) + " " + thrown);
         });
@@ -176,7 +178,7 @@ public class SubscriptionBehaviorTest {
             InsertOneModel<Document> mod = new InsertOneModel<>(d);
             inserts.add(mod);
         }
-        Subscribers.blockingCallback(coll.bulkWrite(inserts), (res, thrown) -> {
+        Subscribers.create().blockingCallback(coll.bulkWrite(inserts), (res, thrown) -> {
             thr.set(thrown);
             System.out.println("RES " + res + " " + (res == null ? "" : res.getClass().getName()) + " " + thrown);
 

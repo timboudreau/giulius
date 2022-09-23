@@ -30,7 +30,7 @@ import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.mastfrog.giulius.Dependencies;
-import com.mastfrog.settings.Settings;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mongodb.reactivestreams.client.MongoClient;
@@ -357,7 +357,7 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
     protected void configure() {
         Provider<String> dbNameProvider = binder().getProvider(Key.get(String.class, Names.named(SETTINGS_KEY_DATABASE_NAME)));
         Provider<MongoAsyncInitializer.Registry> registryProvider = binder().getProvider(MongoAsyncInitializer.Registry.class);
-        ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider);
+        ExistingCollections existing = new ExistingCollections(dbNameProvider, registryProvider, binder().getProvider(Subscribers.class));
         bind(ExistingCollections.class).toInstance(existing);
         for (Class<? extends MongoAsyncInitializer> itype : this.initializers) {
             bind(itype).asEagerSingleton();
@@ -441,7 +441,7 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
             Provider<MongoClient> clientProvider = binder.getProvider(MongoClient.class);
             Provider<ExistingCollections> existingProvider = binder.getProvider(ExistingCollections.class);
             MongoTypedCollectionProvider<Document> docProvider = new MongoTypedCollectionProvider<>(collection, Document.class, existingProvider, clientProvider);
-            Provider<MongoFutureCollection<Document>> futProvider = new FutureCollectionProvider(docProvider);
+            Provider<MongoFutureCollection<Document>> futProvider = new FutureCollectionProvider(docProvider, binder.getProvider(Subscribers.class));
 //            CollectionPromisesProvider<Document> cpProvider = new CollectionPromisesProvider<>(docProvider);
 //            binder.bind(COLLECTION_PROMISES).annotatedWith(Names.named(bindingName)).toProvider(cpProvider);
             binder.bind(MONGO_DOCUMENT_COLLECTION).annotatedWith(Names.named(bindingName)).toProvider(docProvider);
@@ -481,14 +481,16 @@ public class GiuliusMongoReactiveStreamsModule extends AbstractModule implements
     static final class FutureCollectionProvider implements Provider<MongoFutureCollection<Document>> {
 
         private final Provider<MongoCollection<Document>> provider;
+        private final Provider<Subscribers> subscribers;
 
-        public FutureCollectionProvider(Provider<MongoCollection<Document>> provider) {
+        public FutureCollectionProvider(Provider<MongoCollection<Document>> provider, Provider<Subscribers> subscribers) {
             this.provider = provider;
+            this.subscribers = subscribers;
         }
 
         @Override
         public MongoFutureCollection<Document> get() {
-            return new MongoFutureCollection<>(provider);
+            return new MongoFutureCollection<>(provider, subscribers);
         }
     }
 

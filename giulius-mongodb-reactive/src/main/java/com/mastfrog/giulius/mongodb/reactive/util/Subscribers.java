@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.mongodb.reactive;
+package com.mastfrog.giulius.mongodb.reactive.util;
 
 import com.mastfrog.util.function.EnhCompletableFuture;
 import java.util.List;
@@ -32,83 +32,114 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import javax.inject.Inject;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 /**
  * Utility methods for adapting old style mongo-async-driver callbacks to the
- * reactive streams style.
+ * reactive streams style. Also, the reactive streams driver tends to black-hole
+ * exceptions or errors thrown in its callback methods, so request handling
+ * drops off a cliff with no indication of what happened; the SubscriberContext
+ * (which can be injected). SubscriberContext can also be used to set up
+ * ThreadLocals such as the Acteur ReentrantScope state.
  *
  * @author Tim Boudreau
  */
 public final class Subscribers {
 
-    public static <T> EnhCompletableFuture<T> single(Publisher<T> pub) {
-        EnhCompletableFutureSubscriber<T> sub = new EnhCompletableFutureSubscriber<>();
+    private final SubscriberContext ctx;
+
+    /**
+     * Create a Subscribers for use in tests or other static contexts; not for
+     * application runtime use.
+     *
+     * @return A subscribers
+     */
+    public static Subscribers create() {
+        return new Subscribers(new DefaultSubscriberContext());
+    }
+
+    @Inject
+    public Subscribers(SubscriberContext ctx) {
+        this.ctx = ctx;
+    }
+
+    public SubscriberContext context() {
+        return ctx;
+    }
+
+    public <T> EnhCompletableFuture<T> single(Publisher<T> pub) {
+        EnhCompletableFutureSubscriber<T> sub = new EnhCompletableFutureSubscriber<>(ctx);
         pub.subscribe(sub);
         return sub.future();
     }
 
-    public static <T> EnhCompletableFuture<List<T>> multiple(Publisher<T> pub) {
+    public <T> EnhCompletableFuture<List<T>> multiple(Publisher<T> pub) {
         List<T> result = new CopyOnWriteArrayList<>();
-        EnhCompletableFutureCollectionSubscriber<T, List<T>> sub = new EnhCompletableFutureCollectionSubscriber<>(result);
+        EnhCompletableFutureCollectionSubscriber<T, List<T>> sub = new EnhCompletableFutureCollectionSubscriber<>(result, ctx);
         pub.subscribe(sub);
         return sub.future();
     }
 
-    public static <T> EnhCompletableFuture<Set<T>> multipleSet(Publisher<T> pub) {
+    public <T> EnhCompletableFuture<Set<T>> multipleSet(Publisher<T> pub) {
         Set<T> result = ConcurrentHashMap.newKeySet();
         EnhCompletableFutureCollectionSubscriber<T, Set<T>> sub
-                = new EnhCompletableFutureCollectionSubscriber<>(result);
+                = new EnhCompletableFutureCollectionSubscriber<>(result, ctx);
         pub.subscribe(sub);
         return sub.future();
     }
 
-    public static <T> void callback(Publisher<T> pub, BiConsumer<T, Throwable> callback) {
-        pub.subscribe(new CallbackSubscriber<>(callback));
+    public <T> void callback(Publisher<T> pub, BiConsumer<T, Throwable> callback) {
+        pub.subscribe(new CallbackSubscriber<>(callback, ctx));
     }
 
-    public static <T> void callback(Publisher<T> pub, Consumer<Throwable> callback) {
-        pub.subscribe(new CallbackSubscriber<>((ignored, thrown) -> callback.accept(thrown)));
+    public <T> void callback(Publisher<T> pub, Consumer<Throwable> callback) {
+        pub.subscribe(new CallbackSubscriber<>((ignored, thrown) -> callback.accept(thrown), ctx));
     }
 
-    public static <T> Subscriber<T> callback(BiConsumer<T, Throwable> callback) {
-        return new CallbackSubscriber<>(callback);
+    public <T> Subscriber<T> callback(BiConsumer<T, Throwable> callback) {
+        return new CallbackSubscriber<>(callback, ctx);
     }
 
-    public static <T> Subscriber<T> first(BiConsumer<T, Throwable> callback) {
-        return new SingleCallbackSubscriber<>(callback);
+    public <T> Subscriber<T> first(BiConsumer<T, Throwable> callback) {
+        return new SingleCallbackSubscriber<>(callback, ctx);
     }
 
-    public static <T> Subscriber<T> first(Consumer<Throwable> callback) {
-        return new SingleCallbackSubscriber<>((ignored, thrown) -> callback.accept(thrown));
+    public <T> Subscriber<T> first(Consumer<Throwable> callback) {
+        return new SingleCallbackSubscriber<>((ignored, thrown) -> callback.accept(thrown), ctx);
     }
 
-    public static <T> void first(Publisher<T> pub, BiConsumer<T, Throwable> callback) {
-        pub.subscribe(new SingleCallbackSubscriber<>(callback));
+    public <T> void first(Publisher<T> pub, BiConsumer<T, Throwable> callback) {
+        pub.subscribe(new SingleCallbackSubscriber<>(callback, ctx));
     }
 
-    public static <T> T blockingCallback(Publisher<T> pub, BiConsumer<T, Throwable> callback) throws InterruptedException, ExecutionException {
+    public <T> T blockingCallback(Publisher<T> pub, BiConsumer<T, Throwable> callback) throws InterruptedException, ExecutionException {
         EnhCompletableFuture<T> fut = single(pub);
         fut.whenComplete(callback);
         return fut.get();
     }
 
-    public static <T> EnhCompletableFuture<Void> forEach(Publisher<T> pub, Consumer<T> consumer) {
-        ForEachSubscriber<T> sub = new ForEachSubscriber<>(consumer);
+    public <T> EnhCompletableFuture<Void> forEach(Publisher<T> pub, Consumer<T> consumer) {
+        ForEachSubscriber<T> sub = new ForEachSubscriber<>(consumer, ctx);
         pub.subscribe(sub);
         return sub.fut;
     }
 
-    public static <T> EnhCompletableFuture<Void> forEach(Publisher<T> pub, BiConsumer<T, Throwable> consumer) {
-        ForEachSubscriber2<T> sub = new ForEachSubscriber2<>(consumer);
+    public <T> EnhCompletableFuture<Void> forEach(Publisher<T> pub, BiConsumer<T, Throwable> consumer) {
+        ForEachSubscriber2<T> sub = new ForEachSubscriber2<>(consumer, ctx);
         pub.subscribe(sub);
         return sub.fut;
     }
 
-    public static <T> Subscriber<T> forEach(BiConsumer<T, Throwable> consumer) {
-        return new ForEachSubscriber2<>(consumer);
+    public <T> Subscriber<T> wrap(Subscriber<? super T> sub) {
+        return new WrappedSubscriber<>(sub, ctx);
+    }
+
+    public <T> Subscriber<T> forEach(BiConsumer<T, Throwable> consumer) {
+        return new ForEachSubscriber2<>(consumer, ctx);
     }
 
     private static class ForEachSubscriber<T> implements Subscriber<T> {
@@ -116,8 +147,8 @@ public final class Subscribers {
         private final Consumer<T> each;
         private final EnhCompletableFuture<Void> fut = new EnhCompletableFuture<>();
 
-        public ForEachSubscriber(Consumer<T> each) {
-            this.each = each;
+        public ForEachSubscriber(Consumer<T> each, SubscriberContext ctx) {
+            this.each = ctx.wrap(each);
         }
 
         @Override
@@ -146,8 +177,8 @@ public final class Subscribers {
         private final BiConsumer<T, Throwable> each;
         private final EnhCompletableFuture<Void> fut = new EnhCompletableFuture<>();
 
-        public ForEachSubscriber2(BiConsumer<T, Throwable> each) {
-            this.each = each;
+        public ForEachSubscriber2(BiConsumer<T, Throwable> each, SubscriberContext ctx) {
+            this.each = ctx.wrap(each);
         }
 
         @Override
@@ -178,8 +209,8 @@ public final class Subscribers {
         T obj;
         Throwable thrown;
 
-        CallbackSubscriber(BiConsumer<T, Throwable> callback) {
-            this.callback = callback;
+        CallbackSubscriber(BiConsumer<T, Throwable> callback, SubscriberContext ctx) {
+            this.callback = ctx.wrap(callback);
         }
 
         @Override
@@ -217,8 +248,8 @@ public final class Subscribers {
         Subscription sub;
         private final AtomicBoolean done = new AtomicBoolean();
 
-        SingleCallbackSubscriber(BiConsumer<T, Throwable> callback) {
-            this.callback = callback;
+        SingleCallbackSubscriber(BiConsumer<T, Throwable> callback, SubscriberContext ctx) {
+            this.callback = ctx.wrap(callback);
         }
 
         @Override
@@ -285,4 +316,46 @@ public final class Subscribers {
         }
     }
 
+    static class WrappedSubscriber<T> implements Subscriber<T> {
+
+        private final Consumer<Subscription> onSubscribe;
+        private final Consumer<? super T> onNext;
+        private final Consumer<Throwable> onError;
+        private final Runnable onComplete;
+        private final Supplier<String> toString;
+
+        WrappedSubscriber(Subscriber<? super T> orig, SubscriberContext ctx) {
+            onSubscribe = ctx.wrap(orig::onSubscribe);
+            onNext = ctx.wrap(orig::onNext);
+            onError = ctx.wrap(orig::onError);
+            onComplete = ctx.wrap(orig::onComplete);
+            toString = ctx.wrap(orig::toString);
+        }
+
+        @Override
+        public String toString() {
+            return "W(" + toString.get() + ")";
+        }
+
+        @Override
+        public void onSubscribe(Subscription s) {
+            onSubscribe.accept(s);
+        }
+
+        @Override
+        public void onNext(T t) {
+            onNext.accept(t);
+        }
+
+        @Override
+        public void onError(Throwable thrwbl) {
+            onError.accept(thrwbl);
+        }
+
+        @Override
+        public void onComplete() {
+            onComplete.run();
+        }
+
+    }
 }

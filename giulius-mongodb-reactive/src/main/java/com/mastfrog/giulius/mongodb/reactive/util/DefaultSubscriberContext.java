@@ -21,56 +21,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.mongodb.reactive;
+package com.mastfrog.giulius.mongodb.reactive.util;
 
-import com.mastfrog.util.function.EnhCompletableFuture;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
+import com.mastfrog.util.preconditions.Exceptions;
+import com.mastfrog.util.thread.QuietAutoCloseable;
 
 /**
  *
- * @author Tim Boudreau
+ * @author timb
  */
-final class EnhCompletableFutureSubscriber<T> implements Subscriber<T> {
+final class DefaultSubscriberContext extends SubscriberContext {
 
-    private final EnhCompletableFuture<T> future;
-    private T obj;
+    final Thread.UncaughtExceptionHandler uncaught;
 
-    EnhCompletableFutureSubscriber(EnhCompletableFuture<T> fut) {
-        this.future = fut;
-    }
-
-    EnhCompletableFutureSubscriber() {
-        this(new EnhCompletableFuture<>());
-    }
-    
-    EnhCompletableFuture<T> future() {
-        return future;
+    DefaultSubscriberContext() {
+        uncaught = Thread.currentThread().getUncaughtExceptionHandler();
     }
 
     @Override
-    public void onSubscribe(Subscription s) {
-        if (future.isCancelled()) {
-            s.cancel();
-            future.complete(null);
-        } else {
-            s.request(1);
+    public QuietAutoCloseable beforeAfter() {
+        try {
+            Thread t = Thread.currentThread();
+            Thread.UncaughtExceptionHandler old = t.getUncaughtExceptionHandler();
+            t.setUncaughtExceptionHandler(uncaught);
+            return () -> {
+                if (old != uncaught) {
+                    t.setUncaughtExceptionHandler(old);
+                }
+            };
+        } catch (Exception | Error e) {
+            onThrow(e);
+            return Exceptions.chuck(e);
         }
     }
 
     @Override
-    public synchronized void onNext(T t) {
-        obj = t;
-    }
-
-    @Override
-    public void onError(Throwable thrwbl) {
-        future.completeExceptionally(thrwbl);
-    }
-
-    @Override
-    public void onComplete() {
-        future.complete(obj);
+    public void onThrow(Throwable thrown) {
+        thrown.printStackTrace();
+        uncaught.uncaughtException(Thread.currentThread(), thrown);
     }
 
 }

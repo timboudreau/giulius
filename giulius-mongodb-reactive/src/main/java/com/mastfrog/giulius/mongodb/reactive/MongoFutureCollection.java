@@ -24,6 +24,8 @@
 package com.mastfrog.giulius.mongodb.reactive;
 
 import com.google.inject.util.Providers;
+import com.mastfrog.giulius.mongodb.reactive.util.EnhCompletableFutureCollectionSubscriber;
+import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.util.function.EnhCompletableFuture;
 import com.mongodb.Function;
 import com.mongodb.ReadConcern;
@@ -66,17 +68,19 @@ import org.reactivestreams.Subscription;
 public final class MongoFutureCollection<T> {
 
     private final Provider<MongoCollection<T>> coll;
+    private final Provider<Subscribers> subscribers;
 
-    MongoFutureCollection(Provider<MongoCollection<T>> coll) {
+    MongoFutureCollection(Provider<MongoCollection<T>> coll, Provider<Subscribers> subscribers) {
         this.coll = coll;
+        this.subscribers = subscribers;
     }
 
-    public static <T> MongoFutureCollection<T> forProvider(Provider<MongoCollection<T>> prov) {
-        return new MongoFutureCollection<>(prov);
+    public static <T> MongoFutureCollection<T> forProvider(Provider<MongoCollection<T>> prov, Provider<Subscribers> subscribers) {
+        return new MongoFutureCollection<>(prov, subscribers);
     }
 
-    public static <T> MongoFutureCollection<T> forCollection(MongoCollection<T> prov) {
-        return new MongoFutureCollection<>(Providers.of(prov));
+    public static <T> MongoFutureCollection<T> forCollection(MongoCollection<T> prov, Provider<Subscribers> subscribers) {
+        return new MongoFutureCollection<>(Providers.of(prov), subscribers);
     }
 
     public MongoCollection<T> collection() {
@@ -281,7 +285,7 @@ public final class MongoFutureCollection<T> {
             Consumer<R> cons) {
         EnhCompletableFuture<List<T>> result = new EnhCompletableFuture<>();
         List<T> l = new CopyOnWriteArrayList<>();
-        EnhCompletableFutureCollectionSubscriber<T, List<T>> sub = new EnhCompletableFutureCollectionSubscriber<>(result, l);
+        EnhCompletableFutureCollectionSubscriber<T, List<T>> sub = new EnhCompletableFutureCollectionSubscriber<>(result, l, subscribers.get().context());
 
         if (cons != null) {
             cons.accept(ft);
@@ -419,19 +423,19 @@ public final class MongoFutureCollection<T> {
     }
 
     public <NewTDocument> MongoFutureCollection<NewTDocument> withDocumentClass(Class<NewTDocument> type) {
-        return new MongoFutureCollection<>(xform(cl -> cl.withDocumentClass(type)));
+        return new MongoFutureCollection<>(xform(cl -> cl.withDocumentClass(type)), subscribers);
     }
 
     public MongoFutureCollection<T> withReadPreference(ReadPreference rp) {
-        return new MongoFutureCollection<>(xform(cl -> cl.withReadPreference(rp)));
+        return new MongoFutureCollection<>(xform(cl -> cl.withReadPreference(rp)), subscribers);
     }
 
     public MongoFutureCollection<T> withWriteConcern(WriteConcern wc) {
-        return new MongoFutureCollection<>(xform(cl -> cl.withWriteConcern(wc)));
+        return new MongoFutureCollection<>(xform(cl -> cl.withWriteConcern(wc)), subscribers);
     }
 
     public MongoFutureCollection<T> withReadConcern(ReadConcern rc) {
-        return new MongoFutureCollection<>(xform(cl -> cl.withReadConcern(rc)));
+        return new MongoFutureCollection<>(xform(cl -> cl.withReadConcern(rc)), subscribers);
     }
 
     private <R> Provider<MongoCollection<R>> xform(Function<MongoCollection<T>, MongoCollection<R>> xform) {

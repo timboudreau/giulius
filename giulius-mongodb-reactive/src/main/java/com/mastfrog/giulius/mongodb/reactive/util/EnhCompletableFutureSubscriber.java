@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.mongodb.reactive;
+package com.mastfrog.giulius.mongodb.reactive.util;
 
 import com.mastfrog.util.function.EnhCompletableFuture;
-import java.util.Collection;
+import static com.mastfrog.util.preconditions.Checks.notNull;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -32,22 +32,22 @@ import org.reactivestreams.Subscription;
  *
  * @author Tim Boudreau
  */
-final class EnhCompletableFutureCollectionSubscriber<T, C extends Collection<? super T>> implements Subscriber<T> {
+final class EnhCompletableFutureSubscriber<T> implements Subscriber<T> {
 
-    private final EnhCompletableFuture<C> future;
-    private final C collection;
+    private final EnhCompletableFuture<T> future;
+    private T obj;
+    private final SubscriberContext ctx;
 
-    EnhCompletableFutureCollectionSubscriber(EnhCompletableFuture<C> fut, C collection) {
-        this.future = fut;
-        this.collection = collection;
+    EnhCompletableFutureSubscriber(EnhCompletableFuture<T> fut, SubscriberContext ctx) {
+        this.future = notNull("fut", fut);
+        this.ctx = notNull("ctx", ctx);
     }
 
-    EnhCompletableFutureCollectionSubscriber(C collection) {
-        this.future = new EnhCompletableFuture<>();
-        this.collection = collection;
+    EnhCompletableFutureSubscriber(SubscriberContext ctx) {
+        this(new EnhCompletableFuture<>(), ctx);
     }
 
-    EnhCompletableFuture<C> future() {
+    EnhCompletableFuture<T> future() {
         return future;
     }
 
@@ -57,13 +57,13 @@ final class EnhCompletableFutureCollectionSubscriber<T, C extends Collection<? s
             s.cancel();
             future.complete(null);
         } else {
-            s.request(Long.MAX_VALUE);
+            s.request(1);
         }
     }
 
     @Override
     public synchronized void onNext(T t) {
-        collection.add(t);
+        obj = t;
     }
 
     @Override
@@ -73,7 +73,7 @@ final class EnhCompletableFutureCollectionSubscriber<T, C extends Collection<? s
 
     @Override
     public void onComplete() {
-        future.complete(collection);
+        future.complete(obj);
     }
 
 }

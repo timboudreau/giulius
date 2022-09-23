@@ -100,11 +100,9 @@ public final class MongoDaemonVersion {
             return version;
         }
         Path cacheFile = cacheFile();
-        System.out.println("USE CACHE FILE " + cacheFile);
 
         MongoVersion result = readVersionCacheFile(cacheFile);
         if (result != null) {
-            System.out.println("use cached version");
             return version = result;
         }
 
@@ -126,7 +124,6 @@ public final class MongoDaemonVersion {
         } catch (IOException ex) {
             Logger.getLogger(MongoHarness.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("Fall through");
         return MongoVersion.NONE;
     }
 
@@ -221,11 +218,4 @@ public final class MongoDaemonVersion {
             return result;
         }
     }
-
-    public static void main(String[] args) {
-        MongoVersion ver = MongoDaemonVersion.systemPath().version();
-
-        System.out.println("GOT VERSION " + ver);
-    }
-
 }
