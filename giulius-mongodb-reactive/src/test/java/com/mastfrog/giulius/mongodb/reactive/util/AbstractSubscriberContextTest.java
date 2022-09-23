@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
  */
 public abstract class AbstractSubscriberContextTest {
 
-    protected static boolean quietly(Class<? extends Throwable> expected, Runnable run) {
+    public static boolean quietly(Class<? extends Throwable> expected, Runnable run) {
         try {
             run.run();
             return false;
@@ -51,12 +51,12 @@ public abstract class AbstractSubscriberContextTest {
         }
     }
 
-    protected Runnable additionalRunnable() {
+    public Runnable additionalRunnable() {
         return () -> {
         };
     }
 
-    protected void doTestThrownPropagatedForRunnable() {
+    public void doTestThrownPropagatedForRunnable() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Bool ran = Bool.create();
@@ -75,7 +75,7 @@ public abstract class AbstractSubscriberContextTest {
         assertTrue(t instanceof ThrowMe);
     }
 
-    protected void doTestThrownPropagatedForConsumer() {
+    public void doTestThrownPropagatedForConsumer() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Bool ran = Bool.create();
@@ -95,7 +95,7 @@ public abstract class AbstractSubscriberContextTest {
         assertTrue(t instanceof ThrowMe);
     }
 
-    protected void doTestThrownPropagatedForBiConsumer() {
+    public void doTestThrownPropagatedForBiConsumer() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Bool ran = Bool.create();
@@ -116,7 +116,7 @@ public abstract class AbstractSubscriberContextTest {
         assertTrue(t instanceof ThrowMe);
     }
 
-    protected void doTestRunnablesRun() {
+    public void doTestRunnablesRun() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Obj<Runnable> wrapped = Obj.create();
@@ -136,12 +136,12 @@ public abstract class AbstractSubscriberContextTest {
         un.rethrow();
     }
 
-    protected Consumer<String> additionalConsumer() {
+    public Consumer<String> additionalConsumer() {
         return str -> {
         };
     }
 
-    protected void doTestConsumersRun() {
+    public void doTestConsumersRun() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Bool ran = Bool.create();
@@ -160,16 +160,16 @@ public abstract class AbstractSubscriberContextTest {
         un.rethrow();
     }
 
-    protected BiConsumer<String, String> additionalBiConsumer() {
+    public BiConsumer<String, String> additionalBiConsumer() {
         return (a, b) -> {
         };
     }
 
-    protected boolean checksUncaughtHandler() {
+    public boolean checksUncaughtHandler() {
         return true;
     }
 
-    protected void doTestBiConsumersRun() {
+    public void doTestBiConsumersRun() {
         UN un = new UN();
         SubscriberContext ctx = createContext(un);
         Bool ran = Bool.create();
@@ -189,7 +189,7 @@ public abstract class AbstractSubscriberContextTest {
         un.rethrow();
     }
 
-    protected SubscriberContext createContext(UN un) {
+    public SubscriberContext createContext(UN un) {
         Obj<SubscriberContext> obj = Obj.create();
         withUn(un, () -> {
             obj.set(create());
@@ -198,14 +198,14 @@ public abstract class AbstractSubscriberContextTest {
         return obj.get();
     }
 
-    protected SubscriberContext create() {
+    public SubscriberContext create() {
         DefaultSubscriberContext result = new DefaultSubscriberContext();
         assertSame(Thread.currentThread().getUncaughtExceptionHandler(), result.uncaught);
         assertTrue(result.uncaught instanceof UN);
         return result;
     }
 
-    protected void withUn(UN un, Runnable run) {
+    public void withUn(UN un, Runnable run) {
         Thread.UncaughtExceptionHandler old = Thread.currentThread().getUncaughtExceptionHandler();
         try {
             Thread.currentThread().setUncaughtExceptionHandler(un);
@@ -216,7 +216,7 @@ public abstract class AbstractSubscriberContextTest {
         }
     }
 
-    protected static class UN implements Thread.UncaughtExceptionHandler {
+    public static class UN implements Thread.UncaughtExceptionHandler {
 
         Throwable thrown;
 
@@ -244,7 +244,7 @@ public abstract class AbstractSubscriberContextTest {
         }
     }
 
-    protected static class ThrowMe extends RuntimeException {
+    public static class ThrowMe extends RuntimeException {
 
     }
 }
