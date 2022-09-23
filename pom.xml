@@ -32,6 +32,8 @@
         <!-- <module>giulius-mongojack</module> -->
 
         <module>giulius-mongodb-async</module>
+        <module>giulius-mongodb-reactive</module>
+        <module>giulius-mongodb-reactive-init</module>
         <module>giulius-threadpool</module>
         <module>giulius-mongodb-async-init</module>
         <module>giulius-annotations</module>

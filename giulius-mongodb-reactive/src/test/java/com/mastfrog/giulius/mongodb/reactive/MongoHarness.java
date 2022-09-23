@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.mongodb.async;
+package com.mastfrog.giulius.mongodb.reactive;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
@@ -30,19 +30,20 @@ import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.mastfrog.giulius.Ordered;
 import com.mastfrog.giulius.ShutdownHookRegistry;
-import static com.mastfrog.giulius.mongodb.async.GiuliusMongoAsyncModule.SETTINGS_KEY_DATABASE_NAME;
-import com.mastfrog.giulius.mongodb.async.MongoDaemonVersion.MongoVersion;
+import static com.mastfrog.giulius.mongodb.reactive.MongoAsyncConfig.SETTINGS_KEY_DATABASE_NAME;
+import com.mastfrog.giulius.mongodb.reactive.MongoDaemonVersion.MongoVersion;
+import static com.mastfrog.giulius.mongodb.reactive.MongoHarness.Init.macOs;
 import static com.mastfrog.giulius.tests.GuiceRunner.currentMethodName;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.util.file.FileUtils;
 import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.strings.Strings;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
-import com.mongodb.async.client.MongoClient;
-import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterConnectionMode;
 import com.mongodb.connection.ClusterSettings;
+import com.mongodb.reactivestreams.client.MongoClient;
 import java.io.File;
 import java.io.IOException;
 import static java.lang.System.currentTimeMillis;
@@ -55,9 +56,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bson.Document;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 /**
  * Starts a local mongodb over java.io.tmpdir and cleans it up on shutdown; uses
@@ -119,13 +123,14 @@ public class MongoHarness {
         @Override
         public MongoClient onAfterCreateMongoClient(MongoClient client) {
             if (replicaSet) {
-                client.getDatabase("admin").runCommand(new Document("replSetInitiate", new Document("_id", replSetId)
+                client.getDatabase("admin").runCommand(
+                        new Document("replSetInitiate", new Document("_id", replSetId)
                                 .append("members", Arrays.asList(new Document("host", "localhost:" + port)
-                                .append("_id", 1)))), (v, t) -> {
+                                        .append("_id", 1))))).subscribe(wrap((v, t) -> {
                             if (t != null) {
                                 t.printStackTrace();
                             }
-                });
+                        }));
             }
             mongodbGreaterThan36 = version().majorVersion() > 3
                     || (version().majorVersion() == 3 && version().minorVersion() > 6);
@@ -229,7 +234,6 @@ public class MongoHarness {
                                 mongo = null;
                                 return;
                             } catch (IllegalThreadStateException ex) {
-//                            System.out.println("Not exited yet; sleep 100ms");
                                 try {
                                     Thread.sleep(10);
                                 } catch (InterruptedException ex1) {
@@ -239,7 +243,6 @@ public class MongoHarness {
                                 e.printStackTrace();
                             }
                             if (!exited && i > 30) {
-//                            System.err.println("Mongodb has not exited; kill it");
                                 if (destroyCalled) {
                                     mongo.destroyForcibly();
                                 } else {
@@ -417,10 +420,8 @@ public class MongoHarness {
                     cmd.add("1");
                 }
                 cmd.addAll(additionalArgs);
-                System.out.println(Strings.join(' ', cmd));
                 pb = new ProcessBuilder().command(cmd);
             }
-            System.err.println(pb.command());
             handleOutput(pb, "mongodb");
 
             // XXX instead of sleep, loop trying to connect?
@@ -525,8 +526,8 @@ public class MongoHarness {
             if (usePort == -1) {
                 usePort = findPort();
             }
-            bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_PORT)).toInstance("" + usePort);
-            bind(String.class).annotatedWith(Names.named(GiuliusMongoAsyncModule.SETTINGS_KEY_MONGO_HOST)).toInstance("localhost");
+            bind(String.class).annotatedWith(Names.named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_MONGO_PORT)).toInstance("" + usePort);
+            bind(String.class).annotatedWith(Names.named(GiuliusMongoReactiveStreamsModule.SETTINGS_KEY_MONGO_HOST)).toInstance("localhost");
             bind(String.class).annotatedWith(Names.named(SETTINGS_KEY_DATABASE_NAME)).toInstance("_testDb" + currentMethodName().replace('.', '_').replace(' ', '_'));
             bind(Init.class).asEagerSingleton();
         }
@@ -558,6 +559,47 @@ public class MongoHarness {
             } catch (IOException e) {
                 return false;
             }
+        }
+    }
+
+    static <T> Subscriber<T> wrap(BiConsumer<T, Throwable> oldDriverStyleCode) {
+        return new HarnessSubscriber<>(oldDriverStyleCode);
+    }
+
+    static class HarnessSubscriber<T> implements Subscriber<T> {
+
+        private final BiConsumer<T, Throwable> callback;
+        T obj;
+        Throwable thrown;
+
+        public HarnessSubscriber(BiConsumer<T, Throwable> callback) {
+            this.callback = callback;
+        }
+
+        @Override
+        public void onSubscribe(Subscription s) {
+            s.request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public synchronized void onNext(T t) {
+            obj = t;
+        }
+
+        @Override
+        public synchronized void onError(Throwable thrwbl) {
+            thrown = thrwbl;
+        }
+
+        @Override
+        public void onComplete() {
+            T o;
+            Throwable thr;
+            synchronized (this) {
+                o = obj;
+                thr = thrown;
+            }
+            callback.accept(o, thr);
         }
     }
 }

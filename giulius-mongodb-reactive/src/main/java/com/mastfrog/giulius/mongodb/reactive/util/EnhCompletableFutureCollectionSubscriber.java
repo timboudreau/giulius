@@ -1,0 +1,81 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2022 Mastfrog Technologies.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package com.mastfrog.giulius.mongodb.reactive.util;
+
+import com.mastfrog.util.function.EnhCompletableFuture;
+import java.util.Collection;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
+/**
+ *
+ * @author Tim Boudreau
+ */
+public final class EnhCompletableFutureCollectionSubscriber<T, C extends Collection<? super T>> implements Subscriber<T> {
+
+    private final EnhCompletableFuture<C> future;
+    private final C collection;
+    private SubscriberContext ctx;
+
+    public EnhCompletableFutureCollectionSubscriber(EnhCompletableFuture<C> fut, C collection, SubscriberContext ctx) {
+        this.future = fut;
+        this.collection = collection;
+        this.ctx = ctx;
+    }
+
+    public EnhCompletableFutureCollectionSubscriber(C collection, SubscriberContext ctx) {
+        this.future = new EnhCompletableFuture<>();
+        this.collection = collection;
+    }
+
+    EnhCompletableFuture<C> future() {
+        return future;
+    }
+
+    @Override
+    public void onSubscribe(Subscription s) {
+        if (future.isCancelled()) {
+            s.cancel();
+            future.complete(null);
+        } else {
+            s.request(Long.MAX_VALUE);
+        }
+    }
+
+    @Override
+    public synchronized void onNext(T t) {
+        collection.add(t);
+    }
+
+    @Override
+    public void onError(Throwable thrwbl) {
+        future.completeExceptionally(thrwbl);
+    }
+
+    @Override
+    public void onComplete() {
+        future.complete(collection);
+    }
+
+}
