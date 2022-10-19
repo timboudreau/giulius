@@ -23,7 +23,7 @@
  */
 package com.mastfrog.giulius.mongodb.async;
 
-import com.mastfrog.giulius.ShutdownHookRegistry;
+import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;

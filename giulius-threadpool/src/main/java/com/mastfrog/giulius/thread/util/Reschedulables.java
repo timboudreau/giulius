@@ -24,8 +24,8 @@
 package com.mastfrog.giulius.thread.util;
 
 import com.google.inject.Inject;
-import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.settings.Settings;
+import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import static com.mastfrog.util.preconditions.Checks.nonNegative;
 import static com.mastfrog.util.preconditions.Checks.nonZero;
 import static com.mastfrog.util.preconditions.Checks.notNull;

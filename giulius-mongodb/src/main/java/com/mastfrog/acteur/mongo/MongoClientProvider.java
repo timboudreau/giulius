@@ -13,8 +13,8 @@ import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_PA
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL;
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_SSL_INVALID_HOSTNAMES_ALLOWED;
 import static com.mastfrog.acteur.mongo.GiuliusMongoModule.SETTINGS_KEY_MONGO_USER;
-import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.settings.Settings;
+import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;

@@ -24,13 +24,13 @@
 package com.mastfrog.giulius.thread;
 
 import com.google.inject.Provider;
-import com.mastfrog.giulius.ShutdownHookRegistry;
 import com.mastfrog.giulius.thread.ExecutorServiceBuilder.RejectedExecutionPolicy;
 import com.mastfrog.giulius.thread.ExecutorServiceBuilder.ShutdownBatch;
 import static com.mastfrog.giulius.thread.ThreadPoolType.FORK_JOIN;
 import static com.mastfrog.giulius.thread.ThreadPoolType.SCHEDULED;
 import static com.mastfrog.giulius.thread.ThreadPoolType.STANDARD;
 import com.mastfrog.settings.Settings;
+import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -51,7 +51,6 @@ final class GiuliusThreadFactory implements ThreadFactory, ForkJoinPool.ForkJoin
         this.name = name;
         this.uncaught = app;
         tg = new ThreadGroup(Thread.currentThread().getThreadGroup(), name + "s");
-        tg.setDaemon(true);
         if (priority <= 0) {
             priority = Thread.NORM_PRIORITY;
         }
