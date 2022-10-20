@@ -23,8 +23,8 @@
  */
 package com.mastfrog.giulius.mongodb.reactive.util;
 
+import com.mastfrog.function.misc.QuietAutoClosable;
 import com.mastfrog.util.preconditions.Exceptions;
-import com.mastfrog.util.thread.QuietAutoCloseable;
 
 /**
  *
@@ -39,7 +39,7 @@ final class DefaultSubscriberContext extends SubscriberContext {
     }
 
     @Override
-    public QuietAutoCloseable beforeAfter() {
+    public QuietAutoClosable beforeAfter() {
         try {
             Thread t = Thread.currentThread();
             Thread.UncaughtExceptionHandler old = t.getUncaughtExceptionHandler();

@@ -24,8 +24,8 @@
 package com.mastfrog.giulius.mongodb.reactive.util;
 
 import com.google.inject.ImplementedBy;
+import com.mastfrog.function.misc.QuietAutoClosable;
 import com.mastfrog.util.preconditions.Exceptions;
-import com.mastfrog.util.thread.QuietAutoCloseable;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -39,7 +39,7 @@ public abstract class SubscriberContext {
 
     public Runnable wrap(Runnable runnable) {
         return () -> {
-            try ( QuietAutoCloseable cl = beforeAfter()) {
+            try ( QuietAutoClosable cl = beforeAfter()) {
                 runnable.run();
             } catch (Exception | Error e) {
                 onThrow(e);
@@ -49,7 +49,7 @@ public abstract class SubscriberContext {
 
     public <T> Consumer<T> wrap(Consumer<T> runnable) {
         return val -> {
-            try ( QuietAutoCloseable cl = beforeAfter()) {
+            try ( QuietAutoClosable cl = beforeAfter()) {
                 runnable.accept(val);
             } catch (Exception | Error e) {
                 onThrow(e);
@@ -59,7 +59,7 @@ public abstract class SubscriberContext {
 
     public <T> Supplier<T> wrap(Supplier<T> supp) {
         return () -> {
-            try ( QuietAutoCloseable cl = beforeAfter()) {
+            try ( QuietAutoClosable cl = beforeAfter()) {
                 return supp.get();
             } catch (Exception | Error e) {
                 onThrow(e);
@@ -70,7 +70,7 @@ public abstract class SubscriberContext {
 
     public <T, R> BiConsumer<T, R> wrap(BiConsumer<T, R> runnable) {
         return (t, r) -> {
-            try ( QuietAutoCloseable cl = beforeAfter()) {
+            try ( QuietAutoClosable cl = beforeAfter()) {
                 runnable.accept(t, r);
             } catch (Exception | Error e) {
                 onThrow(e);
@@ -80,7 +80,7 @@ public abstract class SubscriberContext {
 
     protected abstract void onThrow(Throwable thrown);
 
-    protected abstract QuietAutoCloseable beforeAfter();
+    protected abstract QuietAutoClosable beforeAfter();
 
     public final void run(Runnable run) {
         wrap(run).run();

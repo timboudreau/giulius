@@ -38,6 +38,8 @@ import com.google.inject.name.Names;
 import com.google.inject.spi.ProvisionListener;
 import com.google.inject.spi.ProvisionListener.ProvisionInvocation;
 import com.google.inject.util.Providers;
+import com.mastfrog.function.misc.QuietAutoClosable;
+import com.mastfrog.function.threadlocal.ThreadLocalValue;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
@@ -52,7 +54,6 @@ import com.mastfrog.util.preconditions.Checks;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.streams.Streams;
 import static com.mastfrog.util.collections.CollectionUtils.setOf;
-import com.mastfrog.util.thread.AutoCloseThreadLocal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -78,7 +79,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import com.mastfrog.util.thread.QuietAutoCloseable;
 import com.mastfrog.util.time.TimeUtil;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -122,18 +122,27 @@ import java.util.ArrayList;
 })
 public final class Dependencies {
 
+    public static final String SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT = "shutdownHookExecutorWait";
+
     /**
      * System property which determines Guice stage & result of
      * isProductionMode(). System property overrides same value in the default
      * namespace settings (string value is &quot;productionMode&quot;).
      */
     public static final String SYSTEM_PROP_PRODUCTION_MODE = "productionMode";
-    public static final String SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT = "shutdownHookExecutorWait";
+    public static final String IDE_MODE_SYSTEM_PROPERTY = "in.ide";
+    private static final Pattern PARENT_PACKAGE_PATTERN = Pattern.compile("(.*)\\..*?");
+    static final ThreadLocalValue<TypeLiteral<?>> currentType = ThreadLocalValue.create();
+    static final ThreadLocalValue<TypeLiteral<?>> prevType = ThreadLocalValue.create();
     private final Map<String, Settings> settings = new HashMap<>();
     private final Set<SettingsBindings> settingsBindings;
     private final List<Module> modules = new LinkedList<>();
     private volatile Injector injector;
+    private final ThreadLocalCounter ctr = new ThreadLocalCounter();
     private final boolean mergeNamespaces;
+    @SuppressWarnings("deprecation")
+    private final com.mastfrog.giulius.ShutdownHookRegistry reg = com.mastfrog.giulius.ShutdownHookRegistry.get();
+    private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
     private long shutdownHookWaitMillis;
 
     public Dependencies(Module... modules) throws IOException {
@@ -240,13 +249,12 @@ public final class Dependencies {
         return injector;
     }
 
-    private final ThreadLocalCounter ctr = new ThreadLocalCounter();
 
     void setShutdownHookExecutorWaitMillis(long shutdownHookExecutorWaitMillis) {
         this.shutdownHookWaitMillis = shutdownHookExecutorWaitMillis;
     }
 
-    private static final class ThreadLocalCounter implements QuietAutoCloseable {
+    private static final class ThreadLocalCounter implements QuietAutoClosable {
 
         private final ThreadLocal<Integer> local = new ThreadLocal<>();
 
@@ -400,7 +408,6 @@ public final class Dependencies {
         isIDEMode();
         return isProductionMode() ? Stage.PRODUCTION : Stage.DEVELOPMENT;
     }
-    public static final String IDE_MODE_SYSTEM_PROPERTY = "in.ide";
 
     /**
      * Used by the tests.guice framework to bypass execution of long running
@@ -412,7 +419,6 @@ public final class Dependencies {
     public static boolean isIDEMode() {
         return Boolean.getBoolean(IDE_MODE_SYSTEM_PROPERTY);
     }
-    private final ShutdownHookRegistry reg = ShutdownHookRegistry.get();
 
     public void autoShutdownRefresh(SettingsBuilder sb) {
         reg.add(sb.onShutdownRunnable());
@@ -515,10 +521,7 @@ public final class Dependencies {
             return Objects.equals(this.key, other.key);
         }
     }
-    static final AutoCloseThreadLocal<TypeLiteral<?>> currentType = new AutoCloseThreadLocal<>();
-    static final AutoCloseThreadLocal<TypeLiteral<?>> prevType = new AutoCloseThreadLocal<>();
 
-    private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
 
     public final Dependencies alsoShutdown(Dependencies other) {
         if (other == this) {
@@ -536,7 +539,7 @@ public final class Dependencies {
             try {
                 Binder binder = binder();
                 bind(Dependencies.class).toInstance(Dependencies.this);
-                bind(ShutdownHookRegistry.class).toInstance(reg);
+                bind(com.mastfrog.giulius.ShutdownHookRegistry.class).toInstance(reg);
                 bind(ShutdownHooks.class).toInstance(reg);
                 bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg.realHooks());
                 bind(com.mastfrog.shutdown.hooks.ShutdownHookRegistry.class).toInstance(reg.realHooks());
@@ -720,8 +723,8 @@ public final class Dependencies {
 
                 TypeLiteral<?> old = currentType.get();
                 prevType.set(old);
-                try (QuietAutoCloseable pc = prevType.set(currentType.get())) {
-                    try (QuietAutoCloseable ac = currentType.set(provision.getBinding().getKey().getTypeLiteral())) {
+                try (QuietAutoClosable pc = prevType.setTo(currentType.get())) {
+                    try (QuietAutoClosable ac = currentType.setTo(provision.getBinding().getKey().getTypeLiteral())) {
                         T obj = provision.provision();
                     }
                 }
@@ -738,10 +741,10 @@ public final class Dependencies {
     private static class MutableSettingsProvider implements Provider<MutableSettings> {
 
         private final Provider<Settings> namespaced;
-        private final AutoCloseThreadLocal<?> injectingInto;
+        private final ThreadLocalValue<?> injectingInto;
         private static Set<String> WARNED = new HashSet<>();
 
-        MutableSettingsProvider(Provider<Settings> namespaced, AutoCloseThreadLocal<?> injectingInto) {
+        MutableSettingsProvider(Provider<Settings> namespaced, ThreadLocalValue<?> injectingInto) {
             this.namespaced = namespaced;
             this.injectingInto = injectingInto;
         }
@@ -771,7 +774,6 @@ public final class Dependencies {
             }
         }
     }
-    private static final Pattern PARENT_PACKAGE_PATTERN = Pattern.compile("(.*)\\..*?");
 
     private static class NamespacedSettingsProvider implements Provider<Settings> {
 
