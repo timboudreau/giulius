@@ -38,22 +38,24 @@ import com.google.inject.name.Names;
 import com.google.inject.spi.ProvisionListener;
 import com.google.inject.spi.ProvisionListener.ProvisionInvocation;
 import com.google.inject.util.Providers;
+import com.mastfrog.abstractions.Instantiator;
 import com.mastfrog.function.misc.QuietAutoClosable;
 import com.mastfrog.function.threadlocal.ThreadLocalValue;
-import com.mastfrog.settings.Settings;
-import com.mastfrog.settings.SettingsBuilder;
 import com.mastfrog.giulius.annotations.Defaults;
 import com.mastfrog.giulius.annotations.Namespace;
 import com.mastfrog.giulius.annotations.Value;
 import com.mastfrog.graal.annotation.Expose;
 import com.mastfrog.graal.annotation.ExposeMany;
-import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mastfrog.settings.MutableSettings;
+import com.mastfrog.settings.Settings;
+import com.mastfrog.settings.SettingsBuilder;
 import static com.mastfrog.settings.SettingsBuilder.DEFAULT_NAMESPACE;
+import static com.mastfrog.util.collections.CollectionUtils.setOf;
 import com.mastfrog.util.preconditions.Checks;
+import com.mastfrog.util.preconditions.ConfigurationError;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mastfrog.util.streams.Streams;
-import static com.mastfrog.util.collections.CollectionUtils.setOf;
+import com.mastfrog.util.time.TimeUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -64,6 +66,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -79,9 +83,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import com.mastfrog.util.time.TimeUtil;
-import java.time.Duration;
-import java.util.ArrayList;
 
 /**
  * A wrapper around Guice's injector which enforces a few things such as how
@@ -120,7 +121,7 @@ import java.util.ArrayList;
     @Expose(type = "com.google.inject.name.Named", methods = @Expose.MethodInfo(name = "value")),
     @Expose(type = "javax.inject.Named", methods = @Expose.MethodInfo(name = "value"))
 })
-public final class Dependencies {
+public final class Dependencies implements Instantiator {
 
     public static final String SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT = "shutdownHookExecutorWait";
 
@@ -294,6 +295,7 @@ public final class Dependencies {
      * @param type The type
      * @return An instance of that class
      */
+    @Override
     public <T> T getInstance(Class<T> type) {
         return getInjector().getInstance(type);
     }
@@ -539,8 +541,9 @@ public final class Dependencies {
             try {
                 Binder binder = binder();
                 bind(Dependencies.class).toInstance(Dependencies.this);
+                bind(Instantiator.class).toInstance(Dependencies.this);
                 bind(com.mastfrog.giulius.ShutdownHookRegistry.class).toInstance(reg);
-                bind(ShutdownHooks.class).toInstance(reg);
+                bind(com.mastfrog.giulius.ShutdownHooks.class).toInstance(reg);
                 bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg.realHooks());
                 bind(com.mastfrog.shutdown.hooks.ShutdownHookRegistry.class).toInstance(reg.realHooks());
                 Set<String> knownNamespaces = loadNamespaceListsFromClasspath();
