@@ -38,7 +38,7 @@ import com.google.inject.name.Names;
 import com.google.inject.spi.ProvisionListener;
 import com.google.inject.spi.ProvisionListener.ProvisionInvocation;
 import com.google.inject.util.Providers;
-import com.mastfrog.abstractions.Instantiator;
+import com.mastfrog.abstractions.instantiate.Instantiator;
 import com.mastfrog.function.misc.QuietAutoClosable;
 import com.mastfrog.function.threadlocal.ThreadLocalValue;
 import com.mastfrog.giulius.annotations.Defaults;
