@@ -31,11 +31,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-plugin-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>com.telenav.cactus</groupId>
             <artifactId>cactus-maven-xml</artifactId>
         </dependency>
@@ -56,10 +51,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
             <artifactId>aether-util</artifactId>
         </dependency>
         <dependency>
@@ -75,12 +66,7 @@
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-
-    </dependencies>
+        </dependencies>
 
     <build>
         <plugins>

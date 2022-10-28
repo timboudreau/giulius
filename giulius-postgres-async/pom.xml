@@ -22,10 +22,6 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>util-streams</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>util-net</artifactId>
             <scope>test</scope>
         </dependency>

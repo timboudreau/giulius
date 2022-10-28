@@ -24,10 +24,6 @@
             <artifactId>mongojack</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius-mongodb</artifactId>
         </dependency>
