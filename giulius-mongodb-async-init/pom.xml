@@ -41,8 +41,16 @@
         <url>https://mastfrog.com</url>
     </organization>
 
-    <dependencies>
+    <properties>
+        <enforcer.skip>true</enforcer.skip>
+    </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+            <version>${mongo.driver.version}</version>
+        </dependency>        
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>giulius-mongodb-async</artifactId>
