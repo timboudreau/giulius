@@ -14,8 +14,6 @@
         <relativePath/>
     </parent>
 
-    <version>2.9.0</version>
-
     <name>Giulius JDBC</name>
     <artifactId>giulius-jdbc</artifactId>
 
