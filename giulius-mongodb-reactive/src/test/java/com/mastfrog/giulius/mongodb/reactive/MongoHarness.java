@@ -384,11 +384,10 @@ public class MongoHarness {
                 List<String> cmd;
                 switch (ver.majorVersion()) {
                     case 3:
-                    case 4:
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
+                                "--nojournal",
                                 "--smallfiles",
                                 "-nssize", "1",
                                 "--noprealloc",

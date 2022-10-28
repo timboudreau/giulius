@@ -120,11 +120,11 @@ public class MongoHarness {
         public MongoClient onAfterCreateMongoClient(MongoClient client) {
             if (replicaSet) {
                 client.getDatabase("admin").runCommand(new Document("replSetInitiate", new Document("_id", replSetId)
-                                .append("members", Arrays.asList(new Document("host", "localhost:" + port)
+                        .append("members", Arrays.asList(new Document("host", "localhost:" + port)
                                 .append("_id", 1)))), (v, t) -> {
-                            if (t != null) {
-                                t.printStackTrace();
-                            }
+                    if (t != null) {
+                        t.printStackTrace();
+                    }
                 });
             }
             mongodbGreaterThan36 = version().majorVersion() > 3
@@ -384,7 +384,7 @@ public class MongoHarness {
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
+                                "--nojournal",
                                 "--smallfiles",
                                 "-nssize", "1",
                                 "--noprealloc",
@@ -395,11 +395,21 @@ public class MongoHarness {
                                 "--oplogSize", "1",
                                 "--nounixsocket"));
                         break;
+                    case 4:
+                        cmd = new ArrayList<>(Arrays.asList(
+                                mongodExe,
+                                "--dbpath", mongoDir.getAbsolutePath(),
+                                "--nojournal",
+                                "--slowms", "5",
+                                "--port", "" + port,
+                                "--maxConns", "50",
+                                "--oplogSize", "1",
+                                "--nounixsocket"));
+                        break;
                     default:
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
                                 "--slowms", "5",
                                 "--port", "" + port,
                                 "--maxConns", "50",
@@ -546,9 +556,9 @@ public class MongoHarness {
         }
 
         private boolean available(int port) {
-            try ( ServerSocket ss = new ServerSocket(port)) {
+            try (ServerSocket ss = new ServerSocket(port)) {
                 ss.setReuseAddress(true);
-                try ( DatagramSocket ds = new DatagramSocket(port)) {
+                try (DatagramSocket ds = new DatagramSocket(port)) {
                     ds.setReuseAddress(true);
                     return true;
                 } catch (IOException e) {

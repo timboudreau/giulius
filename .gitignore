@@ -9,6 +9,8 @@
 .idea/*
 target/
 
+.LCK*
+
 /cluster-ids/nbproject/private/
 nb-configuration.xml
 nbactions.xml
