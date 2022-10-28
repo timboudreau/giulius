@@ -398,11 +398,22 @@ public class MongoHarness {
                                 "--oplogSize", "1",
                                 "--nounixsocket"));
                         break;
+                    case 4:
+                        cmd = new ArrayList<>(Arrays.asList(
+                                mongodExe,
+                                "--dbpath", mongoDir.getAbsolutePath(),
+                                "--nojournal",
+                                "--slowms", "5",
+                                "--port", "" + port,
+                                "--maxConns", "50",
+                                "--oplogSize", "1",
+                                "--nounixsocket"));
+                        break;
                     default:
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
+                                //                                "--nojournal",
                                 "--slowms", "5",
                                 "--port", "" + port,
                                 "--maxConns", "50",
@@ -547,9 +558,9 @@ public class MongoHarness {
         }
 
         private boolean available(int port) {
-            try ( ServerSocket ss = new ServerSocket(port)) {
+            try (ServerSocket ss = new ServerSocket(port)) {
                 ss.setReuseAddress(true);
-                try ( DatagramSocket ds = new DatagramSocket(port)) {
+                try (DatagramSocket ds = new DatagramSocket(port)) {
                     ds.setReuseAddress(true);
                     return true;
                 } catch (IOException e) {
