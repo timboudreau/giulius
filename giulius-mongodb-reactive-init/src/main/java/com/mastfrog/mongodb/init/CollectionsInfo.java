@@ -59,12 +59,16 @@ final class CollectionsInfo {
         return this;
     }
 
-    void init(MongoDatabase db, Subscribers subscribers, Consumer<Throwable> c, BiConsumer<String, MongoCollection<?>> onCreate) {
+    void init(MongoDatabase db, Subscribers subscribers, Consumer<Throwable> c,
+            BiConsumer<String, MongoCollection<?>> onCreate) {
         try {
             Set<String> all = subscribers.multipleSet(db.listCollectionNames())
                     .get();
-            System.out.println("ALL COLLECTIONS " + all);
             Iterator<OneCollectionInfo> ones = ImmutableSet.copyOf(infos).iterator();
+            if (all.isEmpty() && !ones.hasNext()) {
+                c.accept(null);
+                return;
+            }
             Consumer<Throwable> c1 = new Consumer<Throwable>() {
                 @Override
                 public void accept(Throwable thrown) {
