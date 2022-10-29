@@ -105,7 +105,7 @@ final class OneCollectionInfo {
                 }
                 MongoCollection<?> coll = ensureIndexes(db, subscribers, creating, c);
                 onCreate.accept(name, coll);
-//                c.accept(null);
+                c.accept(null);
             });
         } else {
             ensureIndexes(db, subscribers, creating, c);
@@ -194,7 +194,7 @@ final class OneCollectionInfo {
                     if (thrown != null) {
                         thrown.addSuppressed(e);
                     }
-                    System.out.println("Insert many of " + prepopulate.size() + " " + v + " " + thrown);
+                    System.out.println("Insert many of " + prepopulate.size() + " thrown " + thrown);
                     c.accept(thrown);
                 }
         );

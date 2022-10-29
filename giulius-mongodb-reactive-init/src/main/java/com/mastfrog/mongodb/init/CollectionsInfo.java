@@ -64,6 +64,7 @@ final class CollectionsInfo {
         try {
             Set<String> all = subscribers.multipleSet(db.listCollectionNames())
                     .get();
+            System.out.println("do init with " + all.size() + " " + all + " and infos " + infos.size());
             Iterator<OneCollectionInfo> ones = ImmutableSet.copyOf(infos).iterator();
             if (all.isEmpty() && !ones.hasNext()) {
                 c.accept(null);
@@ -72,6 +73,9 @@ final class CollectionsInfo {
             Consumer<Throwable> c1 = new Consumer<Throwable>() {
                 @Override
                 public void accept(Throwable thrown) {
+                    if (LOG) {
+                        System.out.println("  c1.accept " + thrown);
+                    }
                     if (thrown != null) {
                         thrown.printStackTrace();
                         c.accept(thrown);
@@ -81,13 +85,14 @@ final class CollectionsInfo {
                         OneCollectionInfo info = ones.next();
                         if (LOG) {
                             System.err.println("Init collection " + info.name);
+                            System.out.println("  has next " + info.name + " indices " + info.indexInfos);
                         }
                         info.init(db, subscribers, all, this, onCreate);
                     } else {
                         if (LOG) {
                             System.err.println("Done creating collections");
+                            System.out.println("Pass null to " + c);
                         }
-                        System.out.println("Pass null to " + c);
                         c.accept(null);
                     }
                 }

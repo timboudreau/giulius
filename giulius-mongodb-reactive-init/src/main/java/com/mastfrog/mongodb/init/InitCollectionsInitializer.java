@@ -32,6 +32,7 @@ import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -50,7 +51,7 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
     public static final boolean DEFAULT_BLOCKING = true;
     private final boolean blocking;
 
-    static boolean LOG = false;
+    static boolean LOG = true;
     private final Subscribers subscribers;
 
     @Inject
@@ -65,10 +66,19 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
 
     @Override
     public MongoClient onAfterCreateMongoClient(MongoClient client) {
+        System.out.println("InitCollectionsInitializer.onAfterCreateMongoClient");
         MongoDatabase db = client.getDatabase(dbName);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicInteger callCount = new AtomicInteger();
         Consumer<Throwable> c = (th) -> {
+            if (LOG) {
+                System.out.println("C " + callCount.getAndIncrement()
+                        + " accept " + th + " for " + info.infos.size()
+                        + " on " + Thread.currentThread().getName()
+                        + " latch count " + latch.getCount()
+                );
+            }
             if (th != null) {
                 Throwable t = thrown.get();
                 if (t == null) {
@@ -89,8 +99,11 @@ class InitCollectionsInitializer extends MongoAsyncInitializer {
         if (LOG) {
             System.err.println("init " + c);
         }
-
+        System.out.println("Run init");
         info.init(db, subscribers, c, (t, u) -> {
+            if (LOG) {
+                System.out.println("  createdCollection " + u + " on " + dbName);
+            }
             super.createdCollection(dbName, u);
         });
         if (blocking) {

@@ -363,7 +363,7 @@ public class MongoHarness {
                             // for the inMemory storage engine and will crash
                             pb = new ProcessBuilder().command(mongodExe,
                                     "--dbpath", mongoDir.getAbsolutePath(),
-                                    "--nojournal",
+//                                    "--nojournal",
                                     "--slowms", "5",
                                     "--port", "" + port,
                                     "--maxConns", "50",
@@ -387,7 +387,7 @@ public class MongoHarness {
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-                                "--nojournal",
+//                                "--nojournal",
                                 "--smallfiles",
                                 "-nssize", "1",
                                 "--noprealloc",
@@ -402,7 +402,7 @@ public class MongoHarness {
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-                                "--nojournal",
+//                                "--nojournal",
                                 "--slowms", "5",
                                 "--port", "" + port,
                                 "--maxConns", "50",

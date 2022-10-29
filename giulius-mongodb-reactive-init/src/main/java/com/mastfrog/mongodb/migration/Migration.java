@@ -63,7 +63,7 @@ public class Migration {
     private final int newVersion;
     private final Map<String, OneOf<MigrationWorker, Class<? extends MigrationWorker>>> migrations;
     private final Map<String, Document> backupQueryForCollection;
-    private static final boolean LOG = Boolean.getBoolean("migration.log");
+    private static final boolean LOG = true; // Boolean.getBoolean("migration.log");
     // We are running at application startup, before the server is live, so
     // there is no need to use the injectable Subscribers that will reconstitute
     // the request scope for what we're doing here - it will always be empty.
@@ -92,11 +92,18 @@ public class Migration {
         return NamedCompletableFuture.<T>loggingFuture(name, LOG);
     }
 
+    private static void log(String what) {
+        if (LOG) {
+            System.out.println(what);
+        }
+    }
+
     public CompletableFuture<Document> migrate(CompletableFuture<Document> f, MongoClient client, MongoDatabase db, Function<Class<? extends MigrationWorker>, MigrationWorker> converter) {
         notNull("converter", converter);
         notNull("f", f);
         notNull("client", client);
         notNull("db", db);
+        log("MIGRATE " + name);
         // Pending: Could parallelize these by collection
         return f.thenComposeAsync((dc) -> {
             CompletableFuture<Document> result = future("migration-initial-" + name);

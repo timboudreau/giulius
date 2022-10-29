@@ -76,13 +76,16 @@ final class InitMigrationsInitializer extends MongoAsyncInitializer implements F
         CompletableFuture<Document> first = Migration.future("init-migrations-" + dbName);
 
         CompletableFuture<Document> last = first;
+
+        System.out.println("Have " + migrations.size() + " migrations");
+
         for (Migration m : migrations) {
             last = m.migrate(last, client, db, this);
         }
 
         Throwable[] t = new Throwable[1];
-        last.whenCompleteAsync((doc, thrown) -> {
-            System.out.println("when complete async - countdown");
+        last.whenComplete((doc, thrown) -> {
+            System.out.println("IMI when complete - countdown");
             if (thrown != null) {
                 thrown.printStackTrace();
             }
@@ -91,9 +94,9 @@ final class InitMigrationsInitializer extends MongoAsyncInitializer implements F
         });
         try {
             first.complete(new Document());
-            System.out.println("Wait on latch");
+            System.out.println("IMI Wait on latch on " + Thread.currentThread().getName());
             latch.await();
-            System.out.println("Exit wait on latch");
+            System.out.println("IMI Exit wait on latch on " + Thread.currentThread().getName());
         } catch (InterruptedException ex) {
             if (t[0] != null) {
                 t[0].addSuppressed(ex);
