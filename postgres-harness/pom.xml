@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.mastfrog</groupId>
+        <artifactId>mastfrog-parent</artifactId>
+        <version>2.9.1</version>
+        <relativePath/>
+    </parent>
+
+    <artifactId>postgres-harness</artifactId>
+
+    <properties>
+        <exec.mainClass>com.mastfrog.postgres.harness.PostgresHarness</exec.mainClass>
+        <enforcer.skip>true</enforcer.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-pg-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-net</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-streams</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>util-strings</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.mastfrog</groupId>
+                <artifactId>maven-merge-configuration</artifactId>
+                <version>${mastfrog.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <id>compile</id>
+                        <goals>
+                            <goal>merge-configuration</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>com.mastfrog.postgres.harness.PostgresHarness</mainClass>
+                    
+                    <!-- Generate an attached artifact -->
+                    <classifier>app</classifier>
+
+                    <!-- Omit unnecessary stuff -->
+                    <skipMavenMetadata>true</skipMavenMetadata>
+                    <normalizeMetaInfPropertiesFiles>true</normalizeMetaInfPropertiesFiles>
+                    <skipLicenseFiles>true</skipLicenseFiles>
+                    <omitOptionalDependencies>true</omitOptionalDependencies>
+                    <!-- Repeatable builds: -->
+                    <rewritePropertiesFiles>true</rewritePropertiesFiles>
+                    <zerodates>true</zerodates>
+                    <!-- Generate a jar index for faster launch -->
+                    <index>true</index>
+                    <!-- Omit some packages we know are not touched -->
+                    <exclude>
+                        com.mastfrog.util.path
+                        com.mastfrog.util.streams.stdio
+                        com.mastfrog.java.vogon
+                        org.checkerframework
+                        io.netty.handler.codec.http
+                        io.netty.handler.codec.http2
+                        META-INF.maven
+                        .netbeans_automatic_build</exclude>
+                        <!--META-INF.versions-->
+                        module-info.java
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

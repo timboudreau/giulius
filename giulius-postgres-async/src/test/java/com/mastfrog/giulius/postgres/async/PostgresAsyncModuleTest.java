@@ -29,6 +29,7 @@ import com.mastfrog.giulius.Dependencies;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_POOL_SIZE;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_PG_URI;
+import com.mastfrog.postgres.harness.PostgresHarness;
 import com.mastfrog.settings.Settings;
 import static com.mastfrog.util.collections.CollectionUtils.setOf;
 import static com.mastfrog.util.preconditions.Checks.notNull;

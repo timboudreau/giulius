@@ -44,7 +44,7 @@
         <module>giulius-annotation-processors</module>
         <module>giulius-postgres-async</module>
         <module>smart-jar-merge</module>
-
+        <module>postgres-harness</module>
     </modules>
     <issueManagement>
         <system>Github</system>

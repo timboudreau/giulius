@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2019 Mastfrog Technologies.
+ * Copyright 2022 Mastfrog Technologies.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.mastfrog.giulius.postgres.async;
+package com.mastfrog.postgres.harness;
 
-import com.mastfrog.util.file.FileUtils;
+import static com.mastfrog.util.file.FileUtils.deltree;
+import static com.mastfrog.util.file.FileUtils.newTempDir;
+import static com.mastfrog.util.file.FileUtils.readUTF8String;
+import static com.mastfrog.util.file.FileUtils.writeUtf8;
 import com.mastfrog.util.net.PortFinder;
-import com.mastfrog.util.preconditions.Checks;
-import com.mastfrog.util.preconditions.Exceptions;
+import static com.mastfrog.util.preconditions.Checks.notEmptyOrNull;
+import static com.mastfrog.util.preconditions.Checks.notNull;
+import static com.mastfrog.util.preconditions.Checks.readable;
+import static com.mastfrog.util.preconditions.Exceptions.chuck;
 import com.mastfrog.util.streams.ContinuousLineStream;
-import com.mastfrog.util.strings.Strings;
+import static com.mastfrog.util.strings.Strings.join;
+import static com.mastfrog.util.strings.Strings.splitUniqueNoEmpty;
 import java.io.File;
+import static java.io.File.pathSeparatorChar;
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
+import java.io.UncheckedIOException;
+import static java.lang.Character.isWhitespace;
+import static java.lang.Integer.parseInt;
+import static java.lang.ProcessBuilder.Redirect.appendTo;
+import static java.lang.Runtime.getRuntime;
+import static java.lang.System.currentTimeMillis;
+import static java.lang.System.exit;
+import static java.lang.System.getProperty;
+import static java.lang.System.getenv;
+import static java.lang.Thread.currentThread;
+import static java.lang.Thread.interrupted;
+import static java.lang.Thread.sleep;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
+import static java.nio.file.Files.createDirectories;
+import static java.nio.file.Files.createFile;
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isExecutable;
+import static java.nio.file.Files.list;
+import static java.nio.file.Files.move;
+import static java.nio.file.Files.readAllLines;
+import static java.nio.file.Files.write;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.WRITE;
+import java.util.ArrayList;
+import static java.util.Arrays.asList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,8 +75,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Logger.getLogger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,11 +90,14 @@ public final class PostgresHarness {
 
     public static final PortFinder AVAILABLE_PORTS = new PortFinder();
     private static final String[] DEFAULT_SEARCH_PATH
-            = {"/usr/bin", "/usr/local/bin", "/opt/local/bin", "/bin", "/sbin", "/usr/sbin", "/opt/bin"};
+            = {"/usr/bin", "/usr/local/bin", "/opt/homebrew/bin/", "/opt/local/bin", "/bin", "/sbin",
+                "/usr/sbin", "/opt/bin"};
     private static final String PREFIX = "pg-";
-    private static final String PSQL_BINARY = System.getProperty("psql", find("psql").toString());
+    private static final String PSQL_BINARY = getProperty("psql", find("psql").toString());
     private static final String INITDB_BINARY = System.getProperty("initdb", find("initdb").toString());
-    private static final String POSTGRES_BINARY = System.getProperty("postgres", find("postgres").toString());
+    private static final String POSTGRES_BINARY = getProperty("postgres", find("postgres").toString());
+    private static final Pattern VERSION_PATTERN = Pattern.compile(".*?(\\d+.*?\\d+).*?$");
+    private String psqlVersion;
     private final AtomicInteger sqlruns = new AtomicInteger(1);
     private final AtomicBoolean started = new AtomicBoolean();
     private Path dir;
@@ -79,14 +110,22 @@ public final class PostgresHarness {
         this.dir = dir;
     }
 
+    /**
+     * Create a new postgres harness which starts an empty database in a
+     * temporary directory.
+     */
+    public PostgresHarness() throws IOException {
+        this(newTempDir(PREFIX));
+    }
+
     public static boolean binariesExist() {
         for (String file : new String[]{PSQL_BINARY, INITDB_BINARY, POSTGRES_BINARY}) {
             Path path = Paths.get(file);
-            if (!Files.exists(path) || !Files.isExecutable(path)) {
+            if (!exists(path) || !isExecutable(path)) {
                 if (!warned) {
                     warned = true;
                     System.err.println("Could not find an executable binary named '" + file
-                            + "' in any of " + Strings.join(',', DEFAULT_SEARCH_PATH) + " - "
+                            + "' in any of " + join(',', DEFAULT_SEARCH_PATH) + " - "
                             + "tests using " + PostgresHarness.class.getName() + " will "
                             + "(or should) be skipped.  If it is present but in an unusual "
                             + "location, set the system properties 'psql', 'initdb' and 'postgres' "
@@ -99,23 +138,37 @@ public final class PostgresHarness {
     }
 
     /**
-     * Create a new postgres harness which starts an empty database in a
-     * temporary directory.
+     * Get the port postgres is running on - must be called after a call to
+     * start().
+     *
+     * @return A port
      */
-    public PostgresHarness() throws IOException {
-        this(FileUtils.newTempDir(PREFIX));
+    public int port() {
+        if (port == -1) {
+            throw new IllegalStateException("Port is unset until postgres has been launched");
+        }
+        return port;
+    }
+
+    /**
+     * Get the directory postgres's data files (and logs!) reside in.
+     *
+     * @return A path
+     */
+    public Path databaseDir() {
+        return dir;
     }
 
     static Path find(String cmd) {
         cmd = Paths.get(cmd).getFileName().toString();
         Set<String> searched = new HashSet<>();
-        String systemPath = System.getenv("PATH");
+        String systemPath = getenv("PATH");
         if (systemPath != null) {
-            for (CharSequence path : Strings.splitUniqueNoEmpty(File.pathSeparatorChar, systemPath)) {
+            for (CharSequence path : splitUniqueNoEmpty(pathSeparatorChar, systemPath)) {
                 String p = path.toString();
                 Path dir = Paths.get(p);
                 Path file = dir.resolve(cmd);
-                if (Files.exists(file) && file.toFile().canExecute()) {
+                if (exists(file) && file.toFile().canExecute()) {
                     return file;
                 }
                 searched.add(p);
@@ -125,7 +178,7 @@ public final class PostgresHarness {
             if (!searched.contains(path)) {
                 Path dir = Paths.get(path);
                 Path file = dir.resolve(cmd);
-                if (Files.exists(file) && file.toFile().canExecute()) {
+                if (exists(file) && file.toFile().canExecute()) {
                     return file;
                 }
                 searched.add(path);
@@ -135,11 +188,90 @@ public final class PostgresHarness {
     }
 
     public static void main(String[] args) throws Exception {
+        List<String> argList = new ArrayList<>(asList(args));
+        if (argList.isEmpty() || argList.contains("--help")) {
+            System.out.println("\npostgres-harness - quickly start and initialize postgres "
+                    + "in an empty temporary directory.\n\nBy default, finds a random "
+                    + "unused server port to use, and logs it along with the database URL."
+                    + "\n\nUsage\n-----\n\n"
+                    + "java -jar postgres-harness.jar DB_NAME [/path/to/file-1.sql .. path/to/file-n.sql]\n\n"
+                    + "Options\n-------\n\n"
+                    + "\t--port NNNN explicitly set the port to run postgres on\n"
+                    + "\t--cleanup delete the database folder on normal VM exit (including CTRL-C)\n"
+                    + "\t--help display this help\n\n");
+            System.out.flush();
+            System.exit(argList.isEmpty() ? 1 : 0);
+        }
+        int port = -1;
+        boolean cleanup = argList.remove("--cleanup");
+        int portIx = argList.indexOf("--port");
+        System.err.println("port ix " + portIx);
+        if (portIx >= 0) {
+            if (portIx == argList.size() - 1) {
+                System.err.println("--port must be followed by a number");
+            }
+            String portValue = argList.get(portIx + 1);
+            System.err.println("portVal " + portValue);
+            try {
+                port = parseInt(portValue);
+                if (port <= 0) {
+                    System.err.println("Port must be > 0 but was passed " + port);
+                    exit(2);
+                }
+                System.err.println("set port to " + port);
+                argList.remove(portIx + 1);
+                argList.remove(portIx);
+            } catch (IllegalArgumentException ex) {
+                System.err.println("Invalid value for --port '" + portValue + "'");
+                exit(3);
+            }
+        }
         PostgresHarness harn = new PostgresHarness();
-        harn.start();
+        harn.start(port);
         harn.initDatabase("foo", "create table bar(id varchar(20));");
-        Thread.sleep(2500);
+
+        System.out.println("Started postgres on " + harn.port + " in " + harn.dir);
+
+        String dbName = argList.remove(0);
+        String pgUrl = harn.initDatabase(dbName);
+        System.out.println("Created Database " + dbName + " over Postgres " + harn.psqlVersion);
+        System.out.println("");
+        System.out.println("Postgres URL:\t" + pgUrl);
+        System.out.println("JDBC URL:\t" + harn.jdbcUrl(dbName));
+        System.out.println("CLI access:\tpsql -h localhost -p " + harn.port + " " + dbName);
+        System.out.println("DB folder:\t" + harn.dir);
+
+        for (String sqlFile : argList) {
+            Path path = Paths.get(sqlFile);
+            if (!exists(path)) {
+                System.err.println("Does not exist: " + path);
+                exit(4);
+            }
+            if (isDirectory(path)) {
+                List<Path> sqlFiles = list(path).filter(pth -> pth.getFileName().toString().endsWith(".sql"))
+                        .toList();
+                for (Path sql : sqlFiles) {
+                    System.err.println("Run " + sql);
+                    harn.runSql(dbName, sql);
+                }
+            } else {
+                System.err.println("Run " + path);
+                harn.runSql(dbName, path);
+            }
+        }
+        if (cleanup) {
+            harn.cleanupOnShutdown();
+        }
+
+        // block forever
+        currentThread().join();
+
         harn.shutdown(true);
+    }
+
+    private void cleanupOnShutdown() {
+        Thread t = new Thread(this::cleanup, "postgres-cleanup-hook");
+        getRuntime().addShutdownHook(t);
     }
 
     /**
@@ -150,8 +282,8 @@ public final class PostgresHarness {
      */
     public String log() throws IOException {
         Path path = dir.resolve("postgres.out");
-        if (Files.exists(path)) {
-            return Strings.join('\n', Files.readAllLines(path));
+        if (exists(path)) {
+            return join('\n', readAllLines(path));
         }
         return "";
     }
@@ -163,7 +295,7 @@ public final class PostgresHarness {
      *
      * @throws IOException If something goes wrong
      */
-    public void shutdown(boolean cleanup) throws IOException, InterruptedException, Exception {
+    public void shutdown(boolean cleanup) throws Exception {
         shutdown();
         if (cls != null) {
             cls.close();
@@ -174,8 +306,18 @@ public final class PostgresHarness {
         }
     }
 
-    private void cleanup() throws IOException {
-        FileUtils.deltree(dir);
+    private void cleanup() {
+        try {
+            System.out.println("Deleting postgres dir " + dir);
+            deltree(dir);
+        } catch (IOException | UncheckedIOException ex) {
+            try {
+                deltree(dir);
+            } catch (IOException | UncheckedIOException ex2) {
+                // do nothing
+            }
+            // can race with postgres shutting down if run during system exit
+        }
     }
 
     /**
@@ -222,7 +364,7 @@ public final class PostgresHarness {
             }
         }
         return "jdbc:postgresql://localhost:" + port + "/"
-                + dbname + "?user=" + System.getProperty("user.name") + "&ssl=false";
+                + dbname + "?user=" + getProperty("user.name") + "&ssl=false";
     }
 
     /**
@@ -242,7 +384,7 @@ public final class PostgresHarness {
                 throw new IOException("No process to talk to");
             }
         }
-        return "postgres://" + System.getProperty("user.name") + "@localhost:" + port + "/" + dbname;
+        return "postgres://" + getProperty("user.name") + "@localhost:" + port + "/" + dbname;
     }
 
     /**
@@ -274,7 +416,7 @@ public final class PostgresHarness {
             initDatabase(database, (Path) null);
         }
         Path initFile = dir.resolve("init.sql");
-        FileUtils.writeUtf8(initFile, initSql);
+        writeUtf8(initFile, initSql);
         return initDatabase(database, initFile);
     }
 
@@ -291,13 +433,13 @@ public final class PostgresHarness {
      */
     public String initDatabase(String database, Path sqlFile) throws IOException, InterruptedException, ExecutionException {
         checkRunning();
-        if (sqlFile != null && !Files.exists(sqlFile)) {
+        if (sqlFile != null && !exists(sqlFile)) {
             throw new IOException(sqlFile + " does not exist");
         }
         String[] createDbCommand = {PSQL_BINARY, "-a", "-b", "-h", "localhost", "-p", Integer.toString(port), "postgres", "-c", "create database " + database + ";"};
         String result = run(createDbCommand);
         if (!"CREATE DATABASE".equals(result.trim())) {
-            throw new IOException("Output of '" + Strings.join(' ', createDbCommand) + "' should be 'CREATE DATABASE' not '" + result + "'");
+            throw new IOException("Output of '" + join(' ', createDbCommand) + "' should be 'CREATE DATABASE' not '" + result + "'");
         }
         if (sqlFile != null) {
             runSql(database, sqlFile);
@@ -328,11 +470,11 @@ public final class PostgresHarness {
      * @throws ExecutionException If something goes wrong
      */
     public String runSql(String database, String sql) throws IOException, InterruptedException, ExecutionException {
-        Checks.notNull("database", database);
-        Checks.notNull("sql", sql);
+        notNull("database", database);
+        notNull("sql", sql);
         checkRunning();
         Path sqlFile = newFile(database + "-runsql-" + sqlruns.incrementAndGet(), "sql");
-        FileUtils.writeUtf8(sqlFile, sql);
+        writeUtf8(sqlFile, sql);
         return runSql(database, sqlFile);
     }
 
@@ -347,8 +489,8 @@ public final class PostgresHarness {
      * @throws ExecutionException If something goes wrong
      */
     public String runSql(String database, Path sql) throws IOException, InterruptedException, ExecutionException {
-        Checks.notNull("database", database);
-        Checks.readable("sql", sql);
+        notNull("database", database);
+        readable("sql", sql);
         return run(PSQL_BINARY, "-a", "-b", "-h", "localhost", "-p", Integer.toString(port), database, "-f", sql.toString());
     }
 
@@ -360,10 +502,14 @@ public final class PostgresHarness {
      * @throws ExecutionException If something goes wrong
      */
     public PostgresHarness start() throws IOException, InterruptedException, ExecutionException {
+        return start(-1);
+    }
+
+    public PostgresHarness start(int explicitPort) throws IOException, InterruptedException, ExecutionException {
         if (started.compareAndSet(false, true)) {
             dest = initDb();
-            port = createConfFile(dest);
-            Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+            port = createConfFile(dest, explicitPort);
+            getRuntime().addShutdownHook(new Thread(this::shutdown));
             synchronized (this) {
                 process = startDb(dest, port);
                 onExit(process).handle((p, thrown) -> {
@@ -377,14 +523,14 @@ public final class PostgresHarness {
 //                Thread.sleep(20);
                 waitForLoggedWords("database system is ready to accept connections");
             } catch (InterruptedException ex) {
-                Logger.getLogger(PostgresHarness.class.getName()).log(Level.SEVERE, null, ex);
+                getLogger(PostgresHarness.class.getName()).log(SEVERE, null, ex);
             }
         }
         return this;
     }
 
     private Process startDb(Path dest, int port) throws IOException {
-        List<String> cmd = Arrays.asList(POSTGRES_BINARY,
+        List<String> cmd = asList(POSTGRES_BINARY,
                 "-D", dest.toString(),
                 "-h", "localhost",
                 "-i", "-p", Integer.toString(port),
@@ -398,7 +544,7 @@ public final class PostgresHarness {
 
         File output = dir.resolve("postgres.out").toFile();
         output.createNewFile();
-        Redirect redirect = ProcessBuilder.Redirect.appendTo(output);
+        ProcessBuilder.Redirect redirect = appendTo(output);
 
 //        System.out.println("RUN " + Strings.join(' ', cmd));
         return new ProcessBuilder(cmd)
@@ -413,7 +559,7 @@ public final class PostgresHarness {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (!Character.isWhitespace(c)) {
+            if (!isWhitespace(c)) {
                 sb.append(c);
             }
         }
@@ -434,7 +580,7 @@ public final class PostgresHarness {
      */
     public boolean waitForLoggedWords(String seq) throws IOException, InterruptedException {
         String noWhitespace = removeWhitespace(seq).toLowerCase();
-        return pollOutput(10000, line -> {
+        return pollOutput(10_000, line -> {
             String compare = removeWhitespace(line).toLowerCase();
             return compare.contains(noWhitespace);
         });
@@ -457,14 +603,14 @@ public final class PostgresHarness {
                 clsLocal = this.cls;
                 if (clsLocal == null) {
                     File output = dir.resolve("postgres.out").toFile();
-                    this.cls = clsLocal = ContinuousLineStream.of(output, 1024);
+                    this.cls = clsLocal = ContinuousLineStream.of(output, 1_024);
                 }
             }
         }
-        long start = System.currentTimeMillis();
+        long start = currentTimeMillis();
         if (clsLocal != null) {
             for (;;) {
-                if (!started.get() || Thread.interrupted() || System.currentTimeMillis() - start > maxMillis) {
+                if (!started.get() || interrupted() || currentTimeMillis() - start > maxMillis) {
                     return false;
                 }
                 if (clsLocal.hasMoreLines()) {
@@ -473,7 +619,7 @@ public final class PostgresHarness {
                         return true;
                     }
                 } else {
-                    Thread.sleep(50);
+                    sleep(50);
                 }
             }
         }
@@ -481,17 +627,17 @@ public final class PostgresHarness {
     }
 
     private Path initDb() throws IOException, InterruptedException, ExecutionException {
-        Files.createDirectories(dir);
+        createDirectories(dir);
         String ver = psqlVersion();
         dest = dir.resolve(ver);
-        Files.createDirectories(dir);
+        createDirectories(dir);
         run(INITDB_BINARY, "--nosync", "-D", dest.toString(), "-E", "UNICODE", "-A", "trust");
         return dest;
     }
 
-    private int createConfFile(Path dest) throws IOException {
-        int port = AVAILABLE_PORTS.findAvailableServerPort();
-        List<String> conf = Arrays.asList(
+    private int createConfFile(Path dest, int explicitPort) throws IOException {
+        int port = explicitPort <= 0 ? AVAILABLE_PORTS.findAvailableServerPort() : explicitPort;
+        List<String> conf = asList(
                 "port = " + port,
                 "unix_socket_directories = '" + dir + "'",
                 "listen_addresses = 'localhost'",
@@ -507,23 +653,24 @@ public final class PostgresHarness {
                 "log_directory = '" + dir + "'"
         );
         Path confFile = dest.resolve("postgresql.conf");
-        if (Files.exists(confFile)) {
-            Files.move(confFile, confFile.getParent().resolve("postgresql.conf.generated"));
+        if (exists(confFile)) {
+            move(confFile, confFile.getParent().resolve("postgresql.conf.generated"));
         }
-        Files.write(confFile, conf, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        write(confFile, conf, CREATE, WRITE);
         return port;
     }
 
-    private static final Pattern VERSION_PATTERN = Pattern.compile(".*?(\\d+.*?\\d+)$");
-
-    private String psqlVersion() throws IOException, InterruptedException, ExecutionException {
+    private synchronized String psqlVersion() throws IOException, InterruptedException, ExecutionException {
+        if (psqlVersion != null) {
+            return psqlVersion;
+        }
         String result = run(PSQL_BINARY, "-V");
         if (result == null) {
             throw new IOException("Failed running 'psql -V'");
         }
         Matcher m = VERSION_PATTERN.matcher(result);
         if (m.find()) {
-            return m.group(1);
+            return psqlVersion = m.group(1);
         }
         throw new IOException("Could not find version in string '" + result + "'");
     }
@@ -535,15 +682,15 @@ public final class PostgresHarness {
     synchronized Path newFile(String name, String ext) throws IOException {
         int ix = 0;
         Path p = dir.resolve(name + "." + ext);
-        while (Files.exists(p)) {
+        while (exists(p)) {
             p = dir.resolve(name + "-" + ++ix + "." + ext);
         }
-        Files.createFile(p);
+        createFile(p);
         return p;
     }
 
     private String run(String... command) throws IOException, InterruptedException, ExecutionException {
-        Checks.notEmptyOrNull("command", command);
+        notEmptyOrNull("command", command);
         return runNamed(pathName(command[0]), command);
     }
 
@@ -579,7 +726,7 @@ public final class PostgresHarness {
             try {
                 return (CompletableFuture<Process>) onExit.invoke(proc);
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                return Exceptions.chuck(ex);
+                return chuck(ex);
             }
         }
         CompletableFuture<Process> result = new CompletableFuture<>();
@@ -587,7 +734,7 @@ public final class PostgresHarness {
             for (;;) {
                 if (proc.isAlive()) {
                     try {
-                        Thread.sleep(30);
+                        sleep(30);
                     } catch (InterruptedException ex) {
                         result.completeExceptionally(ex);
                     }
@@ -599,7 +746,7 @@ public final class PostgresHarness {
         };
         Thread waiter = new Thread(busywait, "JDK8-Process-Waiter: " + proc);
         waiter.setDaemon(true);
-        waiter.setPriority(Thread.currentThread().getPriority() - 1);
+        waiter.setPriority(currentThread().getPriority() - 1);
         waiter.setUncaughtExceptionHandler((thr, ex) -> {
             ex.printStackTrace();
         });
@@ -611,7 +758,7 @@ public final class PostgresHarness {
         Path outPath = dir.resolve(name + ".out");
         Path errPath = dir.resolve(name + ".err");
         int ix = 1;
-        while (Files.exists(outPath)) {
+        while (exists(outPath)) {
             outPath = dir.resolve(name + "-" + ix++ + ".out");
             errPath = dir.resolve(name + "-" + ix++ + ".err");
         }
@@ -635,9 +782,9 @@ public final class PostgresHarness {
                 }
             }
             t[0] = thrown;
-            if (Files.exists(finalOutPath)) {
+            if (exists(finalOutPath)) {
                 try {
-                    return FileUtils.readUTF8String(finalOutPath);
+                    return readUTF8String(finalOutPath);
                 } catch (IOException ex) {
                     if (t[0] != null) {
                         t[0].addSuppressed(ex);
@@ -649,7 +796,7 @@ public final class PostgresHarness {
             return null;
         }).get();
         if (t[0] != null) {
-            throw new IOException("Execution of " + name + " - " + Strings.join(' ', command) + " failed", t[0]);
+            throw new IOException("Execution of " + name + " - " + join(' ', command) + " failed", t[0]);
         }
         return result;
     }
