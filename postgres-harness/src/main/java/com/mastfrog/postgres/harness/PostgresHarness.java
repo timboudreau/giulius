@@ -79,6 +79,7 @@ import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Logger.getLogger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Starts postgres in a temporary directory for testing and shuts it down and
@@ -249,7 +250,7 @@ public final class PostgresHarness {
             }
             if (isDirectory(path)) {
                 List<Path> sqlFiles = list(path).filter(pth -> pth.getFileName().toString().endsWith(".sql"))
-                        .toList();
+                        .collect(Collectors.toCollection(ArrayList::new));
                 for (Path sql : sqlFiles) {
                     System.err.println("Run " + sql);
                     harn.runSql(dbName, sql);
