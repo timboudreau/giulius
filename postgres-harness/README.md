@@ -21,7 +21,7 @@ And since the port is randomly computed and tested for availability, running man
 concurrently, each of which is talking to its own postgres instance does not cause any
 issues with tests interfering with each other.
 
-Postgres is be launched with arguments to minimize memory consumption and maximize performance,
+Postgres is launched with arguments to minimize memory consumption and maximize performance,
 so tests complete quickly (for example, `fsync` is off - tests do not care about durability)
 and concurrent postgres processes do not burden the machine running them.  In practice,
 on a modern laptop, it is ready to use in < 200ms.
