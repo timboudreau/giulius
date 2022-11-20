@@ -101,6 +101,8 @@ public final class PostgresHarness {
     private String psqlVersion;
     private final AtomicInteger sqlruns = new AtomicInteger(1);
     private final AtomicBoolean started = new AtomicBoolean();
+    private int maxConnect = 500;
+    private int maxMemoryMb = 256;
     private Path dir;
     private Path dest;
     private Process process;
@@ -530,19 +532,35 @@ public final class PostgresHarness {
         return this;
     }
 
+    public PostgresHarness withMaxConnect(int conn) {
+        if (conn <= 0) {
+            throw new IllegalArgumentException("Max connect must be >= 0");
+        }
+        maxConnect = conn;
+        return this;
+    }
+
+    public PostgresHarness withMaxMemoryMB(int mem) {
+        if (maxMemoryMb <= 0) {
+            throw new IllegalArgumentException("Max mem must be >= 0");
+        }
+        maxMemoryMb = mem;
+        return this;
+    }
+
     private Process startDb(Path dest, int port) throws IOException {
         List<String> cmd = asList(POSTGRES_BINARY,
                 "-D", dest.toString(),
                 "-h", "localhost",
                 "-i", "-p", Integer.toString(port),
-                "-N", "5",
-                "-d", "2",
-                "-B", "128",
-                "-F",
-                "-S", "256",
-                "-n"
+                "-N", Integer.toString(maxConnect), // max-connect
+                "-d", "2", // debug logging level
+                "-B", "128", // shared buffers
+                "-F", // fsync off
+                "-S", Integer.toString(maxMemoryMb), // working memory in kb
+                "-n", // do not reinitialize shared memory
+                "-T" // ensure child processes die
         );
-
         File output = dir.resolve("postgres.out").toFile();
         output.createNewFile();
         ProcessBuilder.Redirect redirect = appendTo(output);
@@ -651,7 +669,10 @@ public final class PostgresHarness {
                 "log_min_duration_statement = 0",
                 "log_connections = on",
                 "log_disconnections = on",
-                "log_directory = '" + dir + "'"
+                "log_directory = '" + dir + "'",
+                "max_connections = " + maxConnect,
+                "huge_pages = off",
+                "autovacuum = off"
         );
         Path confFile = dest.resolve("postgresql.conf");
         if (exists(confFile)) {

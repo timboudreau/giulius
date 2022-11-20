@@ -58,15 +58,17 @@ import javax.inject.Provider;
 final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
 
     private final Settings settings;
+    private final ConnectOptionsCustomizer customizer;
 
     @Inject
-    PgConnectOptionsProvider(Settings settings) {
+    PgConnectOptionsProvider(Settings settings, ConnectOptionsCustomizer customizer) {
         this.settings = settings;
+        this.customizer = customizer;
     }
 
     @Override
     public PgConnectOptions get() {
-        PgConnectOptions opts = PgConnectOptions.fromUri(
+        PgConnectOptions options = PgConnectOptions.fromUri(
                 settings.getString(SETTINGS_KEY_PG_URI))
                 .setCachePreparedStatements(settings.getBoolean(SETTINGS_KEY_CACHE_PREPARED_STATEMENTS, DEFAULT_CACHE_PREPARED_STATEMENTS))
                 .setConnectTimeout(settings.getInt(SETTINGS_KEY_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT))
@@ -78,8 +80,9 @@ final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
                 .setTcpFastOpen(settings.getBoolean(SETTINGS_KEY_TCP_FAST_OPEN, DEFAULT_TCP_FAST_OPEN))
                 .setReconnectAttempts(settings.getInt(SETTINGS_KEY_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_ATTEMPTS))
                 .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY))
-                .setTrustAll(settings.getBoolean(SETTINGS_KEY_TRUST_ALL, DEFAULT_TRUST_ALL));
-        return opts;
+                .setTrustAll(settings.getBoolean(SETTINGS_KEY_TRUST_ALL, DEFAULT_TRUST_ALL))
+                ;
+        return customizer.apply(options);
     }
 
 }

@@ -27,8 +27,16 @@ import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_MA
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.DEFAULT_MAX_WAIT_QUEUE_SIZE;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_POOL_SIZE;
 import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOL_CLEANER_PERIOD_MILLIS;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOL_CONNECTION_TIMEOUT_SECONDS;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOL_EVENT_LOOP_SIZE;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOL_IDLE_TIMEOUT_SECONDS;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_POOL_NAME;
+import static com.mastfrog.giulius.postgres.async.PostgresAsyncModule.SETTINGS_KEY_SHARED_POOL;
 import com.mastfrog.settings.Settings;
+import com.mastfrog.util.preconditions.ConfigurationError;
 import io.vertx.sqlclient.PoolOptions;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -47,8 +55,36 @@ final class PoolOptionsProvider implements Provider<PoolOptions> {
 
     @Override
     public PoolOptions get() {
-        return new PoolOptions().setMaxSize(settings.getInt(SETTINGS_KEY_MAX_POOL_SIZE,
-                DEFAULT_MAX_POOL_SIZE)).setMaxWaitQueueSize(settings.getInt(
-                        SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE, DEFAULT_MAX_WAIT_QUEUE_SIZE));
+        PoolOptions opts = new PoolOptions()
+                .setMaxSize(settings.getInt(SETTINGS_KEY_MAX_POOL_SIZE, DEFAULT_MAX_POOL_SIZE))
+                .setMaxWaitQueueSize(settings.getInt(SETTINGS_KEY_MAX_WAIT_QUEUE_SIZE, DEFAULT_MAX_WAIT_QUEUE_SIZE))
+                .setShared(settings.getBoolean(SETTINGS_KEY_SHARED_POOL, true));
+        Integer cleanerPeriod = settings.getInt(SETTINGS_KEY_POOL_CLEANER_PERIOD_MILLIS);
+        if (cleanerPeriod != null) {
+            opts = opts.setPoolCleanerPeriod(cleanerPeriod);
+        }
+        String name = settings.getString(SETTINGS_KEY_POOL_NAME);
+        if (name != null) {
+            opts = opts.setName(name);
+        }
+        Integer eventLoopSize = settings.getInt(SETTINGS_KEY_POOL_EVENT_LOOP_SIZE);
+        if (eventLoopSize != null) {
+            if (eventLoopSize <= 0) {
+                throw new ConfigurationError("Event loop size too small: " + eventLoopSize);
+            }
+            opts = opts.setEventLoopSize(eventLoopSize);
+        }
+        Integer idleTimeout = settings.getInt(SETTINGS_KEY_POOL_IDLE_TIMEOUT_SECONDS);
+        if (idleTimeout != null) {
+            opts = opts.setIdleTimeout(idleTimeout)
+                    .setIdleTimeoutUnit(SECONDS);
+        }
+        Integer connectTimeout = settings.getInt(SETTINGS_KEY_POOL_CONNECTION_TIMEOUT_SECONDS);
+        if (connectTimeout != null) {
+            opts = opts.setConnectionTimeout(connectTimeout)
+                    .setConnectionTimeoutUnit(SECONDS);
+        }
+
+        return opts;
     }
 }

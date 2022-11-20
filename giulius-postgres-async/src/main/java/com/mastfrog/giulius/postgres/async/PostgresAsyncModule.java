@@ -64,6 +64,12 @@ public final class PostgresAsyncModule extends AbstractModule {
     public static final String SETTINGS_KEY_RECONNECT_ATTEMPTS
             = "pg-tcp-fast-open";
     public static final String SETTINGS_KEY_LOG_ACTIVITY = "pg-log-activity";
+    public static final String SETTINGS_KEY_SHARED_POOL = "pg-pool-shared";
+    public static final String SETTINGS_KEY_POOL_CLEANER_PERIOD_MILLIS = "pg-pool-cleaner-millis";
+    public static final String SETTINGS_KEY_POOL_NAME = "pg-pool-name";
+    public static final String SETTINGS_KEY_POOL_EVENT_LOOP_SIZE = "pg-pool-event-loop-size";
+    public static final String SETTINGS_KEY_POOL_IDLE_TIMEOUT_SECONDS = "pg-pool-event-idle-timeout-seconds";
+    public static final String SETTINGS_KEY_POOL_CONNECTION_TIMEOUT_SECONDS = "pg-pool-connection-idle-timeout-seconds";
     /**
      * @deprecated Removed in the vertx pg client library.  Does nothing
      */
@@ -71,6 +77,7 @@ public final class PostgresAsyncModule extends AbstractModule {
     public static final String SETTINGS_KEY_POOLED_BUFFERS = "pg-pooled-buffers";
     public static final String SETTINGS_KEY_TRUST_ALL = "pg-trust-all";
 
+    static final int DEFAULT_POOL_CLEANER_MILLIS = 30000;
     static final int DEFAULT_CONNECT_TIMEOUT = 30000;
     static final int DEFAULT_RECONNECT_ATTEMPTS = 20;
     static final boolean DEFAULT_TCP_CORK = false;
