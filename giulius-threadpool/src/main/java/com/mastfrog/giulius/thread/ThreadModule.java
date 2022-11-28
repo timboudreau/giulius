@@ -138,7 +138,7 @@ public class ThreadModule extends AbstractModule {
                     .toInstance(threadFactory);
             if (type != ThreadPoolType.SCHEDULED) {
                 Provider<ExecutorService> exeProvider = new ExecutorServiceProvider<>(threadFactory,
-                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch);
+                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch, wrappers());
                 bindOne(binder, ExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, Executor.class, bindingName, exeProvider);
                 bindOne(binder, Thread.class, bindingName, threadFactory);
@@ -155,7 +155,7 @@ public class ThreadModule extends AbstractModule {
                 }
             } else {
                 Provider<ScheduledExecutorService> exeProvider = new ExecutorServiceProvider<>(threadFactory,
-                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch);
+                        threadCount, settings, ueh, type, shutdown, rejectedPolicy, shutdownBatch, wrappers());
                 bindOne(binder, ScheduledExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, ExecutorService.class, bindingName, exeProvider);
                 bindOne(binder, Executor.class, bindingName, exeProvider);

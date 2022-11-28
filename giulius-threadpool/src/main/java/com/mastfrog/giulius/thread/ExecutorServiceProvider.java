@@ -29,6 +29,7 @@ import com.mastfrog.giulius.thread.ExecutorServiceBuilder.ShutdownBatch;
 import static com.mastfrog.giulius.thread.ThreadPoolType.FORK_JOIN;
 import static com.mastfrog.giulius.thread.ThreadPoolType.SCHEDULED;
 import static com.mastfrog.giulius.thread.ThreadPoolType.STANDARD;
+import com.mastfrog.giulius.thread.wrap.ExecutionWrapper;
 import com.mastfrog.settings.Settings;
 import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
 import java.lang.reflect.Constructor;
@@ -36,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -58,11 +60,13 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
     private final Provider<ShutdownHookRegistry> reg;
     private final RejectedExecutionPolicy rejectedPolicy;
     private final ShutdownBatch shutdownBatch;
+    private final ExecutionWrapper[] wrappers;
 
     ExecutorServiceProvider(GiuliusThreadFactory tf, ThreadCount count, Provider<Settings> settings,
             Provider<Thread.UncaughtExceptionHandler> uncaught,
             ThreadPoolType type, Provider<ShutdownHookRegistry> reg,
-            RejectedExecutionPolicy rejectedPolicy, ShutdownBatch shutdownBatch) {
+            RejectedExecutionPolicy rejectedPolicy, ShutdownBatch shutdownBatch,
+            ExecutionWrapper[] wrappers) {
         this.tf = tf;
         this.count = count;
         this.settings = settings;
@@ -71,6 +75,7 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
         this.reg = reg;
         this.rejectedPolicy = rejectedPolicy;
         this.shutdownBatch = shutdownBatch;
+        this.wrappers = wrappers;
     }
 
     ThreadPoolType type() {
@@ -102,6 +107,9 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
         }
         switch (type()) {
             case FORK_JOIN:
+                if (wrappers != null && wrappers.length > 0) {
+                    throw new IllegalStateException("Cannot use ExecutionWrappers with a fork-join pool");
+                }
                 if (!rejectedPolicy.isDefault() || corePoolSize != threads || keepAliveSeconds != Long.MAX_VALUE) {
                     T result = (T) reflectivelyCreateJDK11ForkJoinPool(threads, corePoolSize, keepAliveSeconds);
                     if (result != null) {
@@ -110,6 +118,9 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
                 }
                 return (T) new ForkJoinPool(threads, tf, uncaught.get(), false);
             case WORK_STEALING:
+                if (wrappers != null && wrappers.length > 0) {
+                    throw new IllegalStateException("Cannot use ExecutionWrappers with a fork-join pool");
+                }
                 if (!rejectedPolicy.isDefault() || corePoolSize != threads || keepAliveSeconds != Long.MAX_VALUE) {
                     T result = (T) reflectivelyCreateJDK11ForkJoinPool(threads, corePoolSize, keepAliveSeconds);
                     if (result != null) {
@@ -118,15 +129,27 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
                 }
                 return (T) new ForkJoinPool(threads, tf, uncaught.get(), true);
             case STANDARD:
+                ExecutorService exe;
                 if (!rejectedPolicy.isDefault() || corePoolSize != threads || keepAliveSeconds != Long.MAX_VALUE) {
-                    return (T) new ThreadPoolExecutor(corePoolSize, threads, keepAliveSeconds, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), tf, rejectedPolicy.policy());
+                    exe = new ThreadPoolExecutor(corePoolSize, threads, keepAliveSeconds, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), tf, rejectedPolicy.policy());
+                } else {
+                    exe = (threads == 1 ? Executors.newSingleThreadExecutor(tf) : Executors.newFixedThreadPool(threads, tf));
                 }
-                return (T) (threads == 1 ? Executors.newSingleThreadExecutor(tf) : Executors.newFixedThreadPool(threads, tf));
+                if (wrappers != null && wrappers.length > 0) {
+                    return (T) new WrappingExecutor(exe, wrappers);
+                }
+                return (T) exe;
             case SCHEDULED:
+                ScheduledExecutorService sched;
                 if (!rejectedPolicy.isDefault()) {
-                    return (T) new ScheduledThreadPoolExecutor(threads, tf, rejectedPolicy.policy());
+                    sched = new ScheduledThreadPoolExecutor(threads, tf, rejectedPolicy.policy());
+                } else {
+                    sched = (threads == 1 ? Executors.newSingleThreadScheduledExecutor() : Executors.newScheduledThreadPool(threads, tf));
                 }
-                return (T) (threads == 1 ? Executors.newSingleThreadScheduledExecutor() : Executors.newScheduledThreadPool(threads, tf));
+                if (wrappers != null && wrappers.length > 0) {
+                    return (T) new WrappingScheduledExecutor(sched, wrappers);
+                }
+                return (T) sched;
             default:
                 throw new AssertionError(type);
         }
@@ -168,7 +191,7 @@ final class ExecutorServiceProvider<T extends ExecutorService> implements Provid
             return null;
         }
         Logger.getLogger(ExecutorServiceProvider.class.getName()).log(Level.INFO,
-                "Reflectively using JDK 11 ForkJoinPool constructor for '" + tf.name() + "'");
+                "Reflectively using JDK 11 ForkJoinPool constructor for ''{0}''", tf.name());
         boolean async = type() == ThreadPoolType.FORK_JOIN ? false : true;
         boolean saturate = settings.get().getBoolean(tf.name() + ".saturate", false);
         int maxpoolSize = settings.get().getInt(tf.name() + ".maxPoolSize", threads + 1);

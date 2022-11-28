@@ -109,7 +109,7 @@ final class GiuliusThreadFactory implements ThreadFactory, ForkJoinPool.ForkJoin
 
     static class FWT extends java.util.concurrent.ForkJoinWorkerThread {
 
-        public FWT(ForkJoinPool pool, ThreadGroup group) {
+        FWT(ForkJoinPool pool, ThreadGroup group) {
             super(pool);
         }
     }

@@ -25,13 +25,21 @@ package com.mastfrog.giulius.thread;
 
 import com.google.inject.Provider;
 import com.google.inject.util.Providers;
+import com.mastfrog.giulius.thread.wrap.CallableConverter;
+import com.mastfrog.giulius.thread.wrap.ExecutionWrapper;
+import static com.mastfrog.giulius.thread.wrap.ExecutionWrapper.executionWrapper;
 import com.mastfrog.shutdown.hooks.ShutdownHooks;
 import com.mastfrog.util.preconditions.Checks;
 import static com.mastfrog.util.preconditions.Checks.greaterThanZero;
 import static com.mastfrog.util.preconditions.Checks.notNull;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
+import static java.util.Arrays.asList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Function;
 
 /**
  * Builder for ExecutorService / Executor / ScheduledExecutorService bindings
@@ -55,6 +63,7 @@ public abstract class ExecutorServiceBuilder {
     RejectedExecutionPolicy rejectedPolicy
             = RejectedExecutionPolicy.defaultPolicy();
     ShutdownBatch shutdownBatch = ShutdownBatch.DEFAULT;
+    final List<ExecutionWrapper> wrappers = new ArrayList<>();
 
     ExecutorServiceBuilder(String bindingName) {
         this.bindingName = bindingName;
@@ -66,6 +75,92 @@ public abstract class ExecutorServiceBuilder {
                 + " " + defaultThreadCount + ", " + explicitThreadCount
                 + ", " + priority + ", " + type + ", "
                 + legacyName + " " + eager + ")";
+    }
+
+    /**
+     * Use one or more ExecutionWrappers to run submit/before/after logic on all
+     * submitted runnables or callables - this is useful for propagating
+     * thread-local context, incrementing concurrency counters and similar.
+     * <p>
+     * Note, ExecutionWrappers <i>cannot</i> be used with fork-join /
+     * work-stealing pools - there are too many internal paths by which work
+     * passed to the pool may be executed to guarantee that wrappers will always
+     * be run.
+     * </p>
+     *
+     * @param wrapper A wrapper
+     * @param moreWrappers Some more wrappers
+     * @return this
+     */
+    public ExecutorServiceBuilder wrappingSubmissionsWith(ExecutionWrapper wrapper, ExecutionWrapper... moreWrappers) {
+        wrappers.add(wrapper);
+        if (moreWrappers.length > 0) {
+            wrappers.addAll(asList(moreWrappers));
+        }
+        return this;
+    }
+
+    /**
+     * Wrap all submitted runnables and callables in before/after logic using
+     * the passed converter.
+     * <p>
+     * Note, ExecutionWrappers <i>cannot</i> be used with fork-join /
+     * work-stealing pools - there are too many internal paths by which work
+     * passed to the pool may be executed to guarantee that wrappers will always
+     * be run.
+     * </p>
+     *
+     * @param cvt A converter
+     * @return this
+     */
+    public ExecutorServiceBuilder wrappingSubmissionsWith(CallableConverter cvt) {
+        wrappers.add(executionWrapper(cvt));
+        return this;
+    }
+
+    /**
+     * Wrap all submitted runnables and callables in before/after logic using
+     * the passed function.
+     * <p>
+     * Note, ExecutionWrappers <i>cannot</i> be used with fork-join /
+     * work-stealing pools - there are too many internal paths by which work
+     * passed to the pool may be executed to guarantee that wrappers will always
+     * be run.
+     * </p>
+     *
+     * @param cvt A converter
+     * @return this
+     */
+    public ExecutorServiceBuilder wrappingSubmissionsWith(Function<Runnable, Runnable> cvt) {
+        wrappers.add(executionWrapper(cvt));
+        return this;
+    }
+
+    /**
+     * Propagate the value of the passed ThreadLocal (if any) at the time of
+     * submission to the same ThreadLocal before invoking any runnable/callable,
+     * resetting it for the worker thread after the work has been run.
+     * <p>
+     * Note, ExecutionWrappers <i>cannot</i> be used with fork-join /
+     * work-stealing pools - there are too many internal paths by which work
+     * passed to the pool may be executed to guarantee that wrappers will always
+     * be run.
+     * </p>
+     *
+     * @param <X> The thread local's parameter type
+     * @param tl A thread local
+     * @return this
+     */
+    public <X> ExecutorServiceBuilder propagatingThreadLocal(ThreadLocal<X> tl) {
+        wrappers.add(ExecutionWrapper.propagatingThreadLocal(tl));
+        return this;
+    }
+
+    ExecutionWrapper[] wrappers() {
+        if (wrappers.isEmpty()) {
+            return null;
+        }
+        return wrappers.toArray(new ExecutionWrapper[wrappers.size()]);
     }
 
     /**
@@ -133,7 +228,8 @@ public abstract class ExecutorServiceBuilder {
      * @param ueh A provider for a handler
      * @return this
      */
-    public ExecutorServiceBuilder withUncaughtExceptionHandler(Provider<Thread.UncaughtExceptionHandler> ueh) {
+    public ExecutorServiceBuilder withUncaughtExceptionHandler(
+            Provider<UncaughtExceptionHandler> ueh) {
         this.handler = ueh;
         return this;
     }
@@ -145,7 +241,8 @@ public abstract class ExecutorServiceBuilder {
      * @param ueh A handler
      * @return this
      */
-    public ExecutorServiceBuilder withUncaughtExceptionHandler(Thread.UncaughtExceptionHandler ueh) {
+    public ExecutorServiceBuilder withUncaughtExceptionHandler(
+            UncaughtExceptionHandler ueh) {
         this.handler = Providers.of(Checks.notNull("ueh", ueh));
         return this;
     }
@@ -165,7 +262,7 @@ public abstract class ExecutorServiceBuilder {
     /**
      * For the case of classes where an integer value for the thread count can
      * be passed, overriding settings or the default, pass that for the thread
-     * count (if &lt; 0 then settings or the default take precedence.
+     * count (if &lt; 0 then settings or the default take precedence).
      *
      * @param threadCount The thread count
      * @return this
@@ -272,14 +369,17 @@ public abstract class ExecutorServiceBuilder {
 
     void validate() {
         if (type != null) {
-            switch(type) {
-                case FORK_JOIN :
-                case WORK_STEALING :
+            switch (type) {
+                case FORK_JOIN:
+                case WORK_STEALING:
                     if (!rejectedPolicy.isDefault()) {
                         throw new IllegalArgumentException("Cannot build a "
                                 + "work-stealing or fork-join pool with a non-default "
                                 + "RejectedExecutionPolicy - ForkJoinPool does not support "
                                 + "RejectedExecutionHandlers, but have policy " + rejectedPolicy);
+                    }
+                    if (!wrappers.isEmpty()) {
+                        throw new IllegalArgumentException("Cannot wrap runnables in a Fork-Join pool");
                     }
             }
         }
@@ -301,20 +401,20 @@ public abstract class ExecutorServiceBuilder {
         }
 
         RejectedExecutionHandler policy() {
-            switch(this) {
-                case ABORT :
+            switch (this) {
+                case ABORT:
                     return new ThreadPoolExecutor.AbortPolicy();
-                case CALLER_RUNS_IF_NOT_SHUTDOWN :
+                case CALLER_RUNS_IF_NOT_SHUTDOWN:
                     return new ThreadPoolExecutor.CallerRunsPolicy();
-                case CALLER_ALWAYS_RUNS :
+                case CALLER_ALWAYS_RUNS:
                     return (r, exe) -> {
                         r.run();
                     };
-                case DISCARD :
+                case DISCARD:
                     return new ThreadPoolExecutor.DiscardPolicy();
-                case DISCARD_OLDEST :
+                case DISCARD_OLDEST:
                     return new ThreadPoolExecutor.DiscardOldestPolicy();
-                default :
+                default:
                     return new ThreadPoolExecutor.AbortPolicy();
             }
         }
@@ -326,16 +426,16 @@ public abstract class ExecutorServiceBuilder {
     }
 
     /**
-     * ShutdownHooks contains first, middle and last batches of shutdown
-     * hooks, which are used to shut down and wait for executor services.
-     * Hooks are run in LIFO order.  Ordinarily this is sufficient, but
-     * there are some cases where, due to Guice lazily instantiating things,
-     * a thing that uses a thread pool may be shut down before a thing
-     * that uses it is finished with it; or it may be desirable to have
-     * shutdown occur before other shutdown tasks.
+     * ShutdownHooks contains first, middle and last batches of shutdown hooks,
+     * which are used to shut down and wait for executor services. Hooks are run
+     * in LIFO order. Ordinarily this is sufficient, but there are some cases
+     * where, due to Guice lazily instantiating things, a thing that uses a
+     * thread pool may be shut down before a thing that uses it is finished with
+     * it; or it may be desirable to have shutdown occur before other shutdown
+     * tasks.
      * <p>
-     * This enum is used to specify if something other than the default
-     * batch should be used for a given executor.
+     * This enum is used to specify if something other than the default batch
+     * should be used for a given executor.
      */
     public enum ShutdownBatch {
         EARLY,
@@ -344,20 +444,20 @@ public abstract class ExecutorServiceBuilder {
         IGNORE;
 
         void apply(ExecutorService svc, ShutdownHooks to) {
-            switch(this) {
-                case EARLY :
+            switch (this) {
+                case EARLY:
                     to.addFirst(svc);
                     break;
-                case DEFAULT :
+                case DEFAULT:
                     to.add(svc);
                     break;
-                case LATE :
+                case LATE:
                     to.addLast(svc);
                     break;
-                case IGNORE :
+                case IGNORE:
                     // do nothing
                     break;
-                default :
+                default:
                     throw new AssertionError(this);
             }
         }

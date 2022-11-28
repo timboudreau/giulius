@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * Useful for anything that needs to do some sort of expensive write operation
  * where there is a benefit to batching work in larger chunks, but ensuring a
- * maximum latency between writes;  or for scheduling work that should only run
+ * maximum latency between writes; or for scheduling work that should only run
  * when the system is quiet.
  *
  * @author Tim Boudreau
@@ -62,14 +62,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Reschedulables {
 
     public static final String SETTINGS_KEY_RESCHEDULABLES_THREADS = "reschedulables.threads";
-    private static final ReschedulePolicy SIMPLE_DELAY = (DelayQueue queue, Info info, Delayed delayed) -> {
+    private static final ReschedulePolicy SIMPLE_DELAY = (DelayQueue<ReschedulableImpl> queue, Info info, ReschedulableImpl delayed) -> {
         if (!info.isEnqueued) {
             info.touchAndEnqueue();
             queue.offer(delayed);
         }
     };
 
-    private static final ReschedulePolicy RESET_DELAY = (DelayQueue queue, Info info, Delayed delayed) -> {
+    private static final ReschedulePolicy RESET_DELAY = (DelayQueue<ReschedulableImpl> queue, Info info, ReschedulableImpl delayed) -> {
         info.touchAndEnqueue();
         if (!queue.contains(delayed)) {
             queue.offer(delayed);
@@ -78,7 +78,7 @@ public class Reschedulables {
 
     private static final ReschedulePolicy RESET_DELAY_LAST_RUN_MAX = new ReschedulePolicy() {
         @Override
-        public void onTouch(DelayQueue queue, Info info, Delayed delayed) {
+        public void onTouch(DelayQueue<ReschedulableImpl> queue, Info info, ReschedulableImpl delayed) {
             info.touchAndEnqueue();
             if (!queue.contains(delayed)) {
                 queue.offer(delayed);
@@ -91,7 +91,6 @@ public class Reschedulables {
         }
 
     };
-
 
     private final ExecutorService threadPool;
     private final DelayQueue<ReschedulableImpl> queue = new DelayQueue<>();
@@ -116,8 +115,9 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * subsequent calls to touch() do not change when it runs until it has been run.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and subsequent calls to touch() do not change when it runs until
+     * it has been run.
      *
      * @param delay The delay after which it should run
      * @param runnable The thing to run
@@ -128,8 +128,9 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * subsequent calls to touch() do not change when it runs until it has been run.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and subsequent calls to touch() do not change when it runs until
+     * it has been run.
      *
      * @param delay The delay after which it should run
      * @param callable The thing to run
@@ -140,8 +141,9 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * each subsequent call to touch() resets that delay to current timestamp + delay.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and each subsequent call to touch() resets that delay to current
+     * timestamp + delay.
      *
      * @param delay The delay after which it should run
      * @param runnable The thing to run
@@ -152,8 +154,9 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * each subsequent call to touch() resets that delay to current timestamp + delay.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and each subsequent call to touch() resets that delay to current
+     * timestamp + delay.
      *
      * @param delay The delay after which it should run
      * @param callable The thing to run
@@ -164,9 +167,10 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay; subsequent
-     * calls to touch() do not delay; but under no circumstances, following a call to touch(Duration)
-     * will it run more than maxElapsed time in the future.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay; subsequent calls to touch() do not delay; but under no
+     * circumstances, following a call to touch(Duration) will it run more than
+     * maxElapsed time in the future.
      *
      * @param delay The delay after which it should run
      * @param runnable The thing to run
@@ -178,9 +182,10 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay; subsequent
-     * calls to touch() do not delay; but under no circumstances, following a call to touch(Duration)
-     * will it run more than maxElapsed time in the future.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay; subsequent calls to touch() do not delay; but under no
+     * circumstances, following a call to touch(Duration) will it run more than
+     * maxElapsed time in the future.
      *
      * @param delay The delay after which it should run
      * @param callable The thing to run
@@ -192,14 +197,16 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * each subsequent call to touch() resets that delay to current timestamp + delay;  but
-     * subsequent calls to touch() cannot delay execution more than <code>maxElapsed</code>
-     * time after the first call to touch() following a run.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and each subsequent call to touch() resets that delay to current
+     * timestamp + delay; but subsequent calls to touch() cannot delay execution
+     * more than <code>maxElapsed</code> time after the first call to touch()
+     * following a run.
      * <p>
-     * This gets you a reschedulable which can be pushed forward into the future by more calls
-     * to touch(), but only so far, so if you have a Reschedulable that is being bombarded with
-     * calls to touch(), that cannot cause it never to run at all.
+     * This gets you a reschedulable which can be pushed forward into the future
+     * by more calls to touch(), but only so far, so if you have a Reschedulable
+     * that is being bombarded with calls to touch(), that cannot cause it never
+     * to run at all.
      *
      * @param delay The delay after which it should run
      * @param runnable The thing to run
@@ -210,14 +217,16 @@ public class Reschedulables {
     }
 
     /**
-     * Build a Reschedulable whose touch() method simply schedules it on a delay, and
-     * each subsequent call to touch() resets that delay to current timestamp + delay;  but
-     * subsequent calls to touch() cannot delay execution more than <code>maxElapsed</code>
-     * time after the first call to touch() following a run.
+     * Build a Reschedulable whose touch() method simply schedules it on a
+     * delay, and each subsequent call to touch() resets that delay to current
+     * timestamp + delay; but subsequent calls to touch() cannot delay execution
+     * more than <code>maxElapsed</code> time after the first call to touch()
+     * following a run.
      * <p>
-     * This gets you a reschedulable which can be pushed forward into the future by more calls
-     * to touch(), but only so far, so if you have a Reschedulable that is being bombarded with
-     * calls to touch(), that cannot cause it never to run at all.
+     * This gets you a reschedulable which can be pushed forward into the future
+     * by more calls to touch(), but only so far, so if you have a Reschedulable
+     * that is being bombarded with calls to touch(), that cannot cause it never
+     * to run at all.
      *
      * @param delay The delay after which it should run
      * @param callable The thing to run
@@ -228,19 +237,20 @@ public class Reschedulables {
     }
 
     /**
-     * Similar to <code>withResettingDelayAndMaximumSinceFirstTouch()</code>, but bases the maximum
-     * elapsed interval on the last time this Resettable was <i>run</i>, not the first time touch()
-     * was called after a run.
+     * Similar to <code>withResettingDelayAndMaximumSinceFirstTouch()</code>,
+     * but bases the maximum elapsed interval on the last time this Resettable
+     * was <i>run</i>, not the first time touch() was called after a run.
      * <p>
-     * This gets you a resettable that will run, at worst, every maxElapsed time interval if there is anything
-     * for it to do - for example, if you were buffering log records but wanted to be sure anything cached
-     * was written out within five seconds - writing something immediately if it has been more than five seconds
-     * since the last run, this does that.
+     * This gets you a resettable that will run, at worst, every maxElapsed time
+     * interval if there is anything for it to do - for example, if you were
+     * buffering log records but wanted to be sure anything cached was written
+     * out within five seconds - writing something immediately if it has been
+     * more than five seconds since the last run, this does that.
      *
      * @param delay The delay between runs
      * @param runnable The thing to run
-     * @param maxElapsed The maximum time that can elapse between a run and the next run, assuming touch() is
-     * called in the intervening interval
+     * @param maxElapsed The maximum time that can elapse between a run and the
+     * next run, assuming touch() is called in the intervening interval
      * @return A reschedulable
      */
     public Reschedulable withResettingDelayAndMaximumSinceLastRun(Duration delay, Runnable runnable, Duration maxElapsed) {
@@ -248,19 +258,20 @@ public class Reschedulables {
     }
 
     /**
-     * Similar to <code>withResettingDelayAndMaximumSinceFirstTouch()</code>, but bases the maximum
-     * elapsed interval on the last time this Resettable was <i>run</i>, not the first time touch()
-     * was called after a run.
+     * Similar to <code>withResettingDelayAndMaximumSinceFirstTouch()</code>,
+     * but bases the maximum elapsed interval on the last time this Resettable
+     * was <i>run</i>, not the first time touch() was called after a run.
      * <p>
-     * This gets you a resettable that will run, at worst, every maxElapsed time interval if there is anything
-     * for it to do - for example, if you were buffering log records but wanted to be sure anything cached
-     * was written out within five seconds - writing something immediately if it has been more than five seconds
-     * since the last run, this does that.
+     * This gets you a resettable that will run, at worst, every maxElapsed time
+     * interval if there is anything for it to do - for example, if you were
+     * buffering log records but wanted to be sure anything cached was written
+     * out within five seconds - writing something immediately if it has been
+     * more than five seconds since the last run, this does that.
      *
      * @param delay The delay between runs
      * @param callable The thing to run
-     * @param maxElapsed The maximum time that can elapse between a run and the next run, assuming touch() is
-     * called in the intervening interval
+     * @param maxElapsed The maximum time that can elapse between a run and the
+     * next run, assuming touch() is called in the intervening interval
      * @return A reschedulable
      */
     public Reschedulable withResettingDelayAndMaximumSinceLastRun(Duration delay, Callable<?> callable, Duration maxElapsed) {
@@ -328,9 +339,9 @@ public class Reschedulables {
         final Info info;
         final Callable<?> job;
         final ReschedulePolicy policy;
-        final DelayQueue queue;
+        final DelayQueue<ReschedulableImpl> queue;
 
-        ReschedulableImpl(final Callable<?> job, long defaultDelay, ReschedulePolicy policy, DelayQueue queue, Duration maximumDelay) {
+        ReschedulableImpl(final Callable<?> job, long defaultDelay, ReschedulePolicy policy, DelayQueue<ReschedulableImpl> queue, Duration maximumDelay) {
             info = new Info(defaultDelay, maximumDelay == null ? Long.MAX_VALUE : maximumDelay.toMillis());
             this.policy = policy;
             this.queue = queue;
@@ -499,7 +510,7 @@ public class Reschedulables {
 
     private static interface ReschedulePolicy {
 
-        void onTouch(DelayQueue queue, Info info, Delayed delayed);
+        void onTouch(DelayQueue<ReschedulableImpl> queue, Info info, ReschedulableImpl delayed);
 
         default long getDelay(Info info) {
             return info.millisUntilNextRun(false);
