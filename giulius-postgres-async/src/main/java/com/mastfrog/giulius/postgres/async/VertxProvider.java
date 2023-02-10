@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2019 Mastfrog Technologies.
+ * Copyright 2023 Mastfrog Technologies.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,21 @@
  */
 package com.mastfrog.giulius.postgres.async;
 
-import com.mastfrog.function.BooleanBiFunction;
-import io.vertx.core.AsyncResult;
-import java.util.function.Consumer;
+import com.google.inject.ImplementedBy;
+import io.vertx.core.Vertx;
 
 /**
- * A generic interface for things that handle application-level errors,
- * which also deals with creating error contexts for dealing with
- * the postgres driver's asynchronous error handling with minimal
- * code-mess.  Not bound by default, and not required, but useful.
+ * Allows an existing instance of Vertx to be provisioned for use by the driver,
+ * so, for example, a web server and the postgres driver can share a single
+ * event loop thread pool.
+ * <p>
+ * This class deliberately does <i>not</i> implement Provider directly.
+ * </p>
  *
  * @author Tim Boudreau
  */
-public interface PgErrorHandler extends Thread.UncaughtExceptionHandler, Consumer<Throwable> {
+@ImplementedBy(DefaultVertxProvider.class)
+public interface VertxProvider {
 
-    default boolean isFatal(Throwable thrown) {
-        return false;
-    }
-
-    @Override
-    default void accept(Throwable thrown) {
-        this.uncaughtException(Thread.currentThread(), thrown);
-    }
-
-    default ErrorContext context(BooleanBiFunction<AsyncResult<?>, Throwable> onError) {
-        return new ErrorContext(this, onError);
-    }
+    public Vertx getVertx();
 }

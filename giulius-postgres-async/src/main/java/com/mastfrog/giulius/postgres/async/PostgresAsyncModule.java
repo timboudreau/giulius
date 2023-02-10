@@ -31,15 +31,15 @@ import io.vertx.sqlclient.PoolOptions;
 
 /**
  * Guice bindings for the postgres async client. Binds PgPool and some
- * supporting classes.  Note:  The vertx driver seems to routinely break binary
- * compatibility, and there is nothing that can be done about that here -
- * for example, with version 3.9.1, a bunch of layers of async calls are
- * added to creating and using a prepared statement, which will break
- * existing code, and PgConnectOptions curiously, lost overloaded methods
- * that returned its own type, returning the parent type instead.
+ * supporting classes. Note: The vertx driver seems to routinely break binary
+ * compatibility, and there is nothing that can be done about that here - for
+ * example, with version 3.9.1, a bunch of layers of async calls are added to
+ * creating and using a prepared statement, which will break existing code, and
+ * PgConnectOptions curiously, lost overloaded methods that returned its own
+ * type, returning the parent type instead.
  * <p>
- * On the other hand, it <i>is</i> a true async postgres driver, and that
- * is critical if you're in the async framework business.
+ * On the other hand, it <i>is</i> a true async postgres driver, and that is
+ * critical if you're in the async framework business.
  *
  * @author Tim Boudreau
  */
@@ -71,7 +71,7 @@ public final class PostgresAsyncModule extends AbstractModule {
     public static final String SETTINGS_KEY_POOL_IDLE_TIMEOUT_SECONDS = "pg-pool-event-idle-timeout-seconds";
     public static final String SETTINGS_KEY_POOL_CONNECTION_TIMEOUT_SECONDS = "pg-pool-connection-idle-timeout-seconds";
     /**
-     * @deprecated Removed in the vertx pg client library.  Does nothing
+     * @deprecated Removed in the vertx pg client library. Does nothing
      */
     @Deprecated
     public static final String SETTINGS_KEY_POOLED_BUFFERS = "pg-pooled-buffers";
@@ -93,6 +93,7 @@ public final class PostgresAsyncModule extends AbstractModule {
     static final boolean DEFAULT_CACHE_PREPARED_STATEMENTS = true;
     static final String DEFAULT_PG_URI
             = "postgres://postgres@postgres.timboudreau.org:5432/sensors";
+    private boolean useProvider;
 
     public static SettingsBuilder populateDefaults(SettingsBuilder b) {
         return b.add(SETTINGS_KEY_PG_URI, DEFAULT_PG_URI)
@@ -103,10 +104,29 @@ public final class PostgresAsyncModule extends AbstractModule {
                         DEFAULT_CACHE_PREPARED_STATEMENTS);
     }
 
+    /**
+     * If called, expect a <code>Provider&lt;Vertx&gt;</code> already to be
+     * bound at configuration time, and use that to obtain the
+     * <code>Vertx</code> instance used by the driver; otherwise, use the
+     * default obtained from  <code>Vertx.vertx()</code>. Alternately,
+     * implementing and binding <code>VertxProvider</code> directly overrides
+     * the default behavior.
+     *
+     * @return this
+     */
+    public PostgresAsyncModule getVertxFromProvider() {
+        useProvider = true;
+        return this;
+    }
+
     @Override
     protected void configure() {
         bind(PgConnectOptions.class).toProvider(PgConnectOptionsProvider.class);
         bind(PoolOptions.class).toProvider(PoolOptionsProvider.class);
         bind(PgPool.class).toProvider(PoolProvider.class);
+        if (useProvider) {
+            bind(VertxProvider.class).to(VertxProviderProvider.class);
+        }
     }
+
 }

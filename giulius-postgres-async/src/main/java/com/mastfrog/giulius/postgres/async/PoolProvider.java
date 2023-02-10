@@ -42,19 +42,23 @@ final class PoolProvider implements Provider<PgPool>, Runnable {
     private final Provider<PgConnectOptions> pConnectOpts;
     private final Provider<PoolOptions> ppoolOpts;
     private PgPool pool;
+    private final VertxProvider vx;
 
     @SuppressWarnings(value = "LeakingThisInConstructor")
     @Inject
-    PoolProvider(Provider<PgConnectOptions> pConnectOpts, Provider<PoolOptions> ppoolOpts, ShutdownHookRegistry reg) {
+    PoolProvider(Provider<PgConnectOptions> pConnectOpts, 
+            Provider<PoolOptions> ppoolOpts, VertxProvider vx, 
+            ShutdownHookRegistry reg) {
         this.pConnectOpts = pConnectOpts;
         this.ppoolOpts = ppoolOpts;
+        this.vx = vx;
         reg.add(this);
     }
 
     @Override
     public synchronized PgPool get() {
         if (pool == null) {
-            pool = PgPool.pool(pConnectOpts.get(), ppoolOpts.get());
+            pool = PgPool.pool(vx.getVertx(), pConnectOpts.get(), ppoolOpts.get());
         }
         return pool;
     }
