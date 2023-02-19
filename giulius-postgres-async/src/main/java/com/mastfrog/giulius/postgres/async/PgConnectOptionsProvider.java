@@ -81,6 +81,7 @@ final class PgConnectOptionsProvider implements Provider<PgConnectOptions> {
                 .setReconnectAttempts(settings.getInt(SETTINGS_KEY_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_ATTEMPTS))
                 .setLogActivity(settings.getBoolean(SETTINGS_KEY_LOG_ACTIVITY, DEFAULT_LOG_ACTIVITY))
                 .setTrustAll(settings.getBoolean(SETTINGS_KEY_TRUST_ALL, DEFAULT_TRUST_ALL))
+                .setMetricsName("dbConnect")
                 ;
         return customizer.apply(options);
     }
