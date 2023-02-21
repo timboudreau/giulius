@@ -29,6 +29,7 @@ import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProce
 import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.REPLACEMENT_DEFAULTS_ANNOTATION_TYPE;
 import com.mastfrog.giulius.annotation.processors.PropertiesIndexFactory.PropertiesIndexEntry;
 import com.mastfrog.annotation.registries.AbstractRegistrationAnnotationProcessor;
+import static com.mastfrog.giulius.annotation.processors.DefaultsAnnotationProcessor.SETTING_ANNOTATION_TYPE;
 import com.mastfrog.util.service.ServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -56,7 +57,8 @@ import javax.tools.Diagnostic;
  * @author Tim Boudreau
  */
 @ServiceProvider(Processor.class)
-@SupportedAnnotationTypes({NEW_DEFAULTS_ANNOTATION_TYPE, OLD_DEFAULTS_ANNOTATION_TYPE, REPLACEMENT_DEFAULTS_ANNOTATION_TYPE})
+@SupportedAnnotationTypes({NEW_DEFAULTS_ANNOTATION_TYPE, OLD_DEFAULTS_ANNOTATION_TYPE,
+    REPLACEMENT_DEFAULTS_ANNOTATION_TYPE, SETTING_ANNOTATION_TYPE})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationProcessor<PropertiesIndexEntry> {
 
@@ -82,14 +84,19 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
     public static final String DEFAULT_FILE = GENERATED_PREFIX + DEFAULT_NAMESPACE + DEFAULT_EXTENSION;
     public static final String DEFAULT_LOCATION = DEFAULT_PATH + DEFAULT_FILE;
 
+    public static final String DESCRIPTIONS_PATH = DEFAULT_PATH + "_generated-descriptions.properties";
+    public static final String ORIGINAL_DEFAULTS_PATH = DEFAULT_PATH + "_generated-original.properties";
+
     static final String OLD_DEFAULTS_ANNOTATION_TYPE = "com.mastfrog.guicy.annotations.Defaults";
     static final String NEW_DEFAULTS_ANNOTATION_TYPE = "com.mastfrog.giulius.annotations.Defaults";
     static final String REPLACEMENT_DEFAULTS_ANNOTATION_TYPE = "com.mastfrog.giulius.annotations.SettingsDefaults";
+    static final String SETTING_ANNOTATION_TYPE = "com.mastfrog.giulius.annotations.Setting";
 
     public DefaultsAnnotationProcessor() {
         super(new PropertiesIndexFactory());
     }
 
+    @SuppressWarnings("StringEquality")
     private boolean checkValidNamespace(String ns) {
         if (ns == DEFAULT_NAMESPACE) {
             return true;
@@ -187,11 +194,13 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
     }
 
     private String findPath(AnnotationMirror defaults, Element e, AnnotationUtils utils) {
+
+        if (SETTING_ANNOTATION_TYPE.equals(defaults.getAnnotationType().toString())) {
+            return ORIGINAL_DEFAULTS_PATH;
+        }
+
         boolean specifiesNamespace;
         String namespace = findNamespaceForDefaultsAnnotationMirror(e, defaults, utils);
-//        if (namespace == null) {
-//            return null;
-//        }
 
         specifiesNamespace = !DEFAULT_NAMESPACE.equals(namespace);
 
@@ -246,7 +255,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
                     continue;
                 }
                 String val = utils.annotationValue(pair, "value", String.class);
-                if (val== null) {
+                if (val == null) {
                     fail("Missing property value", e, pair);
                     continue;
                 }
@@ -260,6 +269,15 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
                 }
                 pp.setProperty(key, val);
             }
+        } else if (SETTING_ANNOTATION_TYPE.equals(anno.getAnnotationType().toString())) {
+            SettingRecord.fromAnnotationMirror(utils, anno, e).ifPresent(rec -> {
+                rec.defaultValue().ifPresent(def -> {
+                    pp.put(rec.key, def);
+                });
+                Properties props = new Properties();
+                props.setProperty(rec.key, rec.toString());
+                indexer.add(DESCRIPTIONS_PATH, new PropertiesIndexEntry(props, e), processingEnv, e);
+            });
         } else {
             List<String> pairs = utils.annotationValues(anno, "value", String.class);
             StringBuilder sb = new StringBuilder();
@@ -273,7 +291,7 @@ public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationP
                 return;
             }
         }
-        if (pp.isEmpty()) {
+        if (pp.isEmpty() && !SETTING_ANNOTATION_TYPE.equals(anno.getAnnotationType().toString())) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, e.asType()
                     + " annotated with @Defaults yet defines no properties.  Check syntax.", e, anno);
             return;

@@ -168,77 +168,167 @@ public interface Settings extends Iterable<String> {
 
     default Integer getInt(String name) {
         String prop = getString(name);
-        return prop == null ? null : Integer.parseInt(prop);
+        try {
+            return prop == null ? null : Integer.parseInt(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default int getInt(String name, int defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Integer.parseInt(prop);
+        try {
+            return prop == null ? defaultValue : Integer.parseInt(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default int getInt(String name, IntSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsInt() : Integer.parseInt(prop);
+        try {
+            return prop == null ? defaultValue.getAsInt() : Integer.parseInt(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default Short getShort(String name) {
         String prop = getString(name);
-        return prop == null ? null : Short.parseShort(prop);
+        try {
+            return prop == null ? null : Short.parseShort(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default int getShort(String name, short defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Short.parseShort(prop);
+        try {
+            return prop == null ? defaultValue : Short.parseShort(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default int getShort(String name, ShortSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsShort() : Short.parseShort(prop);
+        try {
+            return prop == null ? defaultValue.getAsShort() : Short.parseShort(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default Byte getByte(String name) {
         String prop = getString(name);
-        return prop == null ? null : Byte.parseByte(prop);
+        try {
+            return prop == null ? null : Byte.parseByte(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default byte getByte(String name, byte defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Byte.parseByte(prop);
+        try {
+            return prop == null ? defaultValue : Byte.parseByte(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default byte getByte(String name, ByteSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsByte() : Byte.parseByte(prop);
+        try {
+            return prop == null ? defaultValue.getAsByte() : Byte.parseByte(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default Float getFloat(String name) {
         String prop = getString(name);
-        return prop == null ? null : Float.parseFloat(prop);
+        try {
+            return prop == null ? null : Float.parseFloat(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default float getFloat(String name, float defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Float.parseFloat(prop);
+        try {
+            return prop == null ? defaultValue : Float.parseFloat(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default float getFloat(String name, FloatSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsFloat() : Float.parseFloat(prop);
+        try {
+            return prop == null ? defaultValue.getAsFloat() : Float.parseFloat(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default Long getLong(String name) {
         String prop = getString(name);
-        return prop == null ? null : Long.parseLong(prop);
+        try {
+            return prop == null ? null : Long.parseLong(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default long getLong(String name, long defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Long.parseLong(prop);
+        try {
+            return prop == null ? defaultValue : Long.parseLong(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default long getLong(String name, LongSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsLong() : Long.parseLong(prop);
+        try {
+            return prop == null ? defaultValue.getAsLong() : Long.parseLong(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default Boolean getBoolean(String name) {
@@ -258,17 +348,35 @@ public interface Settings extends Iterable<String> {
 
     default Double getDouble(String name) {
         String prop = getString(name);
-        return prop == null ? null : Double.parseDouble(prop);
+        try {
+            return prop == null ? null : Double.parseDouble(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default double getDouble(String name, double defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue : Double.parseDouble(prop);
+        try {
+            return prop == null ? defaultValue : Double.parseDouble(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default double getDouble(String name, DoubleSupplier defaultValue) {
         String prop = getString(name);
-        return prop == null ? defaultValue.getAsDouble() : Double.parseDouble(prop);
+        try {
+            return prop == null ? defaultValue.getAsDouble() : Double.parseDouble(prop);
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name);
+            nue.initCause(ex);
+            throw nue;
+        }
     }
 
     default byte[] getBase64(String name) {
@@ -302,8 +410,15 @@ public interface Settings extends Iterable<String> {
         }
         CharSequence[] seqs = Strings.trim(Strings.split(',', val));
         int[] result = new int[seqs.length];
-        for (int i = 0; i < seqs.length; i++) {
-            result[i] = Strings.parseInt(seqs[i]);
+        try {
+            for (int i = 0; i < seqs.length; i++) {
+                result[i] = Strings.parseInt(seqs[i]);
+            }
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for "
+                    + name + ": " + val);
+            nue.initCause(ex);
+            throw nue;
         }
         return result;
     }
@@ -323,8 +438,14 @@ public interface Settings extends Iterable<String> {
         }
         CharSequence[] seqs = Strings.trim(Strings.split(',', val));
         long[] result = new long[seqs.length];
-        for (int i = 0; i < seqs.length; i++) {
-            result[i] = Strings.parseLong(seqs[i]);
+        try {
+            for (int i = 0; i < seqs.length; i++) {
+                result[i] = Strings.parseLong(seqs[i]);
+            }
+        } catch (NumberFormatException ex) {
+            NumberFormatException nue = new NumberFormatException("Invalid value for " + name + ": " + val);
+            nue.initCause(ex);
+            throw nue;
         }
         return result;
     }

@@ -79,6 +79,8 @@ public final class SettingsBuilder {
      * File extension for settings files <code>.properties</code>
      */
     public static final String DEFAULT_EXTENSION = ".properties";
+
+    private static final String ORIG_DEFAULTS_PATH = DEFAULT_PATH + "_generated-original.properties";
     /**
      * Prefix used for settings files generated from annotations,
      * <code>generated-</code>
@@ -137,6 +139,10 @@ public final class SettingsBuilder {
         return namespace;
     }
 
+    private String getOriginalDefaultsLocation() {
+        return ORIG_DEFAULTS_PATH;
+    }
+
     private String getGeneratedFilesLocation() {
         return DEFAULT_PATH + GENERATED_PREFIX + namespace + DEFAULT_EXTENSION;
     }
@@ -182,6 +188,15 @@ public final class SettingsBuilder {
      */
     public SettingsBuilder addGeneratedDefaultsFromClasspath() {
         return add(getGeneratedFilesLocation());
+    }
+
+    /**
+     * Add any properties files generated from the &#064;Setting annotation.
+     *
+     * @return this
+     */
+    public SettingsBuilder addOriginalDefaultsFromClasspath() {
+        return add(getOriginalDefaultsLocation());
     }
 
     /**
@@ -358,7 +373,8 @@ public final class SettingsBuilder {
     }
 
     public SettingsBuilder addFilesystemAndClasspathLocations() {
-        return addGeneratedDefaultsFromClasspath()
+        return addOriginalDefaultsFromClasspath()
+                .addGeneratedDefaultsFromClasspath()
                 .addDefaultsFromClasspath()
                 .addDefaultsFromEtc()
                 .addDefaultsFromUserHome()

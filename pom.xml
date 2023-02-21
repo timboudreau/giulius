@@ -45,6 +45,7 @@
         <module>giulius-postgres-async</module>
         <module>smart-jar-merge</module>
         <module>postgres-harness</module>
+        <module>giulius-help</module>
     </modules>
     <issueManagement>
         <system>Github</system>

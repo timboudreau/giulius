@@ -31,6 +31,11 @@
             <artifactId>giulius</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>giulius-annotation-processors</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-pg-client</artifactId>
         </dependency>
