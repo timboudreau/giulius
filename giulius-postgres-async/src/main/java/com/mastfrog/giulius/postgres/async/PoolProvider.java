@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package com.mastfrog.giulius.postgres.async;
 
 import com.mastfrog.shutdown.hooks.ShutdownHookRegistry;
+import io.vertx.core.Vertx;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.PoolOptions;
@@ -46,8 +46,8 @@ final class PoolProvider implements Provider<PgPool>, Runnable {
 
     @SuppressWarnings(value = "LeakingThisInConstructor")
     @Inject
-    PoolProvider(Provider<PgConnectOptions> pConnectOpts, 
-            Provider<PoolOptions> ppoolOpts, VertxProvider vx, 
+    PoolProvider(Provider<PgConnectOptions> pConnectOpts,
+            Provider<PoolOptions> ppoolOpts, VertxProvider vx,
             ShutdownHookRegistry reg) {
         this.pConnectOpts = pConnectOpts;
         this.ppoolOpts = ppoolOpts;
@@ -58,7 +58,8 @@ final class PoolProvider implements Provider<PgPool>, Runnable {
     @Override
     public synchronized PgPool get() {
         if (pool == null) {
-            pool = PgPool.pool(vx.getVertx(), pConnectOpts.get(), ppoolOpts.get());
+            Vertx vertx = vx.getVertx();
+            pool = PgPool.pool(vertx, pConnectOpts.get(), ppoolOpts.get());
         }
         return pool;
     }

@@ -45,4 +45,9 @@ final class VertxProviderProvider implements VertxProvider {
     public Vertx getVertx() {
         return delegate.get();
     }
+    
+    @Override
+    public String toString() {
+        return "VertxProviderProvider(" + delegate + ")";
+    }
 }
