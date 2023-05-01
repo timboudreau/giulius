@@ -61,8 +61,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.Reader;
+import static java.lang.Thread.currentThread;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -587,7 +587,7 @@ public final class Dependencies implements Instantiator {
                 reg.setWaitMilliseconds(Math.max(100L, shutdownTimeout));
                 Provider<Settings> namespacedSettings;
                 if (onlyDefaultNamespace) {
-                    // 3.5.0 - for Graal, avoid package lookups which are problematic
+                    // 2.5.0 - for Graal, avoid package lookups which are problematic
                     // with reflection - should also improve settings lookups in general
                     String ns = knownNamespaces.isEmpty() ? SettingsBuilder.DEFAULT_NAMESPACE : knownNamespaces.iterator().next();
                     namespacedSettings = Providers.of(settings.get(ns));
@@ -786,49 +786,8 @@ public final class Dependencies implements Instantiator {
             this.deps = deps;
         }
 
-        static volatile Method getDefinedPackageMethod;
-        static boolean checkedGetDefinedPackageMethod;
-
-        static Method lookupGetDefinedPackageMethod() {
-            if (getDefinedPackageMethod != null) {
-                return getDefinedPackageMethod;
-            }
-            if (checkedGetDefinedPackageMethod) {
-                return null;
-            }
-            Method result = null;
-            try {
-                result = ClassLoader.class.getDeclaredMethod("getDefinedPackage", String.class);
-                synchronized (NamespacedSettingsProvider.class) {
-                    getDefinedPackageMethod = result;
-                }
-            } catch (Exception ex) {
-                Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
-                        "Check availability of JDK 9's ClassLoader.getDefinedPackage()", ex);
-            } finally {
-                checkedGetDefinedPackageMethod = true;
-            }
-            return result;
-        }
-
         private Package jdk9getPackage(String pkg) {
-            Method mth = lookupGetDefinedPackageMethod();
-            if (mth != null) {
-                ClassLoader ldr = Thread.currentThread().getContextClassLoader();
-                try {
-                    return (Package) mth.invoke(ldr, pkg);
-                } catch (IllegalAccessException ex) {
-                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
-                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
-                } catch (IllegalArgumentException ex) {
-                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
-                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
-                } catch (InvocationTargetException ex) {
-                    Logger.getLogger(Dependencies.class.getName()).log(Level.FINE,
-                            "Invoking ClassLoader.getDefinedPackage(\"" + pkg + "\")", ex);
-                }
-            }
-            return null;
+            return currentThread().getContextClassLoader().getDefinedPackage(pkg);
         }
 
         private static Package reflectivePackageGetPackage(String what) {

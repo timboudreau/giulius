@@ -250,13 +250,8 @@ public class GiuliusMongoAsyncModule extends AbstractModule implements MongoAsyn
         }
     }
 
-    // XXX when 3.1.0 is stable, replace with MongoClients.getDefaultCodecRegistry()
     private static final CodecRegistry DEFAULT_CODEC_REGISTRY
             = MongoClients.getDefaultCodecRegistry();
-//            = fromProviders(asList(
-//                    new ValueCodecProvider(),
-//                    new DocumentCodecProvider(),
-//                    new BsonValueCodecProvider()));
 
     private void checkDone() {
         if (done) {

@@ -182,11 +182,8 @@ public class MongoHarness {
             } else {
                 System.err.println("Discarding mongodb output.  Set system property acteur.debug to true to inherit "
                         + "it, or mongo.tmplog to true to write it to a file in /tmp");
-                pb.redirectError(new File("/dev/null"));
-                pb.redirectOutput(new File("/dev/null"));
-                // JDK 9:
-//                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-//                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             }
         }
 
@@ -363,7 +360,7 @@ public class MongoHarness {
                             // for the inMemory storage engine and will crash
                             pb = new ProcessBuilder().command(mongodExe,
                                     "--dbpath", mongoDir.getAbsolutePath(),
-//                                    "--nojournal",
+                                    //                                    "--nojournal",
                                     "--slowms", "5",
                                     "--port", "" + port,
                                     "--maxConns", "50",
@@ -387,7 +384,7 @@ public class MongoHarness {
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
+                                //                                "--nojournal",
                                 "--smallfiles",
                                 "-nssize", "1",
                                 "--noprealloc",
@@ -402,7 +399,7 @@ public class MongoHarness {
                         cmd = new ArrayList<>(Arrays.asList(
                                 mongodExe,
                                 "--dbpath", mongoDir.getAbsolutePath(),
-//                                "--nojournal",
+                                //                                "--nojournal",
                                 "--slowms", "5",
                                 "--port", "" + port,
                                 "--maxConns", "50",

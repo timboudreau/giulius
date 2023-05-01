@@ -87,7 +87,7 @@ public abstract class AbstractSubscriberContextTest {
             }
             throw new ThrowMe();
         };
-        Consumer wrapped = ctx.wrap(raw);
+        Consumer<String> wrapped = ctx.wrap(raw);
         quietly(ThrowMe.class, () -> wrapped.accept("foo"));
         assertTrue("Did not run", ran.getAsBoolean());
         Throwable t = un.assertThrown();

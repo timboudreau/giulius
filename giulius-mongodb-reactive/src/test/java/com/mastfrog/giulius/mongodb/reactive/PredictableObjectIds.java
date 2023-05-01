@@ -36,9 +36,6 @@ import org.bson.types.ObjectId;
  */
 public final class PredictableObjectIds {
 
-    static int count = 1;
-    static short pcount = 1;
-    static int ccount = 1;
     @SuppressWarnings("StaticNonFinalUsedInInitialization")
     static final FactoryThreadLocal<IntSupplier> ct = new FactoryThreadLocal<>(() -> {
         return new IntSupplier() {

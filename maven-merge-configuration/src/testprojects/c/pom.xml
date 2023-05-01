@@ -8,7 +8,7 @@
     <parent>
         <artifactId>giulius-parent</artifactId>
         <groupId>com.mastfrog</groupId>
-        <version>2.9.7</version>
+        <version>3.0.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
