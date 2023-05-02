@@ -26,7 +26,7 @@ package com.mastfrog.mongodb.init;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.mastfrog.giulius.tests.GuiceRunner;
-import com.mastfrog.giulius.tests.TestWith;
+import com.mastfrog.giulius.tests.anno.TestWith;
 import com.mastfrog.jackson.JacksonModule;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.IndexOptionDefaults;

@@ -27,7 +27,7 @@ import com.mastfrog.function.state.Obj;
 import com.mastfrog.giulius.Dependencies;
 import com.mastfrog.giulius.mongodb.reactive.util.Subscribers;
 import com.mastfrog.giulius.tests.GuiceRunner;
-import com.mastfrog.giulius.tests.IfBinaryAvailable;
+import com.mastfrog.giulius.tests.anno.IfBinaryAvailable;
 import com.mastfrog.util.preconditions.Exceptions;
 import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.reactivestreams.client.MongoClient;

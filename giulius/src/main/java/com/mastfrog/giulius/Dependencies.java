@@ -250,7 +250,6 @@ public final class Dependencies implements Instantiator {
         return injector;
     }
 
-
     void setShutdownHookExecutorWaitMillis(long shutdownHookExecutorWaitMillis) {
         this.shutdownHookWaitMillis = shutdownHookExecutorWaitMillis;
     }
@@ -346,6 +345,16 @@ public final class Dependencies implements Instantiator {
      */
     protected Module createBindings() {
         return new DependenciesModule();
+    }
+
+    /**
+     * Convert this Dependencies to a Module that can be used in another
+     * injector, without creating the injector if it has not been already.
+     *
+     * @return a module
+     */
+    public final Module toModule() {
+        return createBindings();
     }
 
     /**
@@ -523,7 +532,6 @@ public final class Dependencies implements Instantiator {
             return Objects.equals(this.key, other.key);
         }
     }
-
 
     public final Dependencies alsoShutdown(Dependencies other) {
         if (other == this) {
