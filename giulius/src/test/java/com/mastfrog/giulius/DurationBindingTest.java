@@ -30,6 +30,7 @@ import com.mastfrog.settings.Settings;
 import com.mastfrog.util.time.TimeUtil;
 import java.io.IOException;
 import java.time.Duration;
+import static java.util.EnumSet.allOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
@@ -40,23 +41,23 @@ import org.junit.Test;
  */
 public class DurationBindingTest {
 
-    static final  Duration A = Duration.ofDays(1);
-    static final  String a1 = A.toString();
-    static final  String a2 = TimeUtil.format(A, true);
-    static final  String a3 = TimeUtil.format(A, false);
-    static final  String a4 = Long.toString(A.toMillis());
+    static final Duration A = Duration.ofDays(1);
+    static final String a1 = A.toString();
+    static final String a2 = TimeUtil.format(A, true);
+    static final String a3 = TimeUtil.format(A, false);
+    static final String a4 = Long.toString(A.toMillis());
 
-    static final  Duration B = Duration.ofMinutes(23).plus(Duration.ofSeconds(32)).plus(Duration.ofMillis(5));
-    static final  String b1 = B.toString();
-    static final  String b2 = TimeUtil.format(B, true);
-    static final  String b3 = TimeUtil.format(B, false);
-    static final  String b4 = Long.toString(B.toMillis());
+    static final Duration B = Duration.ofMinutes(23).plus(Duration.ofSeconds(32)).plus(Duration.ofMillis(5));
+    static final String b1 = B.toString();
+    static final String b2 = TimeUtil.format(B, true);
+    static final String b3 = TimeUtil.format(B, false);
+    static final String b4 = Long.toString(B.toMillis());
 
-    static final  Duration Z = Duration.ZERO;
-    static final  String z1 = Z.toString();
-    static final  String z2 = TimeUtil.format(Z, true);
-    static final  String z3 = TimeUtil.format(Z, false);
-    static final  String z4 = Long.toString(Z.toMillis());
+    static final Duration Z = Duration.ZERO;
+    static final String z1 = Z.toString();
+    static final String z2 = TimeUtil.format(Z, true);
+    static final String z3 = TimeUtil.format(Z, false);
+    static final String z4 = Long.toString(Z.toMillis());
 
     @Test
     public void testDurationBinding() throws IOException {
@@ -75,7 +76,7 @@ public class DurationBindingTest {
                 .add("z4", z4)
                 .build();
 
-        Dependencies deps = new Dependencies(settings);
+        Dependencies deps = new Dependencies(settings, allOf(SettingsBindings.class));
         testOne(A, "a", deps, settings);
         testOne(B, "b", deps, settings);
         testOne(Z, "z", deps, settings);

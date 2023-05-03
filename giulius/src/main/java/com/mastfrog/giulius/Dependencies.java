@@ -80,6 +80,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -121,7 +122,7 @@ import java.util.regex.Pattern;
     @Expose(type = "com.google.inject.name.Named", methods = @Expose.MethodInfo(name = "value")),
     @Expose(type = "javax.inject.Named", methods = @Expose.MethodInfo(name = "value"))
 })
-public final class Dependencies implements Instantiator {
+public final class Dependencies implements Injection {
 
     public static final String SETTINGS_KEY_SHUTDOWN_HOOK_EXECUTOR_WAIT = "shutdownHookExecutorWait";
 
@@ -183,32 +184,35 @@ public final class Dependencies implements Instantiator {
         }
     }
 
+    private static final Set<SettingsBindings> DEFAULT_SETTINGS_BINDINGS
+            = EnumSet.of(SettingsBindings.INT, SettingsBindings.LONG, SettingsBindings.BOOLEAN,
+                    SettingsBindings.STRING);
+
     /**
-     * Create a dependency using the passed Configuration, bypassing any loading
-     * from the classpath or elsewhere.
+     * Create a new injector wrapper using the passed settings and modules.
      *
      * @param configuration The configuration which is the source for Named
      * injections
      * @param modules A set of modules
      */
     public Dependencies(Settings configuration, Module... modules) {
-        this(false, Collections.singletonMap(DEFAULT_NAMESPACE, configuration), EnumSet.allOf(SettingsBindings.class), modules);
+        this(false, Collections.singletonMap(DEFAULT_NAMESPACE, configuration), DEFAULT_SETTINGS_BINDINGS, modules);
+    }
+
+    public Dependencies(Settings configuration, Set<SettingsBindings> settingsBindings, Module... modules) {
+        this(false, Collections.singletonMap(DEFAULT_NAMESPACE, configuration), settingsBindings, modules);
     }
 
     Dependencies(boolean mergeNamespaces, Map<String, Settings> settings, Set<SettingsBindings> settingsBindings, Module... modules) {
         this.mergeNamespaces = mergeNamespaces;
         this.settings.putAll(settings);
         if (!this.settings.containsKey(DEFAULT_NAMESPACE)) {
-            try {
-                //need at least an empty one for defaults
-                this.settings.put(DEFAULT_NAMESPACE, new SettingsBuilder().build());
-            } catch (IOException ex) {
-                throw new ConfigurationError(ex);
-            }
+            //need at least an empty one for defaults
+            this.settings.put(DEFAULT_NAMESPACE, Settings.EMPTY);
         }
         this.modules.add(createBindings());
         this.modules.addAll(Arrays.asList(modules));
-        this.settingsBindings = settingsBindings;
+        this.settingsBindings = EnumSet.copyOf(settingsBindings);
     }
 
     public static DependenciesBuilder builder() {
@@ -227,6 +231,7 @@ public final class Dependencies implements Instantiator {
      *
      * @return
      */
+    @Override
     public Injector getInjector() {
         if (injector == null) {
             if (getStage() == Stage.PRODUCTION) {
@@ -307,6 +312,7 @@ public final class Dependencies implements Instantiator {
      * @param type The type
      * @return An instance of that class
      */
+    @Override
     public <T> T getInstance(Key<T> key) {
         return getInjector().getInstance(key);
     }
@@ -440,6 +446,7 @@ public final class Dependencies implements Instantiator {
      *
      * @param arg
      */
+    @Override
     public void injectMembers(Object arg) {
         getInjector().injectMembers(arg);
     }
@@ -550,6 +557,10 @@ public final class Dependencies implements Instantiator {
                 Binder binder = binder();
                 bind(Dependencies.class).toInstance(Dependencies.this);
                 bind(Instantiator.class).toInstance(Dependencies.this);
+                bind(new TypeLiteral<Supplier<Injector>>() {
+                })
+                        .toInstance(Dependencies.this::getInjector);
+                bind(Injection.class).toInstance(Dependencies.this);
                 bind(com.mastfrog.giulius.ShutdownHookRegistry.class).toInstance(reg);
                 bind(com.mastfrog.giulius.ShutdownHooks.class).toInstance(reg);
                 bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg.realHooks());
