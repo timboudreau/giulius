@@ -56,7 +56,7 @@ import java.util.Arrays;
  */
 @SupportedAnnotationTypes({GUICE_INJECT_ANNOTATION, JAVAX_INJECT_ANNOTATION, REFLECTION_INFO_ANNOTATION,
     JSON_CREATOR_ANNOTATION, JSON_PROPERTY_ANNOTATION, EXPOSE_TYPES_ANNOTATION, EXPOSE_MANY_ANNOTATION})
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @ServiceProvider(Processor.class)
 public final class GraalInjectionProcessor extends AbstractRegistrationAnnotationProcessor<GraalEntryIndexFactory.GraalEntry> {
 

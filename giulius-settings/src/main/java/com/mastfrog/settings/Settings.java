@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.DoubleSupplier;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
@@ -83,6 +84,28 @@ public interface Settings extends Iterable<String> {
 
     String getString(String name);
 
+    /**
+     * Get a string using the passed key, and convert the value (which may be
+     * null!) using the passed function.
+     *
+     * @param <T> The type
+     * @param name The key
+     * @param converter A conversion function
+     * @return The value returned by the conversion function when passed the
+     * string value for the passed key
+     */
+    default <T> T get(String name, Function<String, T> converter) {
+        return converter.apply(getString(name));
+    }
+
+    /**
+     * Get the string value, given a key, and using the passed default value
+     * as a fallback.
+     *
+     * @param name The key
+     * @param defaultValue the fallback value
+     * @return A string
+     */
     default String getString(String name, String defaultValue) {
         String result = getString(name);
         if (result == null) {
@@ -91,6 +114,14 @@ public interface Settings extends Iterable<String> {
         return result;
     }
 
+    /**
+     * Get a string, using the passed supplier to provide a default value if the
+     * key is not present.
+     *
+     * @param name The key
+     * @param defaultValue A factory for a default value
+     * @return A string or null if the supplier returns null
+     */
     default String string(String name, Supplier<String> defaultValue) {
         String result = getString(name);
         if (result == null) {
@@ -127,14 +158,34 @@ public interface Settings extends Iterable<String> {
         return result;
     }
 
+    /**
+     * Get the set of all known keys in this instance.  Depending on the implementation,
+     * this may <i>not</i> be the set of all keys for which a non-null value may
+     * be obtained - some implementations (such as the etcd over-the-network one) do
+     * not know all of the values they can be queried for.
+     *
+     * @return A set of strings
+     */
     default Set<String> allKeys() {
         return toProperties().stringPropertyNames();
     }
 
+    /**
+     * Create a settings builder.
+     *
+     * @return A settings builder
+     */
     static SettingsBuilder builder() {
         return new SettingsBuilder();
     }
 
+    /**
+     * Create a settings builder with a specific namespace (determines the name for properties
+     * files looked for).
+     *
+     * @param ns A namespace
+     * @return A settings builder
+     */
     static SettingsBuilder builder(String ns) {
         return new SettingsBuilder(ns);
     }

@@ -67,7 +67,7 @@ class PropertiesWrapper implements Settings {
     @Override
     public Integer getInt(String name) {
         String prop = prop(name);
-        return prop == null ? null : Integer.parseInt(prop);
+        return prop == null ? null : Integer.valueOf(prop);
     }
 
     @Override

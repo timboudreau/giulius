@@ -8,13 +8,14 @@
         <h1>Settings</h1>
         This package provides a general-purpose mechanism for key-value pair
         based runtime configuration.
-        <p/>
-        Settings are composed from zero or more Properties objects.  While
-        the {@link Settings} interface <i>can</i> be implemented directly,
-        that is usually not the way this library is used.
-        <p/>
-        This library enforces separation between writing settings and reading
-        settings, based on the following observations:
+        <p>
+            Settings are composed from zero or more Properties objects.  While
+            the {@link Settings} interface <i>can</i> be implemented directly,
+            that is usually not the way this library is used.
+        </p><p>
+            This library enforces separation between writing settings and reading
+            settings, based on the following observations:
+        </p>
         <ul>
             <li>The code that <i>changes</i> settings at runtime is something
                 that configures the application &mdash; it is not a routine
@@ -25,37 +26,45 @@
                 coarse-grained locking models are less deadlock-prone.
             </li>
         </ul>
-        Generally a singleton Settings object is created on application startup;
-        if you are using the Guicy library, you can use Guice's &#064;Named
-        annotation to request direct injection of settings values.
-        <p/>
-        To create that singleton, use <code>{@link SettingsBuilder}</code> -
-        it contains built-in methods to construct a Settings object which
-        exposes all system properties, environment variables, resources in
-        JARs at a given location on the classpath, resources generated using
-        the &#064;Defaults annotation, and any other properties sources
-        you care to pass to it.
-        <p/>
-        For clusters and cloud deployments, a simple mechanism for remote
-        sources of properties can be used:  Just add a URL to your
-        <code>SettingsBuilder</code>.  As with passing Files, you can
-        specify an interval for the system to re-load the settings.
-        <p/>
-        In practice, the global Settings is usually constructed using
+        <p>
+            Generally a singleton Settings object is created on application startup;
+            if you are using the Guicy library, you can use Guice's &#064;Named
+            annotation to request direct injection of settings values.
+        </p><p>
+            To create that singleton, use <code>{@link SettingsBuilder}</code> -
+            it contains built-in methods to construct a Settings object which
+            exposes all system properties, environment variables, resources in
+            JARs at a given location on the classpath, resources generated using
+            the &#064;Defaults annotation, and any other properties sources
+            you care to pass to it.
+        </p><p>
+            For clusters and cloud deployments, a simple mechanism for remote
+            sources of properties can be used:  Just add a URL to your
+            <code>SettingsBuilder</code>.  As with passing Files, you can
+            specify an interval for the system to re-load the settings.
+        </p><p>
+            In practice, the global Settings is usually constructed using
+        </p>
         <pre>
 Settings settings = new SettingsBuilder.createDefault().build();
         </pre>
-        If you are going to need to change settings in-memory at runtime,
-        you may call
+        <p>
+            If you are going to need to change settings in-memory at runtime,
+            you may call
+        </p>
         <pre>
 MutableSettings settings = new SettingsBuilder.createDefault().buildMutableSettings();
         </pre>
-        (remember that the ephemeral layer overrides everything below it).
+        <p>
+            (remember that the ephemeral layer overrides everything below it).
+        </p>
         <h3>Where Settings Come From</h3>
-        If you simply called <code>new SettingsBuilder().build()</code> you would
-        get an empty Settings object.  <code>createDefault()</code> provides some
-        conventions for where to get settings, but you are free to use any or all
-        or none of them if you want.  What it actually does is this:
+        <p>
+            If you simply called <code>new SettingsBuilder().build()</code> you would
+            get an empty Settings object.  <code>createDefault()</code> provides some
+            conventions for where to get settings, but you are free to use any or all
+            or none of them if you want.  What it actually does is this:
+        </p>
         <pre>
     public static SettingsBuilder createDefault() {
         File homeDefaults = new File(new File(System.getProperty("user.home")), "defaults.properties");
@@ -69,60 +78,70 @@ MutableSettings settings = new SettingsBuilder.createDefault().buildMutableSetti
         }
         return b;
     }</pre>
-        The <i>convention</i> here is to add all of the JVM's system properties and
-        environment variables so they are available for injection.
-        <p/>
-        After that, it adds the merge of all properties files on the <i>classpath</i>
-        named <code>com/mastfrog/generated-defaults.properties</code> (these will
-        be generated using the <code>&#064;Defaults</code> annotation).
-        <p/>
-        After that, it adds the merge of all properties files on the classpath
-        named <code>com/mastfrog/defaults.properties</code>.  This is so you can
-        include hand-edited properties files in your defaults.
-        <p/>
-        Lastly, it adds a file called "defaults.properties" in the user home directory,
-        if such a file exists.
-        <p/>
-        In practice, these make for a sane combination of locations to use - but you
-        can create your own SettingsBuilder and customize it to taste.
-        
+        <p>
+            The <i>convention</i> here is to add all of the JVM's system properties and
+            environment variables so they are available for injection.
+        </p><p>
+            After that, it adds the merge of all properties files on the <i>classpath</i>
+            named <code>com/mastfrog/generated-defaults.properties</code> (these will
+            be generated using the <code>&#064;Defaults</code> annotation).
+        </p><p>
+            After that, it adds the merge of all properties files on the classpath
+            named <code>com/mastfrog/defaults.properties</code>.  This is so you can
+            include hand-edited properties files in your defaults.
+        </p><p>
+            Lastly, it adds a file called "defaults.properties" in the user home directory,
+            if such a file exists.
+        </p><p>
+            In practice, these make for a sane combination of locations to use - but you
+            can create your own SettingsBuilder and customize it to taste.
+        </p>
+
         <h2>Namespaces</h2>
-        Especially when working with existing code, you may have settings which
-        you need to load from a properties file on disk for one part of the system,
-        and others to load for another part.  It may even be that both of these 
-        involve the same key names, so they really can't be combined into one
-        properties file.
-        <p/>
-        Namespaces exist to solve that problem.  A SettingsBuilder can take a 
-        constructor parameter which is the name of a namespace it belongs to.
-        If supplied, that will change the behavior of where the code will look
-        for properties files.
-        <p/>
-        Take, for example, this:
+        <p>
+            Especially when working with existing code, you may have settings which
+            you need to load from a properties file on disk for one part of the system,
+            and others to load for another part.  It may even be that both of these
+            involve the same key names, so they really can't be combined into one
+            properties file.
+        </p><p>
+            Namespaces exist to solve that problem.  A SettingsBuilder can take a
+            constructor parameter which is the name of a namespace it belongs to.
+            If supplied, that will change the behavior of where the code will look
+            for properties files.
+        </p><p>
+            Take, for example, this:
+        </p>
         <pre>
         Settings s = new SettingsBuilder("wildcards").createDefault().build();
         </pre>
-        Since we are supplying our own name, it will use that when figuring out
-        where to look in the classpath and home directory.  Specifically, the word
-        "defaults" is replaced by what you passed.  So it will look in
+        <p>
+            Since we are supplying our own name, it will use that when figuring out
+            where to look in the classpath and home directory.  Specifically, the word
+            "defaults" is replaced by what you passed.  So it will look in
+        </p>
         <ul>
             <li>com/mastfrog/generated-wildcards.properties on the classpath</li>
             <li>com/mastfrog/wildcards.properties on the classpath</li>
             <li>~/wildcards.properties in the user's home directory</li>
         </ul>
-        The Guicy library provides a way to make use of this.  When you are initializing
-        your Guice injector, you would do something like this:
+        <p>
+            The Giulius library provides a way to make use of this.  When you are initializing
+            your Guice injector, you would do something like this:
+        </p>
         <pre>
         Settings wc = new SettingsBuilder("wildcards").createDefault().build();
         Settings stuff = new SettingsBuilder("stuff").createDefault().build();
         Dependencies deps = Dependencies.builder().add(wc, "wildcards").add(stuff, "stuff").add(new MyGuiceModule()).build();
         </pre>
-        So how do you use different settings in different Java classes?  This is quite
-        simple:  the <code>&#064Namespace</code> annotation.  Simply annotate your
-        class or Java package (via a <code>package-info.java</code> file) with 
-        <code>&#064;Namespace("wildcards")</code> and then write its constructor 
-        for injection normally.  Under the hood, the system will detect the annotation
-        and use the Settings you passed with that namespace:
+        <p>
+            So how do you use different settings in different Java classes?  This is quite
+            simple:  the <code>&#064;Namespace</code> annotation.  Simply annotate your
+            class or Java package (via a <code>package-info.java</code> file) with
+            <code>&#064;Namespace("wildcards")</code> and then write its constructor
+            for injection normally.  Under the hood, the system will detect the annotation
+            and use the Settings you passed with that namespace:
+        </p>
         <pre>
         &#064;Namespace("wildcards")
         public class Server {
@@ -132,8 +151,10 @@ MutableSettings settings = new SettingsBuilder.createDefault().buildMutableSetti
            }
         }
         </pre>
-        So you can split your settings into different files for different parts
-        of the system, and then just annotate classes with &#064Namespace to
-        specify where to look for values.
+        <p>
+            So you can split your settings into different files for different parts
+            of the system, and then just annotate classes with &#064Namespace to
+            specify where to look for values.
+        </p>
     </body>
 </html>

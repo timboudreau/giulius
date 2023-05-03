@@ -59,7 +59,7 @@ import javax.tools.Diagnostic;
 @ServiceProvider(Processor.class)
 @SupportedAnnotationTypes({NEW_DEFAULTS_ANNOTATION_TYPE, OLD_DEFAULTS_ANNOTATION_TYPE,
     REPLACEMENT_DEFAULTS_ANNOTATION_TYPE, SETTING_ANNOTATION_TYPE})
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class DefaultsAnnotationProcessor extends AbstractRegistrationAnnotationProcessor<PropertiesIndexEntry> {
 
     /**

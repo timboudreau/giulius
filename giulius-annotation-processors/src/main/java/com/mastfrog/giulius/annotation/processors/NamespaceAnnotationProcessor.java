@@ -44,7 +44,7 @@ import javax.tools.Diagnostic;
 @ServiceProvider(Processor.class)
 @SupportedAnnotationTypes({OLD_NAMESPACE_ANNOTATION_TYPE, "com.mastfrog.guicy.annotations.Value",
     NEW_NAMESPACE_ANNOTATION_TYPE, "com.mastfrog.giulius.annotations.Value"})
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class NamespaceAnnotationProcessor extends AbstractLineOrientedRegistrationAnnotationProcessor {
 
     private static final char[] illegalChars = "/\\/:[],'\"<>?%+".toCharArray();
