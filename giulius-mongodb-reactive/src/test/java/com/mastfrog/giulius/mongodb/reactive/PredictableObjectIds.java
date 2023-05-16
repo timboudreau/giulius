@@ -23,9 +23,9 @@
  */
 package com.mastfrog.giulius.mongodb.reactive;
 
-import com.mastfrog.util.thread.FactoryThreadLocal;
 import java.util.Date;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 import org.bson.types.ObjectId;
 
 /**
@@ -36,17 +36,7 @@ import org.bson.types.ObjectId;
  */
 public final class PredictableObjectIds {
 
-    @SuppressWarnings("StaticNonFinalUsedInInitialization")
-    static final FactoryThreadLocal<IntSupplier> ct = new FactoryThreadLocal<>(() -> {
-        return new IntSupplier() {
-            private int ints = 0;
-
-            @Override
-            public int getAsInt() {
-                return ints++;
-            }
-        };
-    });
+    static final ThreadLocal<IntSupplier> ct = ThreadLocal.withInitial(IS::new);
     private static final Date DATE = new Date(1516264455073L);
 
     public static ObjectId nextId() {
@@ -54,5 +44,20 @@ public final class PredictableObjectIds {
     }
 
     PredictableObjectIds() {
+    }
+
+    private static final class IS implements IntSupplier, Supplier<Integer> {
+
+        private int ints = 0;
+
+        @Override
+        public int getAsInt() {
+            return ints++;
+        }
+
+        @Override
+        public Integer get() {
+            return getAsInt();
+        }
     }
 }

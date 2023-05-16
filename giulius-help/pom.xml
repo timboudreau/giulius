@@ -14,10 +14,6 @@
             <groupId>${mastfrog.groupId}</groupId>
             <artifactId>util-streams</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${mastfrog.groupId}</groupId>
-            <artifactId>function</artifactId>
-        </dependency>
     </dependencies>
 
 </project>
