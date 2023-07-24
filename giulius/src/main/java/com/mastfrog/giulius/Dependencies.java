@@ -143,7 +143,7 @@ public final class Dependencies implements Injection {
     private final ThreadLocalCounter ctr = new ThreadLocalCounter();
     private final boolean mergeNamespaces;
     @SuppressWarnings("deprecation")
-    private final com.mastfrog.giulius.ShutdownHookRegistry reg = com.mastfrog.giulius.ShutdownHookRegistry.get();
+    private final com.mastfrog.shutdown.hooks.ShutdownHookRegistry reg = com.mastfrog.shutdown.hooks.ShutdownHookRegistry.shutdownHookRegistry();
     private final Set<Dependencies> others = Collections.<Dependencies>synchronizedSet(new HashSet<>());
     private long shutdownHookWaitMillis;
 
@@ -558,28 +558,25 @@ public final class Dependencies implements Injection {
                 bind(Dependencies.class).toInstance(Dependencies.this);
                 bind(Instantiator.class).toInstance(Dependencies.this);
                 bind(new TypeLiteral<Supplier<Injector>>() {
-                })
-                        .toInstance(Dependencies.this::getInjector);
+                }).toInstance(Dependencies.this::getInjector);
                 bind(Injection.class).toInstance(Dependencies.this);
-                bind(com.mastfrog.giulius.ShutdownHookRegistry.class).toInstance(reg);
-                bind(com.mastfrog.giulius.ShutdownHooks.class).toInstance(reg);
-                bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg.realHooks());
-                bind(com.mastfrog.shutdown.hooks.ShutdownHookRegistry.class).toInstance(reg.realHooks());
+                bind(com.mastfrog.shutdown.hooks.ShutdownHooks.class).toInstance(reg);
+                bind(com.mastfrog.shutdown.hooks.ShutdownHookRegistry.class).toInstance(reg);
                 Set<String> knownNamespaces = loadNamespaceListsFromClasspath();
                 log("Loaded namespaces " + knownNamespaces);
                 knownNamespaces.addAll(settings.keySet());
                 knownNamespaces.add(Namespace.DEFAULT);
 
                 Stage stage = getStage();
-                DeploymentMode mode;
+                com.mastfrog.shutdown.hooks.DeploymentMode mode;
                 switch (stage) {
                     case PRODUCTION:
-                        mode = DeploymentMode.PRODUCTION;
+                        mode = com.mastfrog.shutdown.hooks.DeploymentMode.PRODUCTION;
                         break;
                     default:
-                        mode = DeploymentMode.DEVELOPMENT;
+                        mode = com.mastfrog.shutdown.hooks.DeploymentMode.DEVELOPMENT;
                 }
-                bind(DeploymentMode.class).toInstance(mode);
+                bind(com.mastfrog.shutdown.hooks.DeploymentMode.class).toInstance(mode);
                 reg.setDeploymentMode(mode);
 
                 boolean onlyDefaultNamespace = knownNamespaces.isEmpty()
