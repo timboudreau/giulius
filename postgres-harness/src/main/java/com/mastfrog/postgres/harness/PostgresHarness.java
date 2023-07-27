@@ -515,7 +515,7 @@ public final class PostgresHarness {
             getRuntime().addShutdownHook(new Thread(this::shutdown));
             synchronized (this) {
                 process = startDb(dest, port);
-                onExit(process).handle((p, thrown) -> {
+                process.onExit().handle((p, thrown) -> {
                     if (thrown != null) {
                         thrown.printStackTrace();
                     }
@@ -732,7 +732,6 @@ public final class PostgresHarness {
         }
         return null;
     }
-
     /**
      * While still supporting JDK 8, we cannot use Process.onExit() except
      * reflectively. The implementation is less than efficient for JDK 8 but
@@ -741,40 +740,6 @@ public final class PostgresHarness {
      * @param proc A process
      * @return A completable future
      */
-    @SuppressWarnings("unchecked")
-    CompletableFuture<Process> onExit(Process proc) {
-        Method onExit = onExitMethod();
-        if (onExit != null) {
-            try {
-                return (CompletableFuture<Process>) onExit.invoke(proc);
-            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                return chuck(ex);
-            }
-        }
-        CompletableFuture<Process> result = new CompletableFuture<>();
-        Runnable busywait = () -> {
-            for (;;) {
-                if (proc.isAlive()) {
-                    try {
-                        sleep(30);
-                    } catch (InterruptedException ex) {
-                        result.completeExceptionally(ex);
-                    }
-                } else {
-                    result.complete(proc);
-                    return;
-                }
-            }
-        };
-        Thread waiter = new Thread(busywait, "JDK8-Process-Waiter: " + proc);
-        waiter.setDaemon(true);
-        waiter.setPriority(currentThread().getPriority() - 1);
-        waiter.setUncaughtExceptionHandler((thr, ex) -> {
-            ex.printStackTrace();
-        });
-        waiter.start();
-        return result;
-    }
 
     private String runNamed(String name, String... command) throws IOException, InterruptedException, ExecutionException {
         Path outPath = dir.resolve(name + ".out");
@@ -793,7 +758,7 @@ public final class PostgresHarness {
 
         Process proc = pb.start();
         Throwable[] t = new Throwable[1];
-        String result = onExit(proc).handle((p, thrown) -> {
+        String result = proc.onExit().handle((p, thrown) -> {
             int exitCode = p.exitValue();
             if (exitCode != 0) {
                 IOException exitValueException = new IOException(name + " process exited with " + exitCode);
